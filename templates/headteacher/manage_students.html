@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Manage Students</title>
+
+<link rel="stylesheet" href="/static/css/admin.css">
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="header-left">
+        <span class="dashboard-title">Headteacher Portal</span>
+    </div>
+
+    <div class="header-right">
+        <div class="profile">
+            <span class="header-name">{{ session.name }}</span>
+            <img src="/static/images/user.png">
+        </div>
+        <a href="/logout">Logout</a>
+    </div>
+</div>
+
+<div class="dashboard">
+
+<!-- SIDEBAR -->
+<!-- ===== SIDEBAR ===== -->
+<div class="sidebar">
+
+    <a href="/headteacher/dashboard">Dashboard</a>
+
+    <!-- STUDENTS SECTION -->
+    <div class="sidebar-group">
+        <span onclick="toggleMenu('studentsMenu')">Students ▼</span>
+
+        <div class="sidebar-sub" id="studentsMenu">
+            <a href="/headteacher/add-student">Add Student</a>
+            <a href="/headteacher/manage-students">View Students</a>
+        </div>
+    </div>
+
+    <a href="#">Results</a>
+    <a href="#">Performance</a>
+    <a href="#">Reports</a>
+
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<h2>Manage Students</h2>
+
+<div class="card">
+
+<!-- SEARCH + FILTER -->
+<form method="GET" class="search-bar">
+
+<input type="text" name="search" placeholder="Search student..." value="{{ search }}">
+
+<select name="class">
+    <option value="">All Classes</option>
+    <option value="Form 1" {% if class_filter=='Form 1' %}selected{% endif %}>Form 1</option>
+    <option value="Form 2" {% if class_filter=='Form 2' %}selected{% endif %}>Form 2</option>
+</select>
+
+<button class="btn">Filter</button>
+
+</form>
+
+<!-- TABLE -->
+<div class="table-container">
+<table>
+
+<thead>
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Class</th>
+<th>Actions</th>
+</tr>
+</thead>
+
+<tbody>
+{% for student in students %}
+<tr>
+<td>{{ student.student_id }}</td>
+<td>{{ student.name }}</td>
+
+<td>
+    <span class="badge badge-class">
+        {{ student.class }}
+    </span>
+</td>
+
+<td class="actions">
+
+<a href="/headteacher/edit-student/{{ student.student_id }}" 
+   class="btn btn-edit btn-small">
+   Edit
+</a>
+
+<a href="/headteacher/delete-student/{{ student.student_id }}" 
+   class="btn btn-delete btn-small"
+   onclick="return confirm('Delete this student?')">
+   Delete
+</a>
+
+</td>
+</tr>
+{% endfor %}
+</tbody>
+
+</table>
+
+<!-- PAGINATION -->
+<div class="pagination">
+
+{% if page > 1 %}
+<a href="?page={{ page-1 }}&search={{ search }}&class={{ class_filter }}">Prev</a>
+{% endif %}
+
+{% for p in range(1, total_pages+1) %}
+<a href="?page={{ p }}&search={{ search }}&class={{ class_filter }}"
+   class="{% if p == page %}active{% endif %}">
+   {{ p }}
+</a>
+{% endfor %}
+
+{% if page < total_pages %}
+<a href="?page={{ page+1 }}&search={{ search }}&class={{ class_filter }}">Next</a>
+{% endif %}
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+<script>
+function toggleMenu(id) {
+    const menu = document.getElementById(id);
+
+    if (menu.style.display === "flex") {
+        menu.style.display = "none";
+    } else {
+        menu.style.display = "flex";
+    }
+}
+</script>
+
+</body>
+</html>

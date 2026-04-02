@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Headteacher Dashboard</title>
+<link rel="stylesheet" href="/static/css/admin.css">
+</head>
+
+<body>
+
+<!-- ===== HEADER ===== -->
+<div class="header">
+    <div class="header-left">
+        <span class="dashboard-title">NED-SEMS Headteacher Portal</span>
+    </div>
+
+    <div class="header-right">
+        <div class="profile">
+            <span class="header-name">{{ session.name }}</span>
+            <img src="/static/images/user.png" alt="Profile">
+        </div>
+        <a href="/logout">Logout</a>
+    </div>
+</div>
+
+<div class="dashboard">
+
+<!-- ===== SIDEBAR ===== -->
+<!-- ===== SIDEBAR ===== -->
+<div class="sidebar">
+
+    <a href="/headteacher/dashboard">Dashboard</a>
+
+    <!-- STUDENTS SECTION -->
+    <div class="sidebar-group">
+        <span onclick="toggleMenu('studentsMenu')">Students ▼</span>
+
+        <div class="sidebar-sub" id="studentsMenu">
+            <a href="/headteacher/add-student">Add Student</a>
+            <a href="/headteacher/manage-students">View Students</a>
+        </div>
+    </div>
+
+    <a href="#">Results</a>
+    <a href="#">Performance</a>
+    <a href="#">Reports</a>
+
+</div>
+
+<!-- ===== CONTENT ===== -->
+<div class="content">
+
+<h2>School Overview</h2>
+
+<!-- ===== STATS ===== -->
+<div class="stats">
+
+<div class="stat-box">
+<h4>Total Students</h4>
+<p>{{ students }}</p>
+</div>
+
+<div class="stat-box">
+<h4>Total Results</h4>
+<p>{{ results }}</p>
+</div>
+
+</div>
+
+<!-- ===== MAIN GRID ===== -->
+<div class="dashboard-grid">
+
+<!-- STUDENT MANAGEMENT -->
+<div class="card card-accent-blue">
+<h3>Student Management</h3>
+
+<p>Register and manage students in your school.</p>
+
+<div class="quick-links">
+<a href="/headteacher/add-student">Add Student</a>
+<a href="/headteacher/manage-students">Manage Students</a>
+</div>
+</div>
+
+<!-- RESULTS -->
+<div class="card card-accent-green">
+<h3>Results Oversight</h3>
+
+<ul class="status-list">
+<li>Total Results Recorded: <b>{{ results }}</b></li>
+<li>Pending Review: <b>0</b></li>
+</ul>
+
+<div class="quick-links">
+<a href="#">Review Results</a>
+</div>
+</div>
+
+<!-- PERFORMANCE -->
+<div class="card card-accent-purple">
+<h3>School Performance</h3>
+
+<p>Analyze academic performance trends.</p>
+
+<div class="quick-links">
+<a href="#">View Reports</a>
+</div>
+</div>
+
+<!-- AI ALERTS -->
+<div class="card card-accent-orange">
+<h3>AI Alerts</h3>
+
+<ul class="status-list">
+<li>⚠️ Irregular Results: <b>0</b></li>
+<li>📉 Performance Drop: <b>0</b></li>
+<li>🚨 Suspicious Activity: <b>0</b></li>
+</ul>
+
+<p class="card-note">AI will monitor anomalies in results and performance.</p>
+</div>
+
+</div>
+
+</div>
+</div>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+
+<div class="footer-container">
+
+<div class="footer-section">
+<h4>NED-SEMS</h4>
+<p>
+National Examination Data System for managing school-level
+students, results, and performance.
+</p>
+</div>
+
+<div class="footer-section">
+<h4>Modules</h4>
+<ul>
+<li>Students</li>
+<li>Results</li>
+<li>Performance</li>
+<li>Reports</li>
+</ul>
+</div>
+
+<div class="footer-section">
+<h4>System</h4>
+<ul>
+<li>Version 1.0</li>
+<li>Database: MySQL</li>
+<li>Status: Operational</li>
+</ul>
+</div>
+
+<div class="footer-section">
+<h4>Support</h4>
+<ul>
+<li>Email: support@ned-sems.gov</li>
+<li>Phone: +265</li>
+</ul>
+</div>
+
+</div>
+
+<div class="footer-bottom">
+© 2026 NED-SEMS | All Rights Reserved
+</div>
+
+</footer>
+
+<script>
+function toggleMenu(id) {
+    const menu = document.getElementById(id);
+
+    if (menu.style.display === "flex") {
+        menu.style.display = "none";
+    } else {
+        menu.style.display = "flex";
+    }
+}
+</script>
+
+</body>
+</html>

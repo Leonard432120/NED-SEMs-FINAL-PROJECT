@@ -1,0 +1,238 @@
+/* ================= GLOBAL ================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f7fb;
+    color: #1e293b;
+    line-height: 1.6;
+}
+
+/* ================= HEADER (MATCH DASHBOARD) ================= */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fbfbfc;
+    color: rgb(37, 35, 35);
+    padding: 15px 25px;
+}
+
+.dashboard-title {
+    font-size: 20px;
+    font-weight: 600;
+    }
+
+.header a {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.header a:hover {
+    text-decoration: underline;
+}
+
+/* ================= MAIN CONTENT ================= */
+.content {
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+/* ================= HERO ================= */
+.hero {
+    background: white;
+    color: rgb(37, 35, 35);
+    padding: 60px 20px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.hero-content {
+    max-width: 800px;
+    margin: auto;
+}
+
+.hero h1 {
+    font-size: 38px;
+    margin-bottom: 15px;
+}
+
+.hero p {
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+/* BUTTONS */
+.btn-primary {
+    display: inline-block;
+    background: white;
+    color: #2563eb;
+    padding: 12px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.btn-primary:hover {
+    background: #e0e7ff;
+}
+
+.btn-login {
+    border: 1px solid white;
+    padding: 8px 15px;
+    border-radius: 6px;
+    background-color: rgb(37, 35, 35);
+}
+
+.btn-login:hover {
+    background: white;
+    color: #1e3a8a;
+}
+
+/* ================= STATS ================= */
+.stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.stat-box {
+    flex: 1;
+    min-width: 160px;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.stat-box h4 {
+    color: #64748b;
+}
+
+.stat-box p {
+    font-size: 22px;
+    font-weight: bold;
+    color: #2563eb;
+    margin-top: 10px;
+}
+
+/* ================= CARDS ================= */
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+    transition: 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+/* ================= GRID ================= */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+}
+
+/* ================= ICONS ================= */
+.icon {
+    margin-bottom: 10px;
+}
+
+.icon img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
+/* ================= TEXT ================= */
+h2 {
+    font-size: 26px;
+}
+
+h3 {
+    margin-bottom: 10px;
+}
+
+p {
+    color: #475569;
+    font-size: 14px;
+}
+
+/* ================= CTA BUTTON ================= */
+.quick-btn {
+    background: #2563eb;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.quick-btn:hover {
+    background: #1e3a8a;
+}
+
+/* ================= FOOTER ================= */
+.footer {
+    background: #1e293b;
+    color: #cbd5f5;
+    padding: 30px;
+    margin-top: 30px;
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.footer h4 {
+    margin-bottom: 10px;
+}
+
+.footer ul {
+    list-style: none;
+    padding: 0;
+}
+
+.footer ul li {
+    margin-bottom: 5px;
+}
+
+.footer-bottom {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 13px;
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 768px) {
+
+    .hero h1 {
+        font-size: 28px;
+    }
+
+    .content {
+        padding: 20px;
+    }
+
+    .stats {
+        flex-direction: column;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}

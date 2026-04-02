@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Assign Teachers</title>
+<link rel="stylesheet" href="/static/css/admin.css">
+<link rel="stylesheet" href="/static/css/form.css">
+</head>
+
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <span class="dashboard-title">Assign Teachers</span>
+    </div>
+
+    <div class="header-right">
+        <span>{{ session.name }}</span>
+        <a href="/logout">Logout</a>
+    </div>
+</div>
+
+<div class="dashboard">
+
+<!-- ===== SIDEBAR ===== -->
+<div class="sidebar">
+
+    <a href="/admin/dashboard" class="active">Dashboard</a>
+
+    <a href="/admin/manage-users">Users</a>
+    <a href="#">Schools</a>
+    <a href="#">Subjects</a>
+    <a href="#">Exams</a>
+
+    <!-- ASSIGNMENTS SECTION -->
+   <div class="sidebar-group">
+    <span onclick="toggleMenu()">Assignments ▼</span>
+
+    <div class="sidebar-sub" id="assignMenu">
+        <a href="/admin/assign">Assign Teachers</a>
+        <a href="/admin/assignments">View Assignments</a>
+    </div>
+</div>
+
+    <a href="#">Results</a>
+    <a href="#">Moderation</a>
+    <a href="#">Reports</a>
+    <a href="#">Audit Logs</a>
+
+</div>
+
+<script>
+function toggleMenu() {
+    var menu = document.getElementById("assignMenu");
+    if (menu.style.display === "none") {
+        menu.style.display = "flex";
+    } else {
+        menu.style.display = "none";
+    }
+}
+</script>
+
+<div class="content">
+
+<h2>Assign Item Writers & Moderators</h2>
+
+<div class="card">
+
+<form method="POST">
+
+<!-- EXAM -->
+<div class="form-group">
+<label>Select Exam</label>
+<select name="exam_id" required>
+{% for e in exams %}
+<option value="{{ e.exam_id }}">{{ e.title }}</option>
+{% endfor %}
+</select>
+</div>
+
+<!-- TEACHER -->
+<div class="form-group">
+<label>Select Teacher</label>
+<select name="teacher_id" required>
+{% for t in teachers %}
+<option value="{{ t.user_id }}">{{ t.name }}</option>
+{% endfor %}
+</select>
+</div>
+
+<!-- ROLE -->
+<div class="form-group">
+<label>Assign Role</label>
+<select name="role" required>
+<option value="item_writer">Item Writer</option>
+<option value="moderator">Moderator</option>
+</select>
+</div>
+
+<button class="btn">Assign</button>
+
+</form>
+
+</div>
+
+</div>
+</div>
+
+<footer class="footer">
+<div class="footer-bottom">© 2026 NED-SEMS</div>
+</footer>
+
+</body>
+</html>

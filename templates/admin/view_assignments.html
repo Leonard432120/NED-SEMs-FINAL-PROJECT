@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>View Assignments</title>
+<link rel="stylesheet" href="/static/css/admin.css">
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="header-left">
+        <span class="dashboard-title">Assignment Management</span>
+    </div>
+
+    <div class="header-right">
+        <div class="profile">
+            <span>{{ session.name }}</span>
+            <img src="/static/images/user.png">
+        </div>
+        <a href="/logout">Logout</a>
+    </div>
+</div>
+
+<div class="dashboard">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <a href="/admin/dashboard">Dashboard</a>
+    <a href="/admin/assign">Assign Teachers</a>
+    <a href="/admin/assignments" class="active">View Assignments</a>
+</div>
+
+
+
+<!-- CONTENT -->
+<div class="content">
+
+<h2>All Assignments</h2>
+
+<div class="card">
+
+<table>
+<tr>
+<th>Exam</th>
+<th>Teacher</th>
+<th>Role</th>
+<th>Date Assigned</th>
+<th>Action</th>
+</tr>
+
+{% for a in assignments %}
+<tr>
+<td>{{ a.exam_title }}</td>
+<td>{{ a.teacher_name }}</td>
+<td>
+    {% if a.role == 'item_writer' %}
+        <span style="color:green;font-weight:bold;">Item Writer</span>
+    {% else %}
+        <span style="color:orange;font-weight:bold;">Moderator</span>
+    {% endif %}
+</td>
+<td>{{ a.assigned_at }}</td>
+<td>
+    <a href="/admin/delete-assignment/{{ a.assignment_id }}" 
+       onclick="return confirm('Delete this assignment?')"
+       style="color:red;">
+       Delete
+    </a>
+</td>
+</tr>
+{% endfor %}
+
+</table>
+
+</div>
+
+</div>
+</div>
+
+<script>
+function toggleMenu() {
+    var menu = document.getElementById("assignMenu");
+    if (menu.style.display === "none") {
+        menu.style.display = "flex";
+    } else {
+        menu.style.display = "none";
+    }
+}
+</script>
+<!-- FOOTER -->
+<footer class="footer">
+<div class="footer-bottom">
+© 2026 NED-SEMS | Assignment Control System
+</div>
+</footer>
+
+</body>
+</html>

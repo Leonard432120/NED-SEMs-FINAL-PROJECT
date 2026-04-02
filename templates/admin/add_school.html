@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Add School</title>
+<link rel="stylesheet" href="/static/css/admin.css">
+<link rel="stylesheet" href="/static/css/form.css">
+</head>
+
+<body>
+
+<div class="header">
+    <span class="dashboard-title">Add School</span>
+    <a href="/logout">Logout</a>
+</div>
+
+<div class="dashboard">
+
+<!-- ===== SIDEBAR ===== -->
+<div class="sidebar">
+
+    <a href="/admin/dashboard" class="active">Dashboard</a>
+    <a href="/admin/manage-users">Users</a>
+
+    <!-- SCHOOLS -->
+    <div class="sidebar-group">
+        <span onclick="toggleMenu('schoolMenu')">Schools ▼</span>
+        <div class="sidebar-sub" id="schoolMenu">
+            <a href="/admin/add-school">Add School</a>
+            <a href="/admin/manage-schools">Manage Schools</a>
+        </div>
+    </div>
+
+    <a href="#">Subjects</a>
+    <a href="#">Exams</a>
+
+    <!-- ASSIGNMENTS -->
+    <div class="sidebar-group">
+        <span onclick="toggleMenu('assignMenu')">Assignments ▼</span>
+        <div class="sidebar-sub" id="assignMenu">
+            <a href="/admin/assign">Assign Teachers</a>
+            <a href="/admin/assignments">View Assignments</a>
+        </div>
+    </div>
+
+    <a href="#">Results</a>
+    <a href="#">Moderation</a>
+    <a href="#">Reports</a>
+    <a href="#">Audit Logs</a>
+
+</div>
+
+
+<div class="content">
+
+<h2>Register New School</h2>
+
+<div class="card">
+
+<form method="POST">
+
+<label>School Name</label>
+<input type="text" name="school_name" required>
+
+<label>District</label>
+<input type="text" name="district" required>
+
+<label>Address</label>
+<input type="text" name="address">
+
+<br><br>
+
+<button class="btn">Save School</button>
+
+</form>
+
+</div>
+
+</div>
+</div>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+
+<div class="footer-container">
+
+<div class="footer-section">
+<h4>NED-SEMS</h4>
+<p>Centralized platform for managing national examinations securely and efficiently.</p>
+</div>
+
+<div class="footer-section">
+<h4>Modules</h4>
+<ul>
+<li>Users</li>
+<li>Schools</li>
+<li>Exams</li>
+<li>Results</li>
+<li>Moderation</li>
+</ul>
+</div>
+
+<div class="footer-section">
+<h4>System</h4>
+<ul>
+<li>Version 1.0</li>
+<li>MySQL Database</li>
+<li>Status: Operational</li>
+</ul>
+</div>
+
+<div class="footer-section">
+<h4>Support</h4>
+<ul>
+<li>Email: support@ned-sems.gov</li>
+<li>Phone: +265</li>
+</ul>
+</div>
+
+</div>
+
+<div class="footer-bottom">
+© 2026 NED-SEMS | All Rights Reserved
+</div>
+
+</footer>
+
+
+<script>
+function toggleMenu(id) {
+    const menu = document.getElementById(id);
+    menu.style.display = (menu.style.display === "flex") ? "none" : "flex";
+}
+</script>
+
+</body>
+</html>

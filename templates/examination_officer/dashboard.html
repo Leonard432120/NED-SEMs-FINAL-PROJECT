@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Examination Officer Dashboard</title>
+<link rel="stylesheet" href="/static/css/admin.css">
+</head>
+
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <span class="dashboard-title">Examination Officer</span>
+    </div>
+
+    <div class="header-right">
+        <div class="profile">
+            <span class="header-name">{{ session.name }}</span>
+            <img src="/static/images/user.png">
+        </div>
+        <a href="/logout">Logout</a>
+    </div>
+</div>
+
+<div class="dashboard">
+
+<div class="sidebar">
+    <a href="#" class="active">Dashboard</a>
+    <a href="#">Exams</a>
+    <a href="#">Upload Results</a>
+    <a href="#">Moderation</a>
+    <a href="#">Reports</a>
+</div>
+
+<div class="content">
+
+<h2>Examination Control</h2>
+
+<div class="dashboard-grid">
+
+<div class="card card-accent-blue">
+    <h3>Exam Distribution</h3>
+    <ul class="status-list">
+        <li>Received Exams: <b>{{ exams }}</b></li>
+        <li>Printed Exams: <b>0</b></li>
+        <li>Distributed Exams: <b>0</b></li>
+    </ul>
+</div>
+
+<div class="card card-accent-green">
+    <h3>Results Collection</h3>
+    <ul class="status-list">
+        <li>Submitted: <b>{{ pending }}</b></li>
+        <li>Forwarded: <b>0</b></li>
+    </ul>
+</div>
+
+<div class="card card-accent-purple">
+    <h3>Moderation</h3>
+    <ul class="status-list">
+        <li>Under Review: <b>{{ moderation }}</b></li>
+    </ul>
+</div>
+
+<div class="card card-accent-orange">
+    <h3>Security</h3>
+    <ul class="status-list">
+        <li>🚨 Leak Attempts: <b>0</b></li>
+        <li>🔐 Unauthorized Access: <b>0</b></li>
+    </ul>
+</div>
+
+</div>
+
+</div>
+</div>
+
+<footer class="footer">
+<div class="footer-container">
+    <div class="footer-section">
+        <h4>NED-SEMS</h4>
+        <p>Secure exam distribution and result handling.</p>
+    </div>
+</div>
+
+<div class="footer-bottom">
+© 2026 NED-SEMS
+</div>
+</footer>
+
+</body>
+</html>

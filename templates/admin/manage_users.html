@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Manage Users</title>
+
+<link rel="stylesheet" href="/static/css/admin.css">
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="header-left">
+        <span class="dashboard-title">Admin Portal</span>
+    </div>
+
+    <div class="header-right">
+        <div class="profile">
+            <span class="header-name">{{ session.name }}</span>
+            <img src="/static/images/user.png">
+        </div>
+        <a href="/logout">Logout</a>
+    </div>
+</div>
+
+<div class="dashboard">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <a href="/admin/dashboard">Dashboard</a>
+    <a href="/admin/add-user">Add User</a>
+    <a href="/admin/manage-users" class="active">Manage Users</a>
+    <a href="#">Schools</a>
+    <a href="#">Exams</a>
+    <a href="#">Reports</a>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<h2>Manage Users</h2>
+
+<div class="card">
+
+<!-- SEARCH -->
+<form method="GET" class="search-bar">
+
+<input type="text" name="search" placeholder="Search..." value="{{ search }}">
+
+<select name="role">
+    <option value="">All Roles</option>
+    <option value="admin" {% if role_filter=='admin' %}selected{% endif %}>Admin</option>
+    <option value="teacher" {% if role_filter=='teacher' %}selected{% endif %}>Teacher</option>
+    <option value="headteacher" {% if role_filter=='headteacher' %}selected{% endif %}>Headteacher</option>
+    <option value="examination_officer" {% if role_filter=='examination_officer' %}selected{% endif %}>Exam Officer</option>
+</select>
+
+<button class="btn">Filter</button>
+
+</form>
+
+<!-- TABLE -->
+<div class="table-container">
+<table>
+
+<thead>
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Email</th>
+<th>Role</th>
+<th>Phone</th>
+<th>Actions</th>
+</tr>
+</thead>
+
+<tbody>
+{% for user in users %}
+<tr>
+<td>{{ user.user_id }}</td>
+<td>{{ user.name }}</td>
+<td>{{ user.email }}</td>
+<td>
+    <span class="badge badge-{{ user.role }}">
+        {{ user.role }}
+    </span>
+</td>
+<td>{{ user.phone }}</td>
+
+<td class="actions">
+<a href="/admin/edit-user/{{ user.user_id }}" class="btn btn-edit btn-small">Edit</a>
+
+<a href="/admin/delete-user/{{ user.user_id }}"
+   class="btn btn-delete btn-small"
+   onclick="return confirm('Delete this user?')">
+   Delete
+</a>
+</td>
+
+</tr>
+{% endfor %}
+</tbody>
+
+</table>
+
+<div class="pagination">
+
+{% if page > 1 %}
+<a href="?page={{ page-1 }}&search={{ search }}&role={{ role_filter }}">Prev</a>
+{% endif %}
+
+{% for p in range(1, total_pages+1) %}
+<a href="?page={{ p }}&search={{ search }}&role={{ role_filter }}"
+   class="{% if p == page %}active{% endif %}">
+   {{ p }}
+</a>
+{% endfor %}
+
+{% if page < total_pages %}
+<a href="?page={{ page+1 }}&search={{ search }}&role={{ role_filter }}">Next</a>
+{% endif %}
+
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</body>
+</html>

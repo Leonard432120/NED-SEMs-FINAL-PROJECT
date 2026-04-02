@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NED-SEMS Admin Dashboard</title>
+<link rel="stylesheet" href="/static/css/admin.css">
+</head>
+
+<body>
+
+<!-- ===== HEADER ===== -->
+<div class="header">
+    <div class="header-left">
+        <span class="dashboard-title">NED-SEMS | EDM Control Center</span>
+    </div>
+
+    <div class="header-right">
+        <div class="profile">
+            <span class="header-name">{{ session.name }}</span>
+            <img src="/static/images/user.png">
+        </div>
+        <a href="/logout">Logout</a>
+    </div>
+</div>
+
+<div class="dashboard">
+
+<!-- ===== SIDEBAR ===== -->
+<div class="sidebar">
+
+    <a href="/admin/dashboard" class="active">Dashboard</a>
+    <a href="/admin/manage-users">Users</a>
+
+    <!-- SCHOOLS -->
+    <div class="sidebar-group">
+        <span onclick="toggleMenu('schoolMenu')">Schools ▼</span>
+        <div class="sidebar-sub" id="schoolMenu">
+            <a href="/admin/add-school">Add School</a>
+            <a href="/admin/manage-schools">Manage Schools</a>
+        </div>
+    </div>
+
+    <a href="#">Subjects</a>
+    <a href="#">Exams</a>
+
+    <!-- ASSIGNMENTS -->
+    <div class="sidebar-group">
+        <span onclick="toggleMenu('assignMenu')">Assignments ▼</span>
+        <div class="sidebar-sub" id="assignMenu">
+            <a href="/admin/assign">Assign Teachers</a>
+            <a href="/admin/assignments">View Assignments</a>
+        </div>
+    </div>
+
+    <a href="#">Results</a>
+    <a href="#">Moderation</a>
+    <a href="/admin/school-report">Reports</a>
+    <a href="#">Audit Logs</a>
+
+</div>
+
+<!-- ===== CONTENT ===== -->
+<div class="content">
+
+<h2>EDM Dashboard Overview</h2>
+
+<!-- ===== STATS ===== -->
+<div class="stats">
+
+<div class="stat-box">
+<h4>Schools</h4>
+<p>{{ schools }}</p>
+</div>
+
+<div class="stat-box">
+<h4>Users</h4>
+<p>{{ users }}</p>
+</div>
+
+<div class="stat-box">
+<h4>Exams</h4>
+<p>{{ exams }}</p>
+</div>
+
+<div class="stat-box">
+<h4>Results</h4>
+<p>{{ results }}</p>
+</div>
+
+<div class="stat-box">
+<h4>Pending Moderation</h4>
+<p>{{ pending }}</p>
+</div>
+
+<div class="stat-box">
+<h4>Active Exams</h4>
+<p>{{ active_exams }}</p>
+</div>
+
+</div>
+
+
+
+<!-- ===== QUICK ACTIONS ===== -->
+<div class="card">
+<h3>Quick Actions</h3>
+
+<div class="quick-links">
+<a href="/admin/add-user">+ Add User</a>
+<a href="/admin/add-school">+ Register School</a>
+<a href="#">+ Create Exam</a>
+<a href="/admin/assign">+ Assign Writers</a>
+<a href="/admin/assign">+ Assign Moderators</a>
+</div>
+</div>
+
+<!-- ===== EDM CONTROL PANEL ===== -->
+<div class="dashboard-grid edm-grid">
+
+    <!-- EXAM WORKFLOW CONTROL -->
+    <div class="card card-accent-blue">
+        <h3>Exam Workflow Control</h3>
+
+        <ul class="status-list">
+            <li>Draft Exams: <b>{{ exams }}</b></li>
+            <li>Awaiting Moderation: <b>{{ pending }}</b></li>
+            <li>Approved Exams: <b>{{ active_exams }}</b></li>
+            <li>Rejected Exams: <b>0</b></li>
+        </ul>
+
+        <p class="card-note">
+            Monitor the full lifecycle of exam papers.
+        </p>
+    </div>
+
+    <!-- ASSIGNMENT CONTROL -->
+    <div class="card card-accent-green">
+        <h3>Teacher Assignments</h3>
+
+        <p>Assign teachers as:</p>
+
+        <div class="quick-links">
+            <a href="#">Item Writers</a>
+            <a href="#">Moderators</a>
+        </div>
+
+        <p class="card-note">
+            Control who creates and reviews exams.
+        </p>
+    </div>
+
+    <!-- AI ALERTS -->
+    <div class="card card-accent-orange">
+        <h3>AI System Alerts</h3>
+
+        <ul class="status-list">
+            <li>🚨 Suspicious Access: <b>0</b></li>
+            <li>⚠️ Irregular Results: <b>0</b></li>
+            <li>📉 Performance Drop: <b>0</b></li>
+        </ul>
+
+        <p class="card-note">
+            AI monitors risks and anomalies.
+        </p>
+    </div>
+
+</div>
+<!-- ===== MAIN GRID ===== -->
+<div class="dashboard-grid">
+
+<div class="card">
+<h3>Recent Users</h3>
+<div class="activity">
+{% for u in recent_users %}
+<p><b>{{ u.name }}</b> ({{ u.role }}) joined system</p>
+{% endfor %}
+</div>
+</div>
+
+<div class="card">
+<h3>System Users</h3>
+
+<table>
+<tr>
+<th>Name</th>
+<th>Role</th>
+</tr>
+
+{% for u in recent_users %}
+<tr>
+<td>{{ u.name }}</td>
+<td>{{ u.role }}</td>
+</tr>
+{% endfor %}
+</table>
+
+</div>
+
+</div>
+
+<!-- ===== LOWER GRID ===== -->
+<div class="dashboard-grid">
+
+<div class="card">
+<h3>Role Distribution</h3>
+<ul class="status-list">
+{% for r in roles %}
+<li>{{ r.role|capitalize }}: <b>{{ r.total }}</b></li>
+{% endfor %}
+</ul>
+</div>
+
+<div class="card">
+<h3>Reports Access</h3>
+<div class="quick-links">
+<a href="#">School Performance</a>
+<a href="#">Exam Reports</a>
+<a href="#">Student Results</a>
+<a href="#">System Activity</a>
+</div>
+</div>
+
+
+
+</div>
+
+</div>
+</div>
+<script>
+function toggleMenu(id) {
+    const menu = document.getElementById(id);
+    menu.style.display = (menu.style.display === "flex") ? "none" : "flex";
+}
+</script>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+
+<div class="footer-container">
+
+<div class="footer-section">
+<h4>NED-SEMS</h4>
+<p>Centralized platform for managing national examinations securely and efficiently.</p>
+</div>
+
+<div class="footer-section">
+<h4>Modules</h4>
+<ul>
+<li>Users</li>
+<li>Schools</li>
+<li>Exams</li>
+<li>Results</li>
+<li>Moderation</li>
+</ul>
+</div>
+
+<div class="footer-section">
+<h4>System</h4>
+<ul>
+<li>Version 1.0</li>
+<li>MySQL Database</li>
+<li>Status: Operational</li>
+</ul>
+</div>
+
+<div class="footer-section">
+<h4>Support</h4>
+<ul>
+<li>Email: support@ned-sems.gov</li>
+<li>Phone: +265</li>
+</ul>
+</div>
+
+</div>
+
+<div class="footer-bottom">
+© 2026 NED-SEMS | All Rights Reserved
+</div>
+
+</footer>
+
+</body>
+</html>
+
+
+
+
+
+   

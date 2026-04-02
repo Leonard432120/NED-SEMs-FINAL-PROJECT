@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Manage Schools</title>
+<link rel="stylesheet" href="/static/css/admin.css">
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <span class="dashboard-title">Manage Schools</span>
+</div>
+
+<div class="dashboard">
+
+
+<!-- ===== SIDEBAR ===== -->
+<div class="sidebar">
+
+    <a href="/admin/dashboard" class="active">Dashboard</a>
+    <a href="/admin/manage-users">Users</a>
+
+    <!-- SCHOOLS -->
+    <div class="sidebar-group">
+        <span onclick="toggleMenu('schoolMenu')">Schools ▼</span>
+        <div class="sidebar-sub" id="schoolMenu">
+            <a href="/admin/add-school">Add School</a>
+            <a href="/admin/manage-schools">Manage Schools</a>
+        </div>
+    </div>
+
+    <a href="#">Subjects</a>
+    <a href="#">Exams</a>
+
+    <!-- ASSIGNMENTS -->
+    <div class="sidebar-group">
+        <span onclick="toggleMenu('assignMenu')">Assignments ▼</span>
+        <div class="sidebar-sub" id="assignMenu">
+            <a href="/admin/assign">Assign Teachers</a>
+            <a href="/admin/assignments">View Assignments</a>
+        </div>
+    </div>
+
+    <a href="#">Results</a>
+    <a href="#">Moderation</a>
+    <a href="#">Reports</a>
+    <a href="#">Audit Logs</a>
+
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<h2>Schools Management</h2>
+
+<div class="card">
+
+<!-- SEARCH + FILTER -->
+<form method="GET" class="search-bar">
+
+<input type="text" name="search" placeholder="Search school..."
+       value="{{ search }}">
+
+<select name="district">
+    <option value="">All Districts</option>
+    {% for d in districts %}
+    <option value="{{ d.district }}"
+        {% if district_filter == d.district %}selected{% endif %}>
+        {{ d.district }}
+    </option>
+    {% endfor %}
+</select>
+
+<button class="btn">Filter</button>
+
+</form>
+
+<br>
+
+<!-- TABLE -->
+<div class="table-container">
+<table>
+
+<thead>
+<tr>
+<th>ID</th>
+<th>School Name</th>
+<th>District</th>
+<th>Address</th>
+<th>Actions</th>
+</tr>
+</thead>
+
+<tbody>
+{% for s in schools %}
+<tr>
+<td>{{ s.school_id }}</td>
+<td>{{ s.school_name }}</td>
+<td>
+    <span class="badge badge-admin">
+        {{ s.district }}
+    </span>
+</td>
+<td>{{ s.address }}</td>
+
+<td>
+<a href="/admin/edit-school/{{ s.school_id }}" class="btn btn-edit btn-small">Edit</a>
+
+<a href="/admin/delete-school/{{ s.school_id }}"
+   class="btn btn-delete btn-small"
+   onclick="return confirm('Delete this school?')">
+   Delete
+</a>
+</td>
+
+</tr>
+{% endfor %}
+
+{% if schools|length == 0 %}
+<tr>
+<td colspan="5" style="text-align:center;">No schools found</td>
+</tr>
+{% endif %}
+
+</tbody>
+
+</table>
+
+<!-- PAGINATION -->
+<div class="pagination">
+
+{% if page > 1 %}
+<a href="?page={{ page-1 }}&search={{ search }}&district={{ district_filter }}">Prev</a>
+{% endif %}
+
+{% for p in range(1, total_pages+1) %}
+<a href="?page={{ p }}&search={{ search }}&district={{ district_filter }}"
+   class="{% if p == page %}active{% endif %}">
+   {{ p }}
+</a>
+{% endfor %}
+
+{% if page < total_pages %}
+<a href="?page={{ page+1 }}&search={{ search }}&district={{ district_filter }}">Next</a>
+{% endif %}
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+<script>
+function toggleMenu(id) {
+    const menu = document.getElementById(id);
+    menu.style.display = (menu.style.display === "flex") ? "none" : "flex";
+}
+</script>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+
+<div class="footer-container">
+
+<div class="footer-section">
+<h4>NED-SEMS</h4>
+<p>Centralized platform for managing national examinations securely and efficiently.</p>
+</div>
+
+<div class="footer-section">
+<h4>Modules</h4>
+<ul>
+<li>Users</li>
+<li>Schools</li>
+<li>Exams</li>
+<li>Results</li>
+<li>Moderation</li>
+</ul>
+</div>
+
+<div class="footer-section">
+<h4>System</h4>
+<ul>
+<li>Version 1.0</li>
+<li>MySQL Database</li>
+<li>Status: Operational</li>
+</ul>
+</div>
+
+<div class="footer-section">
+<h4>Support</h4>
+<ul>
+<li>Email: support@ned-sems.gov</li>
+<li>Phone: +265</li>
+</ul>
+</div>
+
+</div>
+
+<div class="footer-bottom">
+© 2026 NED-SEMS | All Rights Reserved
+</div>
+
+</footer>
+
+</body>
+</html>

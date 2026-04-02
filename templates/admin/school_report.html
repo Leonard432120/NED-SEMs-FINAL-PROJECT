@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NED-SEMS Analytics Dashboard</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: #f4f6f9;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            font-size: 22px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .dashboard {
+            display: flex;
+        }
+
+        .sidebar {
+            width: 220px;
+            background: #34495e;
+            min-height: 100vh;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.05);
+        }
+
+        .sidebar a {
+            display: block;
+            padding: 14px 18px;
+            color: #ecf0f1;
+            text-decoration: none;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+
+        .sidebar a:hover,
+        .sidebar .active {
+            background: #1abc9c;
+            color: white;
+        }
+
+        .content {
+            flex: 1;
+            padding: 25px 30px;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        /* GRID LAYOUTS */
+        .summary-grid, .charts-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .summary-grid {
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            margin-bottom: 30px;
+        }
+
+        .charts-grid {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            margin-bottom: 30px;
+        }
+
+        /* CARDS */
+        .summary-card, .chart-card, .alerts-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .summary-card:hover, .chart-card:hover, .alerts-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+
+        .summary-card h4 {
+            margin: 0;
+            font-size: 14px;
+            color: #777;
+        }
+
+        .summary-card p {
+            font-size: 22px;
+            font-weight: bold;
+            margin-top: 8px;
+            color: #2c3e50;
+        }
+
+        /* ALERTS */
+        .alerts-card ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .alerts-card li {
+            background: #fef9f5;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-left: 5px solid #f39c12;
+            border-radius: 6px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* CHARTS */
+        .chart-card img {
+            border-radius: 10px;
+            margin-top: 10px;
+            max-height: 300px;
+            width: 100%;
+            object-fit: contain;
+        }
+
+        /* TABLE */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #2c3e50;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tr:hover {
+            background: #f9f9f9;
+        }
+
+        /* BADGES */
+        .badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: white;
+        }
+
+        .badge-red { background: #e74c3c; }
+        .badge-green { background: #2ecc71; }
+        .badge-warning { background: #f39c12; }
+
+        /* RESPONSIVE */
+        @media (max-width: 900px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="header">
+    NED-SEMS Analytics Dashboard
+</div>
+
+<div class="dashboard">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <a href="/admin/dashboard">Dashboard</a>
+        <a href="/admin/school-report" class="active">Analytics</a>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+
+        <h2>School Analytics Overview</h2>
+
+        <!-- SUMMARY CARDS -->
+        <div class="summary-grid">
+            <div class="summary-card">
+                <h4>Total Schools</h4>
+                <p>{{ summary.total_schools }}</p>
+            </div>
+            <div class="summary-card">
+                <h4>Total Teachers</h4>
+                <p>{{ summary.total_teachers }}</p>
+            </div>
+            <div class="summary-card">
+                <h4>Total Students</h4>
+                <p>{{ summary.total_students }}</p>
+            </div>
+            <div class="summary-card">
+                <h4>Student/Teacher Ratio</h4>
+                <p>{{ summary.students_per_teacher }}</p>
+            </div>
+            <div class="summary-card">
+                <h4>Overcrowded Schools</h4>
+                <p>{{ summary.overcrowded_schools }}</p>
+            </div>
+        </div>
+
+        <!-- CHARTS GRID -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>Students per School</h3>
+                <img src="data:image/png;base64,{{ chart_students }}" alt="Students Chart">
+            </div>
+            <div class="chart-card">
+                <h3>Teachers per School</h3>
+                <img src="data:image/png;base64,{{ chart_teachers }}" alt="Teachers Chart">
+            </div>
+            <div class="chart-card">
+                <h3>Performance Trend</h3>
+                <img src="data:image/png;base64,{{ chart_performance }}" alt="Performance Chart">
+            </div>
+            <div class="chart-card">
+                <h3>Top 5 Schools Distribution</h3>
+                <img src="data:image/png;base64,{{ chart_pie }}" alt="Pie Chart">
+            </div>
+            <div class="alerts-card">
+                <h3>System Alerts</h3>
+                {% if alerts %}
+                <ul>
+                    {% for alert in alerts %}
+                        <li>{{ alert }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                    <p>No alerts detected</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- TABLE -->
+        <div class="card">
+            <h3>School Performance Table</h3>
+            <table>
+                <tr>
+                    <th>School</th>
+                    <th>Teachers</th>
+                    <th>Students</th>
+                    <th>Average Score</th>
+                    <th>Pass %</th>
+                    <th>Status</th>
+                </tr>
+                {% for s in report %}
+                <tr>
+                    <td>{{ s.school_name }}</td>
+                    <td>{{ s.teachers_count }}</td>
+                    <td>{{ s.students_count }}</td>
+                    <td>{{ s.avg_score }}</td>
+                    <td>{{ s.pass_rate }}%</td>
+                    <td>
+                        {% if s.pass_rate < 40 %}
+                            <span class="badge badge-red">Poor</span>
+                        {% elif s.pass_rate > 75 %}
+                            <span class="badge badge-green">Good</span>
+                        {% else %}
+                            <span class="badge badge-warning">Average</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>
+
+
+
+
+
+

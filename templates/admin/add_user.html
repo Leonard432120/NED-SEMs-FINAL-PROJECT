@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Add User</title>
+
+<link rel="stylesheet" href="/static/css/admin.css">
+<link rel="stylesheet" href="/static/css/form.css">
+
+<style>
+.dropdown-wrapper {
+    position: relative;
+}
+
+.dropdown-list {
+    border: 1px solid #ccc;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+    background: #fff;
+    position: absolute;
+    width: 100%;
+    z-index: 1000;
+}
+
+.dropdown-item {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.dropdown-item:hover {
+    background: #f0f0f0;
+}
+
+.flash {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+}
+
+.flash.success { background: #d4edda; }
+.flash.error { background: #f8d7da; }
+.flash.warning { background: #fff3cd; }
+</style>
+
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="header-left">
+        <span class="dashboard-title">Admin Portal</span>
+    </div>
+
+    <div class="header-right">
+        <div class="profile">
+            <span>{{ session.name }}</span>
+            <img src="/static/images/user.png">
+        </div>
+        <a href="/">Logout</a>
+    </div>
+</div>
+
+<div class="dashboard">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <a href="/admin/dashboard">Dashboard</a>
+    <a href="/admin/add-user" class="active">Add User</a>
+    <a href="/admin/manage-users">Manage Users</a>
+    <a href="/admin/manage-schools">Schools</a>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<h2>Add New User</h2>
+
+
+<div class="card card-accent-blue">
+<div class="form-container">
+
+<form method="POST" id="userForm">
+
+<!-- NAME -->
+<div class="form-group">
+<label>Full Name</label>
+<input type="text" name="name" required>
+</div>
+
+<!-- EMAIL -->
+<div class="form-group">
+<label>Email</label>
+<input type="email" name="email" required>
+</div>
+
+<!-- PHONE -->
+<div class="form-group">
+<label>Phone</label>
+<input type="text" name="phone">
+</div>
+
+<!-- ROLE -->
+<div class="form-group">
+<label>Role</label>
+<select name="role" required>
+<option value="">Select role</option>
+<option value="teacher">Teacher</option>
+<option value="headteacher">Headteacher</option>
+<option value="examination_officer">Examination Officer</option>
+<option value="admin">Admin</option>
+</select>
+</div>
+
+<!-- SCHOOL DROPDOWN -->
+<div class="form-group dropdown-wrapper">
+<label>School</label>
+
+<input type="text" id="schoolSearch" placeholder="Search and SELECT school..." autocomplete="off" required>
+
+<input type="hidden" name="school_id" id="school_id">
+
+<div id="schoolList" class="dropdown-list">
+    {% for school in schools %}
+    <div class="dropdown-item" data-id="{{ school.school_id }}">
+        {{ school.school_name }} ({{ school.district }})
+    </div>
+    {% endfor %}
+</div>
+
+</div>
+
+<button class="btn">Create User</button>
+
+</form>
+
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+<div class="footer-bottom">
+© 2026 NED-SEMS
+</div>
+</footer>
+
+<!-- JS -->
+<script>
+const searchInput = document.getElementById("schoolSearch");
+const list = document.getElementById("schoolList");
+const hiddenInput = document.getElementById("school_id");
+const items = document.querySelectorAll(".dropdown-item");
+
+// SHOW DROPDOWN
+searchInput.addEventListener("focus", () => {
+    list.style.display = "block";
+});
+
+// CLEAR VALUE WHEN TYPING (IMPORTANT)
+searchInput.addEventListener("input", () => {
+    hiddenInput.value = "";
+});
+
+// FILTER RESULTS
+searchInput.addEventListener("keyup", () => {
+    let value = searchInput.value.toLowerCase();
+
+    items.forEach(item => {
+        item.style.display = item.textContent.toLowerCase().includes(value)
+            ? "block" : "none";
+    });
+});
+
+// SELECT SCHOOL
+items.forEach(item => {
+    item.addEventListener("click", () => {
+        searchInput.value = item.textContent;
+        hiddenInput.value = item.dataset.id;
+        list.style.display = "none";
+    });
+});
+
+// CLOSE DROPDOWN
+document.addEventListener("click", (e) => {
+    if (!e.target.closest(".dropdown-wrapper")) {
+        list.style.display = "none";
+    }
+});
+
+// FINAL VALIDATION
+document.getElementById("userForm").addEventListener("submit", function(e){
+    if(hiddenInput.value === ""){
+        alert("⚠️ Please SELECT a school from the list (click it)");
+        searchInput.focus();
+        e.preventDefault();
+    }
+});
+</script>
+
+</body>
+</html>

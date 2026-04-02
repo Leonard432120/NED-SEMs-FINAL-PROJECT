@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Edit User</title>
+<link rel="stylesheet" href="/static/css/form.css">
+<link rel="stylesheet" href="/static/css/admin.css">
+</head>
+
+<body>
+
+<div class="content">
+
+<h2>Edit User</h2>
+
+<div class="card">
+
+<form method="POST">
+
+<input type="text" name="name" value="{{ user.name }}" required>
+<input type="email" name="email" value="{{ user.email }}" required>
+<input type="text" name="phone" value="{{ user.phone }}">
+
+<select name="role">
+<option value="admin">Admin</option>
+<option value="teacher">Teacher</option>
+<option value="headteacher">Headteacher</option>
+<option value="examination_officer">Examination Officer</option>
+</select>
+
+<button class="btn">Update</button>
+
+</form>
+
+</div>
+
+</div>
+
+</body>
+</html>
