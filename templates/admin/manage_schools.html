@@ -14,26 +14,23 @@
 
 <div class="dashboard">
 
-
 <!-- ===== SIDEBAR ===== -->
 <div class="sidebar">
 
-    <a href="/admin/dashboard" class="active">Dashboard</a>
+    <a href="/admin/dashboard">Dashboard</a>
     <a href="/admin/manage-users">Users</a>
 
-    <!-- SCHOOLS -->
     <div class="sidebar-group">
         <span onclick="toggleMenu('schoolMenu')">Schools ▼</span>
         <div class="sidebar-sub" id="schoolMenu">
             <a href="/admin/add-school">Add School</a>
-            <a href="/admin/manage-schools">Manage Schools</a>
+            <a href="/admin/manage-schools" class="active">Manage Schools</a>
         </div>
     </div>
 
     <a href="#">Subjects</a>
     <a href="#">Exams</a>
 
-    <!-- ASSIGNMENTS -->
     <div class="sidebar-group">
         <span onclick="toggleMenu('assignMenu')">Assignments ▼</span>
         <div class="sidebar-sub" id="assignMenu">
@@ -80,52 +77,53 @@
 
 <!-- TABLE -->
 <div class="table-container">
+
 <table>
 
 <thead>
 <tr>
-<th>ID</th>
-<th>School Name</th>
-<th>District</th>
-<th>Address</th>
-<th>Actions</th>
+    <th>ID</th>
+    <th>School Name</th>
+    <th>District</th>
+    <th>Address</th>
+    <th>Actions</th>
 </tr>
 </thead>
 
 <tbody>
+
 {% for s in schools %}
 <tr>
-<td>{{ s.school_id }}</td>
-<td>{{ s.school_name }}</td>
-<td>
-    <span class="badge badge-admin">
-        {{ s.district }}
-    </span>
-</td>
-<td>{{ s.address }}</td>
+    <td>{{ s.school_id }}</td>
+    <td>{{ s.school_name }}</td>
 
-<td>
-<a href="/admin/edit-school/{{ s.school_id }}" class="btn btn-edit btn-small">Edit</a>
+    <td>
+        <span class="badge badge-admin">
+            {{ s.district }}
+        </span>
+    </td>
 
-<a href="/admin/delete-school/{{ s.school_id }}"
-   class="btn btn-delete btn-small"
-   onclick="return confirm('Delete this school?')">
-   Delete
-</a>
-</td>
+    <td>{{ s.address }}</td>
 
+    <td>
+        <a href="/admin/edit-school/{{ s.school_id }}"
+           class="btn btn-edit btn-small">
+            Edit
+        </a>
+
+        <button  class="btn btn-delete btn-small"
+                onclick="openDeleteModal('{{ s.school_id }}')">
+            Delete
+        </button>
+    </td>
 </tr>
 {% endfor %}
-
-{% if schools|length == 0 %}
-<tr>
-<td colspan="5" style="text-align:center;">No schools found</td>
-</tr>
-{% endif %}
 
 </tbody>
 
 </table>
+
+</div>
 
 <!-- PAGINATION -->
 <div class="pagination">
@@ -134,7 +132,7 @@
 <a href="?page={{ page-1 }}&search={{ search }}&district={{ district_filter }}">Prev</a>
 {% endif %}
 
-{% for p in range(1, total_pages+1) %}
+{% for p in range(1, total_pages + 1) %}
 <a href="?page={{ p }}&search={{ search }}&district={{ district_filter }}"
    class="{% if p == page %}active{% endif %}">
    {{ p }}
@@ -148,20 +146,61 @@
 </div>
 
 </div>
-
-</div>
-
 </div>
 </div>
 
+<!-- MODAL -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content">
+
+        <h3>Delete School?</h3>
+
+        <p>
+            This will unassign teachers and students before deleting the school.
+            Teachers will need to be reassigned.
+        </p>
+
+        <div class="modal-actions">
+
+            <button onclick="closeModal()">Cancel</button>
+
+            <a id="confirmDeleteBtn" href="#" class="btn btn-delete btn-small">
+                Yes, Delete
+            </a>
+
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT -->
 <script>
 function toggleMenu(id) {
     const menu = document.getElementById(id);
     menu.style.display = (menu.style.display === "flex") ? "none" : "flex";
 }
+
+function openDeleteModal(id) {
+    const modal = document.getElementById("deleteModal");
+    const btn = document.getElementById("confirmDeleteBtn");
+
+    modal.style.display = "block";
+    btn.href = "/admin/delete-school/" + id;
+}
+
+function closeModal() {
+    document.getElementById("deleteModal").style.display = "none";
+}
+
+// close when clicking outside modal
+window.onclick = function(event) {
+    const modal = document.getElementById("deleteModal");
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
 </script>
 
-<!-- ===== FOOTER ===== -->
+<!-- FOOTER -->
 <footer class="footer">
 
 <div class="footer-container">
@@ -207,5 +246,33 @@ function toggleMenu(id) {
 
 </footer>
 
+<style>
+    .modal {
+    display: none;
+    position: fixed;
+    z-index: 999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+}
+
+.modal-content {
+    background: white;
+    padding: 20px;
+    width: 400px;
+    margin: 15% auto;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.modal-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+}
+
+</style>
 </body>
 </html>

@@ -1,25 +1,7 @@
-# =========================
-# IMPORTS
-# =========================
-from flask import Blueprint, render_template, request, redirect, session, flash, send_file
+from flask import Blueprint, render_template, request, redirect, session, flash, url_for
 from config.db import get_db_connection
 from common.email_service import send_email
 
-import matplotlib
-matplotlib.use('Agg')
-
-import matplotlib.pyplot as plt
-import io
-import base64
-
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
-
-
-# =========================
-# BLUEPRINT (ONLY ONCE ✅)
-# =========================
 admin = Blueprint('admin', __name__, url_prefix='/admin')
 
 
@@ -31,46 +13,11 @@ def admin_required():
 
 
 # =========================
-# CHART FUNCTIONS
-# =========================
-def plot_bar_chart(labels, values, title):
-    plt.figure(figsize=(8, 4))
-    plt.bar(labels, values, color='skyblue')
-    plt.title(title)
-    plt.xticks(rotation=45, ha='right')
-    plt.tight_layout()
-
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png')
-    buf.seek(0)
-
-    img = base64.b64encode(buf.getvalue()).decode('utf-8')
-    plt.close()
-
-    return img
-
-
-def plot_pie_chart(labels, values, title):
-    plt.figure(figsize=(6, 6))
-    plt.pie(values, labels=labels, autopct='%1.1f%%', startangle=140)
-    plt.title(title)
-    plt.tight_layout()
-
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png')
-    buf.seek(0)
-
-    img = base64.b64encode(buf.getvalue()).decode('utf-8')
-    plt.close()
-
-    return img
-
-
-# =========================
-# DASHBOARD
+# DASHBOARD (FULL ANALYTICS)
 # =========================
 @admin.route('/dashboard')
 def dashboard():
+
     if not admin_required():
         return redirect('/')
 
@@ -96,7 +43,7 @@ def dashboard():
     cursor.execute("SELECT COUNT(*) AS total FROM exams WHERE status='approved'")
     active_exams = cursor.fetchone()['total']
 
-    # CHART DATA
+    # 📊 STUDENTS PER SCHOOL
     cursor.execute("""
         SELECT s.school_name, COUNT(st.student_id) AS total
         FROM schools s
@@ -105,7 +52,7 @@ def dashboard():
     """)
     chart_data = cursor.fetchall()
 
-    # ROLES
+    # ROLE DISTRIBUTION
     cursor.execute("SELECT role, COUNT(*) as total FROM users GROUP BY role")
     roles = cursor.fetchall()
 
@@ -124,7 +71,7 @@ def dashboard():
     """)
     top_schools = cursor.fetchall()
 
-    # OVERLOADED
+    # OVERLOADED SCHOOLS
     cursor.execute("""
         SELECT s.school_name, COUNT(st.student_id) AS total
         FROM schools s
@@ -158,6 +105,7 @@ def dashboard():
 # =========================
 @admin.route('/assign', methods=['GET', 'POST'])
 def assign_teachers():
+
     if not admin_required():
         return redirect('/')
 
@@ -165,10 +113,12 @@ def assign_teachers():
     cursor = conn.cursor(dictionary=True)
 
     if request.method == 'POST':
+
         exam_id = request.form['exam_id']
         teacher_id = request.form['teacher_id']
         role = request.form['role']
 
+        # CHECK DUPLICATE
         cursor.execute("""
             SELECT * FROM exam_assignments
             WHERE exam_id=%s AND teacher_id=%s
@@ -186,21 +136,18 @@ def assign_teachers():
 
             conn.commit()
 
-            # EMAIL SAFE
-            try:
-                cursor.execute("SELECT name, email FROM users WHERE user_id=%s", (teacher_id,))
-                teacher = cursor.fetchone()
+            # EMAIL
+            cursor.execute("SELECT name, email FROM users WHERE user_id=%s", (teacher_id,))
+            teacher = cursor.fetchone()
 
-                cursor.execute("SELECT title FROM exams WHERE exam_id=%s", (exam_id,))
-                exam = cursor.fetchone()
+            cursor.execute("SELECT title FROM exams WHERE exam_id=%s", (exam_id,))
+            exam = cursor.fetchone()
 
-                send_email(
-                    teacher['email'],
-                    "Exam Assignment",
-                    f"You are assigned as {role} for {exam['title']}"
-                )
-            except Exception as e:
-                print("Email failed:", e)
+            send_email(
+                teacher['email'],
+                "Exam Assignment",
+                f"You are assigned as {role} for {exam['title']}"
+            )
 
             flash("Assigned successfully!", "success")
 
@@ -216,20 +163,14 @@ def assign_teachers():
     cursor.execute("SELECT user_id, name FROM users WHERE role='teacher'")
     teachers = cursor.fetchall()
 
-    cursor.close()
-    conn.close()
-
     return render_template('admin/assign.html', exams=exams, teachers=teachers)
 
 
 # =========================
-# SCHOOL REPORT (ANALYTICS)
+# VIEW ASSIGNMENTS
 # =========================
-# =========================
-# SCHOOL ANALYTICS REPORT (PRO VERSION)
-# =========================
-@admin.route('/school-report')
-def school_report():
+@admin.route('/assignments')
+def view_assignments():
 
     if not admin_required():
         return redirect('/')
@@ -237,147 +178,400 @@ def school_report():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    # =========================
-    # FETCH DATA
-    # =========================
     cursor.execute("""
-        SELECT 
-            s.school_id,
-            s.school_name,
-            s.district,
-
-            (SELECT COUNT(*) FROM users u 
-             WHERE u.school_id = s.school_id 
-             AND u.role='teacher') AS teachers_count,
-
-            (SELECT COUNT(*) FROM students st 
-             WHERE st.school_id = s.school_id) AS students_count,
-
-            (SELECT AVG(r.percentage)
-             FROM results r
-             JOIN students st ON r.student_id = st.student_id
-             WHERE st.school_id = s.school_id) AS avg_performance
-
-        FROM schools s
-        ORDER BY s.school_name
+        SELECT e.title, u.name, ea.role, ea.assigned_at
+        FROM exam_assignments ea
+        JOIN exams e ON ea.exam_id = e.exam_id
+        JOIN users u ON ea.teacher_id = u.user_id
     """)
 
-    report = cursor.fetchall()
+    data = cursor.fetchall()
 
-    # =========================
-    # CLEAN + ADD FIELDS
-    # =========================
-    for r in report:
-        avg = r['avg_performance'] or 0
-        r['avg_score'] = round(avg, 1)
-        r['pass_rate'] = round(avg, 1)   # (simple logic for now)
+    return render_template('admin/view_assignments.html', assignments=data)
 
-    # =========================
-    # SUMMARY
-    # =========================
-    total_schools = len(report)
-    total_teachers = sum(r['teachers_count'] for r in report)
-    total_students = sum(r['students_count'] for r in report)
 
-    ratio = round(total_students / total_teachers, 1) if total_teachers else 0
-    overcrowded = sum(1 for r in report if r['students_count'] > 500)
+# =========================
+# USERS MANAGEMENT
+# =========================
+@admin.route('/manage-users')
+def manage_users():
 
-    summary = {
-        'total_schools': total_schools,
-        'total_teachers': total_teachers,
-        'total_students': total_students,
-        'students_per_teacher': ratio,
-        'overcrowded_schools': overcrowded
-    }
+    if not admin_required():
+        return redirect('/')
 
-    # =========================
-    # TOP & WORST
-    # =========================
-    sorted_schools = sorted(report, key=lambda x: x['avg_score'], reverse=True)
+    search = request.args.get('search', '')
+    role_filter = request.args.get('role', '')
+    page = int(request.args.get('page', 1))
+    per_page = 5
+    offset = (page - 1) * per_page
 
-    top_school = sorted_schools[0] if sorted_schools else None
-    worst_school = sorted_schools[-1] if sorted_schools else None
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
 
-    # =========================
-    # ALERTS
-    # =========================
-    alerts = []
+    query = "SELECT * FROM users WHERE 1=1"
+    params = []
 
-    for r in report:
-        if r['students_count'] > 500:
-            alerts.append(f"{r['school_name']} is overcrowded")
+    # SEARCH
+    if search:
+        query += " AND (name LIKE %s OR email LIKE %s)"
+        params.extend([f"%{search}%", f"%{search}%"])
 
-        if r['teachers_count'] == 0:
-            alerts.append(f"{r['school_name']} has no teachers")
+    # FILTER
+    if role_filter:
+        query += " AND role=%s"
+        params.append(role_filter)
 
-        if r['pass_rate'] < 40:
-            alerts.append(f"{r['school_name']} has poor performance")
+    # COUNT TOTAL
+    count_query = query.replace("SELECT *", "SELECT COUNT(*) as total")
+    cursor.execute(count_query, params)
+    total = cursor.fetchone()['total']
 
-    # =========================
-    # CHART FUNCTIONS
-    # =========================
-    def generate_chart(fig):
-        buf = io.BytesIO()
-        fig.savefig(buf, format='png')
-        buf.seek(0)
-        img = base64.b64encode(buf.getvalue()).decode('utf-8')
-        plt.close(fig)
-        return img
+    # PAGINATION
+    query += " LIMIT %s OFFSET %s"
+    params.extend([per_page, offset])
 
-    def bar_chart(labels, values, title):
-        fig, ax = plt.subplots(figsize=(10, 4))
-        ax.bar(labels, values)
-        ax.set_title(title)
-        ax.tick_params(axis='x', rotation=45)
-        fig.tight_layout()
-        return generate_chart(fig)
-
-    def line_chart(labels, values, title):
-        fig, ax = plt.subplots(figsize=(10, 4))
-        ax.plot(labels, values, marker='o')
-        ax.set_title(title)
-        ax.tick_params(axis='x', rotation=45)
-        fig.tight_layout()
-        return generate_chart(fig)
-
-    def pie_chart(labels, values, title):
-        fig, ax = plt.subplots(figsize=(6, 6))
-        ax.pie(values, labels=labels, autopct='%1.1f%%')
-        ax.set_title(title)
-        fig.tight_layout()
-        return generate_chart(fig)
-
-    # =========================
-    # CHART DATA
-    # =========================
-    labels = [r['school_name'] for r in report]
-    students = [r['students_count'] for r in report]
-    teachers = [r['teachers_count'] for r in report]
-    performance = [r['avg_score'] for r in report]
-
-    chart_students = bar_chart(labels, students, "Students per School")
-    chart_teachers = bar_chart(labels, teachers, "Teachers per School")
-    chart_performance = line_chart(labels, performance, "Performance Trend")
-
-    # PIE (TOP 5)
-    top5 = sorted(report, key=lambda x: x['students_count'], reverse=True)[:5]
-    pie_labels = [r['school_name'] for r in top5]
-    pie_values = [r['students_count'] for r in top5]
-
-    chart_pie = pie_chart(pie_labels, pie_values, "Top 5 Schools Distribution")
+    cursor.execute(query, params)
+    users = cursor.fetchall()
 
     cursor.close()
     conn.close()
 
+    total_pages = (total + per_page - 1) // per_page
+
     return render_template(
-        'admin/school_report.html',
-        report=report,
-        summary=summary,
-        top_school=top_school,
-        worst_school=worst_school,
-        alerts=alerts,
-        chart_students=chart_students,
-        chart_teachers=chart_teachers,
-        chart_performance=chart_performance,
-        chart_pie=chart_pie
+        'admin/manage_users.html',
+        users=users,
+        page=page,
+        total_pages=total_pages,
+        search=search,
+        role_filter=role_filter
     )
+
+# =========================
+# ADD USERS
+# =========================
+@admin.route('/add-user', methods=['GET', 'POST'])
+def add_user():
+
+    if not admin_required():
+        return redirect('/')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # ======================
+        # POST: CREATE USER
+        # ======================
+        if request.method == 'POST':
+
+            name = request.form['name']
+            email = request.form['email']
+            phone = request.form['phone']
+            role = request.form['role']
+            school_id = request.form['school_id']
+
+            if not school_id:
+                flash("Please select a valid school", "error")
+                return redirect('/admin/add-user')
+
+            cursor.execute("""
+                INSERT INTO users (name, email, phone, password, role, school_id)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (name, email, phone, '1234', role, school_id))
+
+            conn.commit()
+
+            # EMAIL
+            message = f"""
+Hello {name},
+
+Your account has been created.
+
+Email: {email}
+Password: 1234
+
+Please login and change your password.
+
+System: NED-SEMS
+"""
+            send_email(email, "Account Created", message)
+
+            flash("User created successfully!", "success")
+            return redirect('/admin/manage-users')
+
+        # ======================
+        # GET: LOAD SCHOOLS
+        # ======================
+        cursor.execute("SELECT school_id, school_name, district FROM schools")
+        schools = cursor.fetchall()
+
+        return render_template('admin/add_user.html', schools=schools)
+
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error: {e}", "error")
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# =========================
+# ADD SCHOOL
+# =========================
+@admin.route('/add-school', methods=['GET', 'POST'])
+def add_school():
+
+    if not admin_required():
+        return redirect('/')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+        cursor.execute("""
+            INSERT INTO schools (school_name, district, address,division)
+            VALUES (%s, %s, %s, 'Northen')
+        """, (
+            request.form['school_name'],
+            request.form['district'],
+            request.form['address']
+        ))
+
+        conn.commit()
+        flash("School added successfully!", "success")
+        return redirect('/admin/manage-schools')
+
+    return render_template('admin/add_school.html')
+
+# =========================
+# MANAGE SCHOOLS (ADVANCED)
+# =========================
+@admin.route('/manage-schools')
+def manage_schools():
+
+    if not admin_required():
+        return redirect('/')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    search = request.args.get('search', '')
+    district_filter = request.args.get('district', '')
+    page = request.args.get('page', 1, type=int)
+
+    per_page = 10
+    offset = (page - 1) * per_page
+
+    query = "SELECT * FROM schools WHERE 1=1"
+    params = []
+
+    if search:
+        query += " AND school_name LIKE %s"
+        params.append(f"%{search}%")
+
+    if district_filter:
+        query += " AND district = %s"
+        params.append(district_filter)
+
+    # COUNT
+    count_query = query.replace("SELECT *", "SELECT COUNT(*) as total")
+    cursor.execute(count_query, params)
+    total = cursor.fetchone()['total']
+
+    total_pages = (total + per_page - 1) // per_page
+
+    # DATA
+    query += " ORDER BY school_id DESC LIMIT %s OFFSET %s"
+    params.extend([per_page, offset])
+
+    cursor.execute(query, params)
+    schools = cursor.fetchall()
+
+    # DISTRICTS
+    cursor.execute("SELECT DISTINCT district FROM schools")
+    districts = cursor.fetchall()
+
+    return render_template(
+        'admin/manage_schools.html',
+        schools=schools,
+        page=page,
+        total_pages=total_pages,
+        search=search,
+        district_filter=district_filter,
+        districts=districts
+    )
+# =========================
+# EDIT SCHOOL (SAFE)
+# =========================
+@admin.route('/edit-school/<int:school_id>', methods=['GET', 'POST'])
+def edit_school(school_id):
+
+    if not admin_required():
+        return redirect('/')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # ===== UPDATE (POST) =====
+    if request.method == 'POST':
+        school_name = request.form['school_name']
+        district = request.form['district']
+        address = request.form['address']
+
+        cursor.execute("""
+            UPDATE schools
+            SET school_name=%s, district=%s, address=%s
+            WHERE school_id=%s
+        """, (school_name, district, address, school_id))
+
+        conn.commit()
+
+        flash("School updated successfully!", "success")
+
+        return redirect(url_for('admin.manage_schools'))
+
+    # ===== FETCH SCHOOL (GET) =====
+    cursor.execute("SELECT * FROM schools WHERE school_id = %s", (school_id,))
+    school = cursor.fetchone()
+
+    if not school:
+        return "School not found", 404
+
+    return render_template('admin/edit_school.html', school=school)
+
+# =========================
+# DELETE SCHOOL (SAFE)
+# =========================
+@admin.route('/delete-school/<int:id>')
+def delete_school(id):
+
+    if not admin_required():
+        return redirect('/')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        print("RECEIVED ID:", id)
+
+        # STEP 1: Unassign teachers from this school
+        cursor.execute("""
+            UPDATE users
+            SET school_id = NULL
+            WHERE school_id = %s
+        """, (id,))
+
+        print("UPDATED ROWS:", cursor.rowcount)
+
+        # STEP 2: Delete school
+        cursor.execute("""
+            DELETE FROM schools
+            WHERE school_id = %s
+        """, (id,))
+
+        print("SCHOOL DELETED:", cursor.rowcount)
+
+        conn.commit()
+
+        flash("School deleted successfully. Teachers are now unassigned.", "success")
+
+    except Exception as e:
+        conn.rollback()
+        print("ERROR:", e)
+        flash(f"Failed to delete school: {e}", "error")
+
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect('/admin/reassign-teachers')
+
+
+# =========================
+# REASSIGN TEACHERS PAGE
+# =========================
+@admin.route('/reassign-teachers')
+def reassign_teachers():
+
+    if not admin_required():
+        return redirect('/')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # Fetch teachers without school
+        cursor.execute("""
+            SELECT user_id, name, email
+            FROM users
+            WHERE role = 'teacher'
+            AND (school_id IS NULL OR school_id = '' OR school_id = 0)
+        """)
+        teachers = cursor.fetchall()
+
+        # Fetch all schools
+        cursor.execute("SELECT school_id, school_name FROM schools")
+        schools = cursor.fetchall()
+
+    except Exception as e:
+        print("ERROR:", e)
+        teachers = []
+        schools = []
+        flash("Error loading reassignment data", "error")
+
+    finally:
+        cursor.close()
+        conn.close()
+
+    return render_template(
+        "admin/reassign_teachers.html",
+        teachers=teachers,
+        schools=schools
+    )
+
+
+# =========================
+# ASSIGN TEACHER (SAFE)
+# =========================
+@admin.route('/assign-teacher', methods=['POST'])
+def assign_teacher():
+
+    if not admin_required():
+        return redirect('/')
+
+    teacher_id = request.form.get('teacher_id')
+    school_id = request.form.get('school_id')
+
+    if not teacher_id or not school_id:
+        flash("Missing teacher or school selection", "error")
+        return redirect('/admin/reassign-teachers')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            UPDATE users
+            SET school_id = %s
+            WHERE user_id = %s AND role = 'teacher'
+        """, (school_id, teacher_id))
+
+        conn.commit()
+
+        if cursor.rowcount > 0:
+            flash("Teacher assigned successfully!", "success")
+        else:
+            flash("No teacher was updated. Check data.", "warning")
+
+    except Exception as e:
+        conn.rollback()
+        print("ERROR:", e)
+        flash(f"Error assigning teacher: {e}", "error")
+
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect('/admin/reassign-teachers')

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reassign Teachers</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+
+<body>
+
+<h2>Teachers Without Schools</h2>
+
+<div class="card">
+
+{% if teachers|length == 0 %}
+    <p>No teachers need reassignment 🎉</p>
+{% endif %}
+
+{% for t in teachers %}
+<div style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+
+    <h4>{{ t.name }}</h4>
+    <p>Email: {{ t.email }}</p>
+
+    <form method="POST" action="/admin/assign-teacher">
+        <input type="hidden" name="teacher_id" value="{{ t.user_id }}">
+
+        <select name="school_id" required>
+            {% for s in schools %}
+                <option value="{{ s.school_id }}">
+                    {{ s.school_name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">Assign</button>
+    </form>
+
+</div>
+{% endfor %}
+
+</div>
+
+</body>
+</html>
