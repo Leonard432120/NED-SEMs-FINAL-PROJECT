@@ -575,3 +575,113 @@ def assign_teacher():
         conn.close()
 
     return redirect('/admin/reassign-teachers')
+
+@admin.route('/exams')
+def exam_list():
+
+    if not admin_required():
+        return redirect('/')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT e.*, s.subject_name
+        FROM exams e
+        LEFT JOIN subjects s ON e.subject_id = s.subject_id
+        ORDER BY e.exam_id DESC
+    """)
+
+    exams = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template('admin/exam_list.html', exams=exams)
+
+
+# =========================================================
+# ASSIGN ITEM WRITERS
+# =========================================================
+@admin.route('/exams/assign-item-writers/<int:exam_id>', methods=['GET', 'POST'])
+def assign_item_writers(exam_id):
+    if not admin_required():
+        return redirect(url_for('auth.login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Get exam
+    cursor.execute("SELECT * FROM exams WHERE exam_id=%s", (exam_id,))
+    exam = cursor.fetchone()
+
+    # If form submitted → SAVE assignments
+    if request.method == 'POST':
+        selected_teachers = request.form.getlist('teachers')
+
+        for teacher_id in selected_teachers:
+            try:
+                cursor.execute("""
+                    INSERT INTO exam_assignments (exam_id, teacher_id, role, assigned_by)
+                    VALUES (%s, %s, 'item_writer', %s)
+                """, (exam_id, teacher_id, session['user_id']))
+            except:
+                # prevents duplicate crash because table has UNIQUE constraint
+                pass
+
+        conn.commit()
+        flash("Item writers assigned successfully!", "success")
+        return redirect(url_for('admin.assign_item_writers', exam_id=exam_id))
+
+    # Get teachers list
+    cursor.execute("SELECT user_id, name, email FROM users WHERE role='teacher'")
+    teachers = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template(
+        "admin/assign_item_writers.html",
+        exam=exam,
+        teachers=teachers
+    )
+
+
+@admin.route('/exams/assign-moderators/<int:exam_id>', methods=['GET', 'POST'])
+def assign_moderators(exam_id):
+    if not admin_required():
+        return redirect(url_for('auth.login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("SELECT * FROM exams WHERE exam_id=%s", (exam_id,))
+    exam = cursor.fetchone()
+
+    if request.method == 'POST':
+        selected_teachers = request.form.getlist('teachers')
+
+        for teacher_id in selected_teachers:
+            try:
+                cursor.execute("""
+                    INSERT INTO exam_assignments (exam_id, teacher_id, role, assigned_by)
+                    VALUES (%s, %s, 'moderator', %s)
+                """, (exam_id, teacher_id, session['user_id']))
+            except:
+                pass
+
+        conn.commit()
+        flash("Moderators assigned successfully!", "success")
+        return redirect(url_for('admin.assign_moderators', exam_id=exam_id))
+
+    cursor.execute("SELECT user_id, name, email FROM users WHERE role='teacher'")
+    teachers = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template(
+        "admin/assign_moderators.html",
+        exam=exam,
+        teachers=teachers
+    )

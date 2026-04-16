@@ -8,81 +8,84 @@
 
 <body>
 
+<!-- HEADER -->
 <div class="header">
     <div class="header-left">
-        <span class="dashboard-title">Teacher Portal</span>
+        <h3>Teacher Portal</h3>
     </div>
 
     <div class="header-right">
-        <div class="profile">
-            <span class="header-name">{{ session.name }}</span>
-            <img src="/static/images/user.png">
-        </div>
+        <span>{{ session.name }}</span>
         <a href="/logout">Logout</a>
     </div>
 </div>
 
+
 <div class="dashboard">
 
-<div class="sidebar">
-    <a href="#" class="active">Dashboard</a>
-    <a href="#">My Classes</a>
-    <a href="#">Students</a>
-    <a href="#">Enter Marks</a>
-</div>
-
-<div class="content">
-
-<h2>Teaching Overview</h2>
-
-<div class="dashboard-grid">
-
-<div class="card card-accent-blue">
-    <h3>Exam Creation</h3>
-    <ul class="status-list">
-        <li>Assigned Exams: <b>{{ classes }}</b></li>
-        <li>Drafts: <b>0</b></li>
-    </ul>
-</div>
-
-<div class="card card-accent-green">
-    <h3>Marking</h3>
-    <ul class="status-list">
-        <li>Students: <b>{{ students }}</b></li>
-        <li>Completed: <b>{{ results }}</b></li>
-    </ul>
-</div>
-
-<div class="card card-accent-purple">
-    <h3>Performance</h3>
-    <p>Analyze student results.</p>
-</div>
-
-<div class="card card-accent-orange">
-    <h3>Alerts</h3>
-    <ul class="status-list">
-        <li>⚠️ Missing Marks: <b>0</b></li>
-        <li>📊 Abnormal Scores: <b>0</b></li>
-    </ul>
-</div>
-
-</div>
-
-</div>
-</div>
-
-<footer class="footer">
-<div class="footer-container">
-    <div class="footer-section">
-        <h4>NED-SEMS</h4>
-        <p>Teacher interface for marks and performance.</p>
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <a href="/teacher/dashboard">Dashboard</a>
+        <a href="/teacher/assigned_exams">Item Writer Tasks</a>
+        <a href="/teacher/moderation-exams">Moderator Tasks</a>
+        <a href="/teacher/my-submissions">My Submissions</a>
     </div>
-</div>
 
-<div class="footer-bottom">
-© 2026 NED-SEMS
+
+    <!-- CONTENT -->
+    <div class="content">
+
+        <h2>Overview Dashboard</h2>
+
+        <!-- STATS CARDS -->
+        <div class="dashboard-grid">
+
+            <!-- ITEM WRITER CARD -->
+            <div class="card card-accent-blue">
+                <h3>Item Writer</h3>
+                <p>Assigned Exams: <b>{{ assigned }}</b></p>
+                <p>Status: Upload exam papers</p>
+            </div>
+
+            <!-- MODERATOR CARD -->
+            <div class="card card-accent-orange">
+                <h3>Moderator</h3>
+                <p>Pending Reviews: <b>{{ moderations }}</b></p>
+                <p>Status: Review submitted exams</p>
+            </div>
+
+            <!-- SUBMISSIONS CARD -->
+            <div class="card card-accent-green">
+                <h3>My Work</h3>
+                <p>Uploaded Documents</p>
+                <p>Status: Tracking submissions</p>
+            </div>
+
+        </div>
+
+
+        <!-- QUICK ACTIONS -->
+        <div style="margin-top:20px;">
+
+            <h3>Quick Actions</h3>
+
+            <a href="/teacher/assigned_exams">
+                <button>View Item Writer Tasks</button>
+            </a>
+
+            <a href="/teacher/moderation-exams">
+                <button>View Moderator Tasks</button>
+            </a>
+
+            <a href="/teacher/my-submissions">
+                <button>My Submissions</button>
+            </a>
+
+        </div>
+
+    </div>
+
 </div>
-</footer>
 
 </body>
 </html>

@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, session
+from flask import Blueprint, render_template, request, redirect, session, flash, url_for
 from config.db import get_db_connection
 
 auth = Blueprint('auth', __name__)
@@ -58,3 +59,9 @@ def login():
             return redirect('/examination_officer/dashboard')
 
     return "Invalid email or password"
+
+@auth.route('/logout')
+def logout():
+    session.clear()
+    flash("You have been logged out.", "info")
+    return redirect(url_for('auth.login'))

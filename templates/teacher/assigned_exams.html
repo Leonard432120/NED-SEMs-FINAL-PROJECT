@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Assigned Exams</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+
+<body>
+
+<div class="header">
+    <h3>Item Writer Tasks</h3>
+    <a href="/teacher/dashboard">Back</a>
+</div>
+
+<div class="content">
+
+<h2>Assigned Exams (Item Writer)</h2>
+
+<table border="1" width="100%" cellpadding="10">
+
+<tr>
+    <th>Title</th>
+    <th>Subject</th>
+    <th>Year</th>
+    <th>Class</th>
+    <th>Status</th>
+    <th>Action</th>
+</tr>
+
+{% for e in exams %}
+<tr>
+    <td>{{ e.title }}</td>
+    <td>{{ e.subject_name }}</td>
+    <td>{{ e.year }}</td>
+    <td>{{ e.class }}</td>
+    <td>{{ e.status }}</td>
+
+    <td>
+        <!-- THIS IS THE IMPORTANT PART -->
+        <a href="/teacher/upload-exam/{{ e.exam_id }}">
+            <button style="background:green;color:white;padding:5px;">
+                Upload Exam (PDF)
+            </button>
+        </a>
+    </td>
+
+</tr>
+{% endfor %}
+
+</table>
+
+</div>
+
+</body>
+</html>

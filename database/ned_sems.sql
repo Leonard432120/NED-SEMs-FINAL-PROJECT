@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Mar 31, 2026 at 07:07 PM
+-- Generation Time: Apr 12, 2026 at 07:53 AM
 -- Server version: 8.4.7
 -- PHP Version: 8.3.28
 
@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS `exams` (
   `exam_date` date DEFAULT NULL,
   `duration_minutes` int DEFAULT NULL,
   `total_marks` int DEFAULT NULL,
-  `status` enum('draft','assigned','submitted','under_moderation','approved','rejected') COLLATE utf8mb4_unicode_ci DEFAULT 'draft',
+  `status` enum('draft','assigned','submitted','under_moderation','needs_revision','approved','rejected') COLLATE utf8mb4_unicode_ci DEFAULT 'draft',
   `year` year DEFAULT NULL,
   `class` enum('Form 1','Form 2') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`exam_id`),
@@ -113,6 +113,45 @@ CREATE TABLE IF NOT EXISTS `exam_assignments` (
 
 INSERT INTO `exam_assignments` (`assignment_id`, `exam_id`, `teacher_id`, `role`, `assigned_by`, `assigned_at`) VALUES
 (2, 1, 10, 'moderator', 2, '2026-03-31 03:45:18');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `exam_comments`
+--
+
+DROP TABLE IF EXISTS `exam_comments`;
+CREATE TABLE IF NOT EXISTS `exam_comments` (
+  `comment_id` int NOT NULL AUTO_INCREMENT,
+  `exam_id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `comment` text COLLATE utf8mb4_unicode_ci,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`comment_id`),
+  KEY `exam_id` (`exam_id`),
+  KEY `user_id` (`user_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `exam_documents`
+--
+
+DROP TABLE IF EXISTS `exam_documents`;
+CREATE TABLE IF NOT EXISTS `exam_documents` (
+  `document_id` int NOT NULL AUTO_INCREMENT,
+  `exam_id` int NOT NULL,
+  `uploaded_by` int NOT NULL,
+  `file_path` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `document_type` enum('question_paper','marking_scheme','attachment') COLLATE utf8mb4_unicode_ci DEFAULT 'question_paper',
+  `version_number` int DEFAULT '1',
+  `is_current` tinyint(1) DEFAULT '1',
+  `uploaded_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`document_id`),
+  KEY `exam_id` (`exam_id`),
+  KEY `uploaded_by` (`uploaded_by`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -207,16 +246,19 @@ CREATE TABLE IF NOT EXISTS `schools` (
   `school_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `district` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `address` text COLLATE utf8mb4_unicode_ci,
+  `division` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Unknown',
   PRIMARY KEY (`school_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `schools`
 --
 
-INSERT INTO `schools` (`school_id`, `school_name`, `district`, `address`) VALUES
-(1, 'Chitipa Secondary School', 'Chitipa', 'P.O BOX 91'),
-(3, 'Mlare Secondary School', 'Karonga', 'P.O BOX 47');
+INSERT INTO `schools` (`school_id`, `school_name`, `district`, `address`, `division`) VALUES
+(28, 'Mlare Secondary School', 'KARONGA ', 'P.O BOX 39', 'Northen'),
+(29, 'KARONGA COMMUNITY SECONDARY SCHOOL', 'Karonga', 'P.O BOX 39', 'Northen'),
+(30, 'Lufita seecondary school', 'Chitipa', 'P.OBOX 18', 'Northen'),
+(31, 'Ngara secondary school', 'Karonga', 'P.OBOX 12', 'Northen');
 
 -- --------------------------------------------------------
 
@@ -230,23 +272,22 @@ CREATE TABLE IF NOT EXISTS `students` (
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `school_id` int DEFAULT NULL,
   `class` enum('Form 1','Form 2') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `exam_number` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
   PRIMARY KEY (`student_id`),
-  UNIQUE KEY `unique_student_school` (`name`,`school_id`),
+  UNIQUE KEY `exam_number` (`exam_number`),
+  UNIQUE KEY `exam_number_2` (`exam_number`),
   KEY `school_id` (`school_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `students`
 --
 
-INSERT INTO `students` (`student_id`, `name`, `school_id`, `class`) VALUES
-(4, 'Judith Matupi', 1, 'Form 1'),
-(5, 'Leonard Ponje Mlungu', 1, 'Form 1'),
-(6, 'Leonard Ponje ', 1, 'Form 2'),
-(7, 'kkkk', 1, 'Form 1'),
-(8, 'Matupi', 1, 'Form 1'),
-(9, 'Judith', 1, 'Form 1'),
-(11, 'Karonga', 3, 'Form 2');
+INSERT INTO `students` (`student_id`, `name`, `school_id`, `class`, `exam_number`) VALUES
+(12, 'Judith Matupi', NULL, 'Form 1', 'MW15531'),
+(13, 'Judith Matupi', NULL, 'Form 1', 'MW18363'),
+(14, 'Judith Matupi', NULL, 'Form 2', 'MW32248'),
+(15, 'John Mlungu', NULL, 'Form 2', 'MW168822');
 
 -- --------------------------------------------------------
 
@@ -302,18 +343,18 @@ CREATE TABLE IF NOT EXISTS `users` (
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `email` (`email`),
   KEY `school_id` (`school_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=52 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `users`
 --
 
 INSERT INTO `users` (`user_id`, `name`, `email`, `phone`, `password`, `role`, `school_id`) VALUES
-(2, 'Admin User', 'leonardponjemlungu@gmail.com', '0984487622', '1234', 'admin', 1),
-(8, 'Judith Matupi', 'leonardmlungupro@gmail.com', '0984487611', '1234', 'examination_officer', 1),
-(9, 'Leonard Ponje Mlungu', 'ict-01-25-22@unilia.ac.mw', '0984487611', '1234', 'headteacher', 1),
-(11, 'Judith Matupi', 'matupijudith71@gmail.com', '0984487611', '1234', 'teacher', 1),
-(14, 'John wa Ponje', 'judithmatupi2@gmail.com', '0984487611', '1234', 'headteacher', 3);
+(2, 'Admin User', 'leonardponjemlungu@gmail.com', '0984487626', '1234', 'admin', NULL),
+(47, 'ponje', 'judithmatupi7@gmail.com', '0984487626', '1234', 'teacher', 28),
+(48, 'PROGRAMMER', 'ict-01-26-22@unilia.ac.mw', '0984487621', '1234', 'teacher', 29),
+(49, 'Ponje', 'matupijudith71@gmail.com', '0984487621', '1234', 'teacher', 31),
+(50, 'Leonardponje mlungu', 'leonardmlungupro@gmail.com', '0899520423', '1234', 'headteacher', 29);
 
 --
 -- Constraints for dumped tables

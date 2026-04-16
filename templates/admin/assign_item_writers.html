@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assign Item Writers</title>
+
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+
+<div class="header">
+    <h2>Assign Item Writers</h2>
+    <a href="/admin/exams">← Back to Exams</a>
+</div>
+
+<div class="content">
+
+    <h3>Exam: {{ exam.title }}</h3>
+
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div class="alert">{{ messages[0] }}</div>
+    {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+
+        <table border="1" width="100%" cellpadding="10">
+            <tr>
+                <th>Select</th>
+                <th>Teacher Name</th>
+                <th>Email</th>
+            </tr>
+
+            {% for teacher in teachers %}
+            <tr>
+                <td>
+                    <input type="checkbox" name="teachers" value="{{ teacher.user_id }}">
+                </td>
+                <td>{{ teacher.name }}</td>
+                <td>{{ teacher.email }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <br><br>
+        <button type="submit">Assign Writers</button>
+
+    </form>
+
+</div>
+
+</body>
+</html>

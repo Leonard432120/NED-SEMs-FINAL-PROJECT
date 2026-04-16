@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload Exam</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+
+<body>
+
+<div class="header">
+    <h3>Upload Exam Paper</h3>
+    <a href="/teacher/assigned_exams">Back</a>
+</div>
+
+<div class="content">
+
+<h2>{{ exam.title }} - Upload PDF</h2>
+
+<p><b>Subject:</b> {{ exam.subject_name }}</p>
+<p><b>Year:</b> {{ exam.year }}</p>
+<p><b>Class:</b> {{ exam.class }}</p>
+
+<hr>
+
+<form method="POST" enctype="multipart/form-data">
+
+    <label>Select Exam File (PDF)</label><br><br>
+
+    <input type="file" name="exam_file" accept=".pdf" required>
+
+    <br><br>
+
+    <button type="submit" style="background:green;color:white;padding:10px;">
+        Upload Exam
+    </button>
+
+</form>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,30 @@
+<h2>Exam Moderation</h2>
+
+<h3>{{ exam.title }}</h3>
+<p>Teacher: {{ exam.teacher_name }}</p>
+<p>Subject: {{ exam.subject_name }}</p>
+
+<hr>
+
+<h3>Exam Document</h3>
+
+{% if document %}
+    <a href="/{{ document.file_path }}" target="_blank">
+        Open PDF
+    </a>
+{% else %}
+    <p>No document uploaded</p>
+{% endif %}
+
+<hr>
+
+<h3>Decision</h3>
+
+<form method="POST" action="/teacher/moderate-action/{{ exam.exam_id }}">
+
+    <textarea name="comment" placeholder="Write feedback..." required></textarea><br><br>
+
+    <button name="decision" value="approve">Approve</button>
+    <button name="decision" value="reject">Reject</button>
+
+</form>
