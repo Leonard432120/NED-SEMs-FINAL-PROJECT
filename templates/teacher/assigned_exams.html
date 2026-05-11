@@ -1,55 +1,96 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Assigned Exams</title>
-    <link rel="stylesheet" href="/static/css/admin.css">
-</head>
+{% extends "teacher/base.html" %}
 
-<body>
+{% block title %}Item Writer Tasks{% endblock %}
 
-<div class="header">
-    <h3>Item Writer Tasks</h3>
-    <a href="/teacher/dashboard">Back</a>
+{% block content %}
+
+<!-- ================= HEADER ================= -->
+<div class="page-header">
+    <h2 class="page-title">Item Writer Tasks</h2>
 </div>
 
-<div class="content">
+<!-- ================= SEARCH + FILTER ROW ================= -->
+<form method="GET" class="search-filter-bar">
 
-<h2>Assigned Exams (Item Writer)</h2>
+    <!-- LEFT: SEARCH -->
+    <input type="text"
+           name="search"
+           placeholder="Search exam title..."
+           value="{{ search or '' }}">
 
-<table border="1" width="100%" cellpadding="10">
+    <!-- FILTER DROPDOWN -->
+    <select name="status">
+        <option value="">All Status</option>
+        <option value="draft" {% if status=='draft' %}selected{% endif %}>Draft</option>
+        <option value="assigned" {% if status=='assigned' %}selected{% endif %}>Assigned</option>
+        <option value="submitted" {% if status=='submitted' %}selected{% endif %}>Submitted</option>
+        <option value="under_moderation" {% if status=='under_moderation' %}selected{% endif %}>Under Moderation</option>
+        <option value="approved" {% if status=='approved' %}selected{% endif %}>Approved</option>
+        <option value="rejected" {% if status=='rejected' %}selected{% endif %}>Rejected</option>
+    </select>
 
-<tr>
-    <th>Title</th>
-    <th>Subject</th>
-    <th>Year</th>
-    <th>Class</th>
-    <th>Status</th>
-    <th>Action</th>
-</tr>
+    <!-- RIGHT: BUTTON -->
+    <button type="submit">Filter</button>
 
-{% for e in exams %}
-<tr>
-    <td>{{ e.title }}</td>
-    <td>{{ e.subject_name }}</td>
-    <td>{{ e.year }}</td>
-    <td>{{ e.class }}</td>
-    <td>{{ e.status }}</td>
+</form>
 
-    <td>
-        <!-- THIS IS THE IMPORTANT PART -->
-        <a href="/teacher/upload-exam/{{ e.exam_id }}">
-            <button style="background:green;color:white;padding:5px;">
-                Upload Exam (PDF)
-            </button>
-        </a>
-    </td>
+<!-- ================= TABLE ================= -->
+<div class="card">
 
-</tr>
-{% endfor %}
+    <div class="table-container">
 
-</table>
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Subject</th>
+                    <th>Year</th>
+                    <th>Class</th>
+                    <th>Status</th>
+                    <th style="width:200px;">Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for e in exams %}
+
+                <tr>
+                    <td>{{ e.exam_name }}</td>
+                    <td>{{ e.subject_name }}</td>
+                    <td>{{ e.year }}</td>
+                    <td>{{ e.class }}</td>
+
+                    <td>
+                        <span class="badge badge-{{ e.status }}">
+                            {{ e.status }}
+                        </span>
+                    </td>
+
+                    <td class="actions">
+
+                        <a href="/teacher/compose-exam/{{ e.exam_id }}"
+                           class="btn btn-teal btn-small">
+                            Compose
+                        </a>
+
+                        <a href="/teacher/view-paper/{{ e.exam_id }}?page=cover"
+                           class="btn btn-dark btn-small">
+                            View
+                        </a>
+
+                    </td>
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
 
 </div>
 
-</body>
-</html>
+{% endblock %}

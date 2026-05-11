@@ -1,0 +1,245 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+
+<div class="page-header">
+    <h2>Exam Details</h2>
+</div>
+
+<!-- ================= EXAM CARD ================= -->
+<div class="card exam-card">
+
+    <div class="exam-title">
+        <div>
+            <h3>{{ exam.exam_name }}</h3>
+            <small class="muted">Exam overview information</small>
+        </div>
+
+        <span class="status-badge status-{{ exam.status }}">
+          Status:  {{ exam.status.replace('_', ' ') }}
+        </span>
+    </div>
+
+    <div class="exam-grid">
+
+        <div class="exam-item">
+            <label>Subject</label>
+            <p>{{ exam.subject_name }}</p>
+        </div>
+
+        <div class="exam-item">
+            <label>Year</label>
+            <p>{{ exam.year }}</p>
+        </div>
+
+        <div class="exam-item">
+            <label>Class</label>
+            <p>{{ exam.class }}</p>
+        </div>
+
+        <div class="exam-item">
+            <label>Date</label>
+            <p>{{ exam.exam_date }}</p>
+        </div>
+
+        <div class="exam-item">
+            <label>Total Marks</label>
+            <p>{{ exam.total_marks }}</p>
+        </div>
+
+    </div>
+</div>
+
+<!-- ================= ASSIGNMENTS ================= -->
+<div class="card">
+
+    <h3>Assigned Teachers</h3>
+
+    <div class="table-container">
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Role</th>
+                    <th>Assigned At</th>
+                </tr>
+            </thead>
+
+            <tbody>
+            {% for a in assignments %}
+                <tr>
+                    <td>{{ a.name }}</td>
+                    <td>
+                        <span class="role-badge role-{{ a.role|replace(' ', '_') }}">
+                            {{ a.role }}
+                        </span>
+                    </td>
+                    <td>{{ a.assigned_at }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<!-- ================= STYLES ================= -->
+<style>
+
+/* PAGE HEADER */
+.page-header h2{
+    font-size:22px;
+    font-weight:700;
+    color:#1e293b;
+    margin-bottom:10px;
+}
+
+/* EXAM CARD */
+.exam-card{
+    padding:22px;
+}
+
+/* TITLE */
+.exam-title{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:18px;
+}
+
+.exam-title h3{
+    font-size:22px;
+    font-weight:700;
+    color:#0f172a;
+}
+
+.muted{
+    font-size:12px;
+    color:#64748b;
+}
+
+/* ================= STATUS BADGE ================= */
+.status-badge{
+    padding:6px 14px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+}
+
+/* STATUS COLORS */
+.status-draft{
+    background:#e2e8f0;
+    color:#334155;
+}
+
+.status-assigned{
+    background:#dbeafe;
+    color:#1d4ed8;
+}
+
+.status-under_moderation{
+    background:#fef3c7;
+    color:#92400e;
+}
+
+.status-approved{
+    background:#dcfce7;
+    color:#166534;
+}
+
+.status-rejected{
+    background:#fee2e2;
+    color:#991b1b;
+}
+
+/* ================= GRID ================= */
+.exam-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:15px;
+}
+
+/* ITEM BOX */
+.exam-item{
+    background:#f8fafc;
+    border:1px solid #e2e8f0;
+    padding:14px;
+    border-radius:12px;
+    transition:0.3s;
+}
+
+.exam-item:hover{
+    transform:translateY(-4px);
+    box-shadow:0 10px 20px rgba(0,0,0,0.06);
+}
+
+.exam-item label{
+    font-size:11px;
+    text-transform:uppercase;
+    color:#64748b;
+}
+
+.exam-item p{
+    font-size:15px;
+    font-weight:700;
+    color:#0f172a;
+    margin-top:6px;
+}
+
+/* ================= TABLE ================= */
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th{
+    background:#f1f5f9;
+    text-align:left;
+    padding:12px;
+    font-size:13px;
+    color:#334155;
+}
+
+td{
+    padding:12px;
+    border-bottom:1px solid #e2e8f0;
+    font-size:14px;
+}
+
+tr:hover{
+    background:#f8fafc;
+}
+
+/* ================= ROLE BADGE ================= */
+.role-badge{
+    padding:4px 10px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:600;
+    text-transform:capitalize;
+}
+
+/* role colors */
+.role-item_writer{
+    background:#ede9fe;
+    color:#5b21b6;
+}
+
+.role-moderator{
+    background:#dcfce7;
+    color:#166534;
+}
+
+.role-marker{
+    background:#dbeafe;
+    color:#1d4ed8;
+}
+
+</style>
+
+{% endblock %}

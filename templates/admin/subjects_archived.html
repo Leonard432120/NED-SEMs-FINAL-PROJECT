@@ -1,0 +1,93 @@
+{% extends "admin/base.html" %}
+{% block content %}
+
+<div class="page-header">
+
+    <h2 class="page-title">Archived Subjects</h2>
+
+    <a href="/admin/subjects" class="btn btn-dark btn-small">
+        ← Back
+    </a>
+
+</div>
+
+<div class="card">
+
+<table>
+
+    <thead>
+        <tr>
+            <th style="width:80px;">ID</th>
+            <th>Subject Name</th>
+            <th style="width:120px;">Status</th>
+            <th style="width:120px;">Action</th>
+        </tr>
+    </thead>
+
+    <tbody>
+
+        {% for s in subjects %}
+
+        <tr>
+
+            <td>{{ s.subject_id }}</td>
+            <td>{{ s.subject_name }}</td>
+
+            <td>
+                <span class="badge badge-archived">Archived</span>
+            </td>
+
+            <td class="actions">
+
+                <a href="/admin/subjects/restore/{{ s.subject_id }}"
+                   class="btn btn-restore btn-small">
+                    Restore
+                </a>
+
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+    </tbody>
+
+</table>
+
+</div>
+
+<style>
+
+.page-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+}
+
+.btn-small{
+    padding:6px 12px;
+    font-size:13px;
+    border-radius:6px;
+}
+
+/* restore button */
+.btn-restore{
+    background:#2563eb;
+    color:white;
+    text-decoration:none;
+}
+
+.badge-archived{
+    background:#fee2e2;
+    color:#991b1b;
+}
+
+.actions{
+    display:flex;
+    justify-content:center;
+}
+
+</style>
+
+{% endblock %}

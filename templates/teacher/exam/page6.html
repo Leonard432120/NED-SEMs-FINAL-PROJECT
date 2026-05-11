@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Page 6</title>
+<link rel="stylesheet" href="/static/css/exam.css">
+</head>
+
+<body>
+<div class="paper">
+
+<div class="student-line">
+NAME OF STUDENT: ________________________________ 
+SECTION: _____________
+</div>
+
+<h2 class="center">SECTION C (CONTINUED)</h2>
+
+{% for q in questions %}
+<h3>{{ loop.index + 1 }}. {{ q.question_text }} ({{ q.marks }} marks)</h3>
+<textarea class="lined" rows="12"></textarea>
+{% endfor %}
+
+<div class="nav">
+<a href="/teacher/view-paper/{{ exam.exam_id }}?page=page5"><button>Previous</button></a>
+<a href="/teacher/view-paper/{{ exam.exam_id }}?page=cover"><button>Finish</button></a>
+</div>
+
+</div>
+</body>
+</html>

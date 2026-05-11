@@ -7,34 +7,45 @@
 
 <body>
 
-<div class="header">
-    <h3>Upload Exam Paper</h3>
-    <a href="/teacher/assigned_exams">Back</a>
+<div class="page-header">
+    <div>
+        <h1>Upload Exam Paper</h1>
+        <p class="muted">Submit your exam for moderation</p>
+    </div>
+    <a href="/teacher/assigned_exams" class="btn-secondary">← Back</a>
 </div>
 
-<div class="content">
+<div class="container">
 
-<h2>{{ exam.title }} - Upload PDF</h2>
+    <!-- Exam Info Card -->
+    <div class="card">
+        <h2>{{ exam.title }}</h2>
 
-<p><b>Subject:</b> {{ exam.subject_name }}</p>
-<p><b>Year:</b> {{ exam.year }}</p>
-<p><b>Class:</b> {{ exam.class }}</p>
+        <div class="info-grid">
+            <div><span>Subject</span><b>{{ exam.subject_name }}</b></div>
+            <div><span>Year</span><b>{{ exam.year }}</b></div>
+            <div><span>Class</span><b>{{ exam.class }}</b></div>
+        </div>
+    </div>
 
-<hr>
+    <!-- Upload Card -->
+    <div class="card">
+        <h3>Upload PDF Document</h3>
+        <p class="muted">Only PDF files are allowed.</p>
 
-<form method="POST" enctype="multipart/form-data">
+        <form method="POST" enctype="multipart/form-data" class="upload-form">
 
-    <label>Select Exam File (PDF)</label><br><br>
+            <div class="upload-box">
+                <input type="file" name="exam_file" accept=".pdf" required>
+                <p>Click to choose file</p>
+            </div>
 
-    <input type="file" name="exam_file" accept=".pdf" required>
+            <button type="submit" class="btn-primary">
+                Upload & Submit for Moderation
+            </button>
 
-    <br><br>
-
-    <button type="submit" style="background:green;color:white;padding:10px;">
-        Upload Exam
-    </button>
-
-</form>
+        </form>
+    </div>
 
 </div>
 

@@ -1,55 +1,225 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Exams</title>
-    <link rel="stylesheet" href="/static/css/admin.css">
-</head>
+{% extends "admin/base.html" %}
+{% block content %}
 
-<body>
+<!-- ================= HEADER ================= -->
+<div class="page-header">
 
-<div class="header">
-    <h3>Exams</h3>
-    <a href="/admin/exams/create">+ Create Exam</a>
+    <h2 class="page-title">Manage Exams</h2>
+
+    <div class="header-actions">
+        <a href="/admin/exams/create" class="btn btn-dark btn-small">
+            + Create Exam
+        </a>
+    </div>
+
 </div>
 
-<div class="content">
+<!-- ================= SEARCH + FILTER (UNCHANGED STYLE) ================= -->
+<form method="GET" class="search-form">
 
+    <input type="text"
+           name="search"
+           placeholder="Search exam title..."
+           value="{{ search or '' }}">
+
+    <select name="status">
+        <option value="">All Status</option>
+        <option value="draft" {% if status=='draft' %}selected{% endif %}>Draft</option>
+        <option value="assigned" {% if status=='assigned' %}selected{% endif %}>Assigned</option>
+        <option value="submitted" {% if status=='submitted' %}selected{% endif %}>Submitted</option>
+        <option value="under_moderation" {% if status=='under_moderation' %}selected{% endif %}>Under Moderation</option>
+        <option value="approved" {% if status=='approved' %}selected{% endif %}>Approved</option>
+        <option value="rejected" {% if status=='rejected' %}selected{% endif %}>Rejected</option>
+    </select>
+
+    <button type="submit">Filter</button>
+
+</form>
+
+<!-- ================= TABLE ================= -->
 <div class="card">
 
-<table>
-    <tr>
-        <th>Title</th>
-        <th>Subject</th>
-        <th>Year</th>
-        <th>Class</th>
-        <th>Status</th>
-        <th>Actions</th>
-    </tr>
+    <div class="table-container">
 
-    {% for e in exams %}
-    <tr>
-        <td>{{ e.title }}</td>
-        <td>{{ e.subject_name }}</td>
-        <td>{{ e.year }}</td>
-        <td>{{ e.class }}</td>
-        <td>{{ e.status }}</td>
-        <td>
-            <a class="btn btn-edit" href="/admin/exams/assign-item-writers/{{ e.exam_id }}">
-                Writers
-            </a>
+        <table>
 
-            <a class="btn btn-edit" href="/admin/exams/assign-moderators/{{ e.exam_id }}">
-                Moderators
-            </a>
-        </td>
-    </tr>
-    {% endfor %}
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Subject</th>
+                    <th>Class</th>
+                    <th>Year</th>
+                    <th>Status</th>
+                    <th style="width:180px;">Actions</th>
+                </tr>
+            </thead>
 
-</table>
+            <tbody>
+
+                {% if exams and exams|length > 0 %}
+
+                    {% for e in exams %}
+                    <tr>
+
+                        <td>{{ e.exam_name }}</td>
+                        <td>{{ e.subject_name }}</td>
+                        <td>{{ e.class }}</td>
+                        <td>{{ e.year }}</td>
+
+                        <td>
+                            <span class="badge badge-{{ e.status }}">
+                                {{ e.status }}
+                            </span>
+                        </td>
+
+                        <td class="actions">
+
+                            <a href="/admin/assign?exam_id={{ e.exam_id }}"
+                               class="btn btn-teal btn-small">
+                               Assign
+                            </a>
+
+                            <a href="/admin/exams/view/{{ e.exam_id }}"
+                               class="btn btn-dark btn-small">
+                               View
+                            </a>
+
+                            <a href="#"
+                               class="btn btn-delete btn-small"
+                               onclick="openDeleteModal('/admin/exams/delete/{{ e.exam_id }}')">
+                               Delete
+                            </a>
+
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+
+                {% else %}
+
+                    <tr>
+                        <td colspan="6" style="text-align:center; padding:20px;">
+                            No exams found.
+                        </td>
+                    </tr>
+
+                {% endif %}
+
+            </tbody>
+
+        </table>
+
+    </div>
 
 </div>
 
-</div>
+<!-- ================= SAME STYLES AS MANAGE USERS ================= -->
+<style>
 
-</body>
-</html>
+.page-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+}
+
+.header-actions{
+    margin-left:auto;
+    display:flex;
+    gap:10px;
+}
+
+.btn-small{
+    padding:8px 14px;
+    font-size:13px;
+    border-radius:6px;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+}
+
+.btn-dark{
+    background:#111827;
+    color:#fff;
+    border:none;
+}
+
+.btn-dark:hover{
+    background:#1f2937;
+}
+
+.btn-teal{
+    background:#0f766e;
+    color:#fff;
+}
+
+.btn-teal:hover{
+    background:#115e59;
+}
+
+.btn-delete{
+    background:#b91c1c;
+    color:#fff;
+}
+
+.btn-delete:hover{
+    background:#991b1b;
+}
+
+.search-form{
+    display:flex;
+    gap:10px;
+    margin-bottom:15px;
+    align-items:center;
+}
+
+.search-form input,
+.search-form select{
+    padding:8px;
+    border:1px solid #ccc;
+    border-radius:6px;
+}
+
+.search-form button{
+    padding:8px 14px;
+    border:none;
+    background:#334155;
+    color:#fff;
+    border-radius:6px;
+}
+
+.table-container table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+.table-container th,
+.table-container td{
+    padding:12px;
+    border-bottom:1px solid #eee;
+    text-align:left;
+}
+
+.actions{
+    display:flex;
+    gap:8px;
+}
+
+.badge{
+    padding:4px 8px;
+    border-radius:6px;
+    font-size:12px;
+    text-transform:capitalize;
+}
+
+.badge-draft{ background:#e5e7eb; color:#374151; }
+.badge-assigned{ background:#dbeafe; color:#1e3a8a; }
+.badge-submitted{ background:#fef9c3; color:#854d0e; }
+.badge-under_moderation{ background:#fde68a; color:#78350f; }
+.badge-approved{ background:#dcfce7; color:#166534; }
+.badge-rejected{ background:#fee2e2; color:#991b1b; }
+
+</style>
+
+{% endblock %}

@@ -101,7 +101,7 @@ body {
     width: 100%;
     padding: 11px;
 
-    background: #111;
+    
     color: #fff;
 
     border: none;
@@ -117,3 +117,22 @@ body {
 .btn:hover {
     background: #333;
 }
+
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px;
+
+    border: 1px solid #ccc;
+    border-radius: 5px;
+
+    font-size: 14px;
+    background: white;
+}
+
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: #111;
+    outline: none;
+}
+

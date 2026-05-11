@@ -1,0 +1,170 @@
+{% extends "teacher/base.html" %}
+
+{% block title %}Enter Results{% endblock %}
+
+{% block content %}
+
+<!-- ================= HEADER ================= -->
+<div class="page-header">
+    <h2 class="page-title">Enter Student Results</h2>
+</div>
+
+<!-- ================= EXAM INFO CARD ================= -->
+<div class="card exam-card">
+
+    <h3 class="exam-title">{{ exam.exam_name }}</h3>
+
+    <div class="exam-meta">
+        <div><b>Class:</b> {{ exam.class }}</div>
+        <div><b>Year:</b> {{ exam.Year }}</div>
+    </div>
+
+</div>
+
+<!-- ================= FORM ================= -->
+<form method="POST">
+
+<div class="card">
+
+    <div class="table-container">
+
+        <table class="results-table">
+
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Student Name</th>
+                    <th>Exam Number</th>
+                    <th>Score</th>
+                    <th>Remarks</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% if students|length == 0 %}
+                <tr>
+                    <td colspan="5" class="empty-row">
+                        No students found for this class/school
+                    </td>
+                </tr>
+                {% else %}
+
+                {% for s in students %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td class="student-name">{{ s.name }}</td>
+                    <td>{{ s.exam_number }}</td>
+
+                    <td>
+                        <input type="number"
+                               name="score_{{ s.student_id }}"
+                               step="0.01"
+                               class="score-input">
+                    </td>
+
+                    <td>
+                        <input type="text"
+                               name="remark_{{ s.student_id }}"
+                               placeholder="Optional"
+                               class="remark-input">
+                    </td>
+
+                </tr>
+                {% endfor %}
+
+                {% endif %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-dark">
+            Save Results
+        </button>
+    </div>
+
+</div>
+
+</form>
+
+<!-- ================= STYLE ================= -->
+<style>
+
+.exam-card {
+    padding: 18px;
+  
+}
+
+.exam-title {
+    margin-bottom: 10px;
+}
+
+.exam-meta {
+    display: flex;
+    gap: 30px;
+    color: #555;
+}
+
+/* TABLE */
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.results-table thead {
+    background: #f1f5f9;
+}
+
+.results-table th {
+    text-align: left;
+    padding: 12px;
+    font-size: 14px;
+}
+
+.results-table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+/* hover effect */
+.results-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+/* inputs */
+.score-input,
+.remark-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    outline: none;
+    transition: 0.2s;
+}
+
+.score-input:focus,
+.remark-input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
+}
+
+/* empty row */
+.empty-row {
+    text-align: center;
+    color: red;
+    padding: 20px;
+}
+
+/* button alignment */
+.form-actions {
+    margin-top: 20px;
+    text-align: right;
+}
+
+</style>
+
+{% endblock %}

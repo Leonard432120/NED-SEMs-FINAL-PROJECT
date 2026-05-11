@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NED-SEMS Headteacher</title>
+
+<link rel="stylesheet" href="/static/css/admin.css">
+</head>
+
+<body>
+
+<!-- ================= HEADER ================= -->
+<div class="header">
+    <div class="header-left">
+        <span class="dashboard-title">NED-SEMS Headteacher Portal</span>
+    </div>
+
+    <div class="header-right">
+        <div class="profile">
+            <span class="header-name">{{ session.get('name', 'Headteacher') }}</span>
+            <img src="/static/images/user.png" alt="Profile">
+        </div>
+        <a href="/logout">Logout</a>
+    </div>
+</div>
+
+<div class="dashboard">
+
+<!-- ================= SIDEBAR ================= -->
+<div class="sidebar">
+
+    <a href="/headteacher/dashboard">Dashboard</a>
+
+    <!-- STUDENTS -->
+    <div class="sidebar-group">
+        <span onclick="toggleMenu('studentsMenu')">Students ▼</span>
+        <div class="sidebar-sub" id="studentsMenu">
+            <a href="/headteacher/add-student">Add Student</a>
+            <a href="/headteacher/manage-students">Manage Students</a>
+        </div>
+    </div>
+
+    <!-- RESULTS -->
+    <a href="/headteacher/results">Results</a>
+
+    <!-- PERFORMANCE -->
+    <a href="/headteacher/performance">Performance</a>
+
+    <!-- REPORTS (IMPORTANT PART) -->
+    <a href="/headteacher/reports">School Reports</a>
+
+</div>
+
+<!-- ================= CONTENT ================= -->
+<div class="content">
+
+    {% block content %}
+    {% endblock %}
+
+</div>
+
+</div>
+
+<!-- ================= SCRIPT ================= -->
+<script>
+function toggleMenu(id) {
+    const menu = document.getElementById(id);
+    menu.style.display = (menu.style.display === "flex") ? "none" : "flex";
+}
+</script>
+
+</body>
+</html>

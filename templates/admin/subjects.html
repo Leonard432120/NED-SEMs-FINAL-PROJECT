@@ -1,0 +1,269 @@
+{% extends "admin/base.html" %}
+{% block content %}
+
+<!-- ================= HEADER ================= -->
+<div class="page-header">
+
+    <h2 class="page-title">Subjects Management</h2>
+
+    <div class="header-actions">
+
+        <a href="/admin/subjects/archived" class="btn btn-dark btn-small">
+            Archived
+        </a>
+
+        <a href="/admin/subjects/add" class="btn btn-success btn-small">
+            + Add
+        </a>
+
+    </div>
+
+</div>
+
+<!-- ================= SEARCH + FILTER ================= -->
+<form method="GET" class="search-form">
+
+    <input type="text"
+           name="search"
+           placeholder="Search subject..."
+           value="{{ search or '' }}">
+
+    <!-- FILTER BUTTON BACK -->
+    <select name="status">
+        <option value="">All</option>
+        <option value="active" {% if status=='active' %}selected{% endif %}>Active</option>
+        <option value="archived" {% if status=='archived' %}selected{% endif %}>Archived</option>
+    </select>
+
+    <button type="submit">Filter</button>
+
+</form>
+
+<!-- ================= TABLE ================= -->
+<div class="card">
+
+    <table>
+
+        <thead>
+            <tr>
+                <th style="width:80px;">ID</th>
+                <th>Subject Name</th>
+                <th style="width:120px;">Status</th>
+                <th style="width:200px;">Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for s in subjects %}
+
+            <tr>
+
+                <td>{{ s.subject_id }}</td>
+                <td>{{ s.subject_name }}</td>
+
+                <td>
+                    {% if s.status == 'active' %}
+                        <span class="badge badge-active">Active</span>
+                    {% else %}
+                        <span class="badge badge-archived">Archived</span>
+                    {% endif %}
+                </td>
+
+                <td class="actions">
+
+                    {% if s.status == 'active' %}
+
+                        <a href="/admin/subjects/edit/{{ s.subject_id }}"
+                           class="btn btn-edit btn-small">
+                            Edit
+                        </a>
+
+                        <a href="#"
+                           class="btn btn-warning btn-small"
+                           onclick="openArchiveModal(Number('{{ s.subject_id }}'))">
+                            Archive
+                        </a>
+
+                    {% else %}
+
+                        <a href="/admin/subjects/restore/{{ s.subject_id }}"
+                           class="btn btn-restore btn-small">
+                            Restore
+                        </a>
+
+                    {% endif %}
+
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+<!-- ================= MODAL ================= -->
+<div id="archiveModal" class="modal">
+
+    <div class="modal-content">
+
+        <h3>Archive Subject</h3>
+        <p>This subject will be hidden from active list.</p>
+
+        <div class="modal-actions">
+
+            <button type="button"
+                    onclick="closeArchiveModal()"
+                    class="btn btn-cancel btn-small">
+                Cancel
+            </button>
+
+            <a id="confirmArchiveBtn"
+            class="btn btn-warning btn-small">
+                Archive
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+function openArchiveModal(id){
+    document.getElementById("archiveModal").style.display = "block";
+    document.getElementById("confirmArchiveBtn").href =
+        "/admin/subjects/archive/" + id;
+}
+
+function closeArchiveModal(){
+    document.getElementById("archiveModal").style.display = "none";
+}
+
+window.onclick = function(e){
+    const modal = document.getElementById("archiveModal");
+    if(e.target === modal){
+        modal.style.display = "none";
+    }
+}
+
+</script>
+
+<style>
+
+/* HEADER */
+.page-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+}
+
+.header-actions{
+    display:flex;
+    gap:8px;
+}
+
+/* SEARCH + FILTER */
+.search-form{
+    display:flex;
+    gap:10px;
+    margin-bottom:15px;
+    align-items:center;
+}
+
+.search-form input,
+.search-form select{
+    padding:8px;
+    border:1px solid #ccc;
+    border-radius:6px;
+}
+
+.search-form button{
+    padding:8px 14px;
+    border:none;
+    background:#334155;
+    color:white;
+    border-radius:6px;
+}
+
+/* BUTTONS */
+.btn-small{
+    padding:6px 12px;
+    font-size:13px;
+    border-radius:6px;
+}
+
+.btn-success{
+    background:#22c55e;
+    color:white;
+    text-decoration:none;
+}
+
+.btn-warning{
+    background:#f59e0b;
+    color:white;
+    text-decoration:none;
+}
+
+.btn-restore{
+    background:#2563eb;
+    color:white;
+    text-decoration:none;
+}
+
+/* BADGES */
+.badge-active{
+    background:#d1fae5;
+    color:#065f46;
+}
+
+.badge-archived{
+    background:#fee2e2;
+    color:#991b1b;
+}
+
+/* MODAL */
+.modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.5);
+}
+
+.modal-content{
+    background:white;
+    width:320px;
+    margin:15% auto;
+    padding:20px;
+    border-radius:10px;
+    text-align:center;
+}
+
+.btn-cancel{
+    background:#e5e7eb;
+    color:#111827;
+    border:none;
+    text-decoration:none;
+    cursor:pointer;
+}
+
+.btn-cancel:hover{
+    background:#d1d5db;
+}
+
+.modal-actions{
+    margin-top:15px;
+    display:flex;
+    justify-content:center;
+    gap:10px;
+}
+
+</style>
+
+{% endblock %}

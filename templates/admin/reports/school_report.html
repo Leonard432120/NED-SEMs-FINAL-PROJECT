@@ -1,0 +1,64 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+
+<h2>📊 School Performance Report</h2>
+
+<div class="card">
+<form method="GET">
+    <select name="school_id" required>
+        <option value="">Select School</option>
+        {% for s in schools %}
+        <option value="{{ s.school_id }}">{{ s.school_name }}</option>
+        {% endfor %}
+    </select>
+    <button class="btn">Generate</button>
+</form>
+</div>
+
+{% if report %}
+
+<div class="stats">
+    <div class="stat-box"><h4>Total</h4><p>{{ report.total_students }}</p></div>
+    <div class="stat-box"><h4>Passed</h4><p>{{ report.passed }}</p></div>
+    <div class="stat-box"><h4>Failed</h4><p>{{ report.failed }}</p></div>
+    <div class="stat-box"><h4>Avg</h4><p>{{ report.avg_score }}%</p></div>
+</div>
+
+<div class="card">
+<h3>Ranking</h3>
+<table>
+<tr><th>Rank</th><th>School</th><th>Score</th></tr>
+
+{% for r in ranking %}
+<tr>
+<td>{{ loop.index }}</td>
+<td>{{ r.school_name }}</td>
+<td>{{ r.avg_score|round(2) }}%</td>
+</tr>
+{% endfor %}
+
+</table>
+</div>
+
+<div class="card">
+<h3>Performance Chart</h3>
+<canvas id="chart"></canvas>
+</div>
+
+<script>
+new Chart(document.getElementById("chart"), {
+    type: "bar",
+    data: {
+        labels: {{ report.distribution|map(attribute='category')|list }},
+        datasets: [{
+            label: "Students",
+            data: {{ report.distribution|map(attribute='count')|list }}
+        }]
+    }
+});
+</script>
+
+{% endif %}
+
+{% endblock %}

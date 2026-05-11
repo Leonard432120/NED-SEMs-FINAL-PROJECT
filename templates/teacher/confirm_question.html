@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Confirm Question</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+
+    <style>
+        .container{max-width:900px;margin:auto}
+        .card{background:#fff;padding:25px;border-radius:10px;margin-top:30px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+        .btn{padding:12px 18px;border:none;border-radius:6px;cursor:pointer;font-weight:bold}
+        .btn-green{background:#28a745;color:white}
+        .btn-red{background:#dc3545;color:white}
+        input{width:100%;padding:10px;border-radius:6px;border:1px solid #ccc}
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+<div class="card">
+
+<h2>Confirm Question Before Saving</h2>
+
+<p><b>AI Suggested Marks:</b> {{ ai_feedback.predicted_marks }}</p>
+
+<ul>
+{% for msg in ai_feedback.messages %}
+<li>{{ msg }}</li>
+{% endfor %}
+</ul>
+
+<form method="POST" action="{{ url_for('teacher.save_question') }}">
+<input type="hidden" name="exam_id" value="{{ exam_id }}">
+<input type="hidden" name="form_data" value="{{ form_data }}">
+
+<label>Final Marks to Save</label>
+<input type="number" name="final_marks" value="{{ ai_feedback.predicted_marks }}" required>
+
+<br><br>
+<button class="btn btn-green">Approve & Save Question</button>
+<a href="{{ url_for('teacher.compose_exam', exam_id=exam_id) }}" class="btn btn-red">Cancel</a>
+
+</form>
+
+</div>
+</div>
+
+
+
+</body>
+</html>

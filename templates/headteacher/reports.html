@@ -1,0 +1,81 @@
+{% extends "headteacher/base.html" %}
+
+{% block content %}
+
+<h2>School Reports Dashboard</h2>
+
+<!-- ================= INSIGHT BOX ================= -->
+<div class="card">
+    <h3>AI Insight</h3>
+    <p>{{ insight }}</p>
+</div>
+
+<!-- ================= FORM ================= -->
+<div class="card">
+    <h3>Create Report</h3>
+
+    <form method="POST">
+        <input type="text" name="term" placeholder="Term" required>
+        <input type="number" name="year" placeholder="Year" required>
+
+        <textarea name="comments" placeholder="Headteacher comments"></textarea>
+
+        <button type="submit">Submit Report</button>
+    </form>
+</div>
+
+<!-- ================= TREND CHART ================= -->
+<div class="card">
+    <h3>Performance Trend (Yearly)</h3>
+
+    <canvas id="trendChart"></canvas>
+</div>
+
+<!-- ================= REPORT TABLE ================= -->
+<div class="card">
+    <h3>Submitted Reports</h3>
+
+    <table border="1" width="100%">
+        <tr>
+            <th>Term</th>
+            <th>Year</th>
+            <th>Students</th>
+            <th>Pass Rate</th>
+            <th>Comments</th>
+            <th>Date</th>
+        </tr>
+
+        {% for r in reports %}
+        <tr>
+            <td>{{ r.term }}</td>
+            <td>{{ r.year }}</td>
+            <td>{{ r.total_students }}</td>
+            <td>{{ r.pass_rate }}</td>
+            <td>{{ r.comments }}</td>
+            <td>{{ r.created_at }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<!-- ================= CHART JS ================= -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const ctx = document.getElementById('trendChart');
+
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: {{ years | tojson }},
+        datasets: [{
+            label: 'Average Performance',
+            data: {{ scores | tojson }},
+            borderWidth: 2,
+            fill: false
+        }]
+    }
+});
+</script>
+
+{% endblock %}

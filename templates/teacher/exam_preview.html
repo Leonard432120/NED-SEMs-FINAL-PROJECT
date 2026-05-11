@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Exam Preview</title>
+</head>
+
+<body>
+
+<h2>{{ exam.title }}</h2>
+
+<hr>
+
+{% for q in questions %}
+    <p>
+        <b>Q{{ loop.index }}:</b> {{ q.question_text }} ({{ q.marks }} marks)
+    </p>
+{% endfor %}
+
+<br>
+
+<button onclick="window.print()">
+    Print / Save as PDF
+</button>
+
+</body>
+</html>

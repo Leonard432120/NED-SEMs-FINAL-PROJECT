@@ -1,113 +1,185 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Assign Teachers</title>
-<link rel="stylesheet" href="/static/css/admin.css">
-<link rel="stylesheet" href="/static/css/form.css">
-</head>
-
-<body>
-
-<div class="header">
-    <div class="header-left">
-        <span class="dashboard-title">Assign Teachers</span>
-    </div>
-
-    <div class="header-right">
-        <span>{{ session.name }}</span>
-        <a href="/logout">Logout</a>
-    </div>
-</div>
-
-<div class="dashboard">
-
-<!-- ===== SIDEBAR ===== -->
-<div class="sidebar">
-
-    <a href="/admin/dashboard" class="active">Dashboard</a>
-
-    <a href="/admin/manage-users">Users</a>
-    <a href="#">Schools</a>
-    <a href="#">Subjects</a>
-    <a href="#">Exams</a>
-
-    <!-- ASSIGNMENTS SECTION -->
-   <div class="sidebar-group">
-    <span onclick="toggleMenu()">Assignments ▼</span>
-
-    <div class="sidebar-sub" id="assignMenu">
-        <a href="/admin/assign">Assign Teachers</a>
-        <a href="/admin/assignments">View Assignments</a>
-    </div>
-</div>
-
-    <a href="#">Results</a>
-    <a href="#">Moderation</a>
-    <a href="#">Reports</a>
-    <a href="#">Audit Logs</a>
-
-</div>
-
-<script>
-function toggleMenu() {
-    var menu = document.getElementById("assignMenu");
-    if (menu.style.display === "none") {
-        menu.style.display = "flex";
-    } else {
-        menu.style.display = "none";
-    }
-}
-</script>
-
-<div class="content">
+{% extends "admin/base.html" %}
+{% block content %}
 
 <h2>Assign Item Writers & Moderators</h2>
 
-<div class="card">
+<div class="card card-accent-blue">
+
+<div class="form-container">
 
 <form method="POST">
 
-<!-- EXAM -->
-<div class="form-group">
-<label>Select Exam</label>
-<select name="exam_id" required>
-{% for e in exams %}
-<option value="{{ e.exam_id }}">{{ e.title }}</option>
-{% endfor %}
-</select>
+<!-- ================= EXAM ================= -->
+<div class="form-group dropdown-wrapper">
+
+    <label>Select Exam</label>
+
+    <input type="text"
+           id="examSearch"
+           placeholder="Search exam..."
+           autocomplete="off"
+           required>
+
+    <input type="hidden" name="exam_id" id="exam_id">
+
+    <div id="examList" class="dropdown-list">
+
+        {% for e in exams %}
+        <div class="dropdown-item" data-id="{{ e.exam_id }}">
+            {{ e.exam_name }}
+        </div>
+        {% endfor %}
+
+    </div>
+
 </div>
 
-<!-- TEACHER -->
-<div class="form-group">
-<label>Select Teacher</label>
-<select name="teacher_id" required>
-{% for t in teachers %}
-<option value="{{ t.user_id }}">{{ t.name }}</option>
-{% endfor %}
-</select>
+
+<!-- ================= TEACHER ================= -->
+<div class="form-group dropdown-wrapper">
+
+    <label>Select Teacher</label>
+
+    <input type="text"
+           id="teacherSearch"
+           placeholder="Search teacher..."
+           autocomplete="off"
+           required>
+
+    <input type="hidden" name="teacher_id" id="teacher_id">
+
+    <div id="teacherList" class="dropdown-list">
+
+        {% for t in teachers %}
+        <div class="dropdown-item" data-id="{{ t.user_id }}">
+            {{ t.name }}
+        </div>
+        {% endfor %}
+
+    </div>
+
 </div>
 
-<!-- ROLE -->
-<div class="form-group">
-<label>Assign Role</label>
-<select name="role" required>
-<option value="item_writer">Item Writer</option>
-<option value="moderator">Moderator</option>
-</select>
+
+<!-- ================= ROLE ================= -->
+<div class="form-group dropdown-wrapper">
+
+    <label>Assign Role</label>
+
+    <input type="text"
+           id="roleSearch"
+           placeholder="Search role..."
+           autocomplete="off"
+           required>
+
+    <input type="hidden" name="role" id="role">
+
+    <div id="roleList" class="dropdown-list">
+
+        <div class="dropdown-item" data-id="item_writer">
+            Item Writer
+        </div>
+
+        <div class="dropdown-item" data-id="moderator">
+            Moderator
+        </div>
+
+    </div>
+
 </div>
 
-<button class="btn">Assign</button>
+
+<button type="submit" class="btn btn-dark">
+    Assign
+</button>
 
 </form>
 
 </div>
-
-</div>
 </div>
 
-<footer class="footer">
-<div class="footer-bottom">© 2026 NED-SEMS</div>
-</footer>
+<!-- ================= STYLES ================= -->
+<style>
 
-</body>
-</html>
+.dropdown-wrapper {
+    position: relative;
+}
+
+.dropdown-list {
+    border: 1px solid #ccc;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+    background: #fff;
+    position: absolute;
+    width: 100%;
+    z-index: 999;
+    border-radius: 6px;
+}
+
+.dropdown-item {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.dropdown-item:hover {
+    background: #f0f0f0;
+}
+
+</style>
+
+
+<!-- ================= SCRIPT: EXAM ================= -->
+<script>
+function setupDropdown(searchId, listId, hiddenId) {
+
+    const searchInput = document.getElementById(searchId);
+    const list = document.getElementById(listId);
+    const hiddenInput = document.getElementById(hiddenId);
+    const items = list.querySelectorAll(".dropdown-item");
+
+    // show list
+    searchInput.addEventListener("focus", () => {
+        list.style.display = "block";
+    });
+
+    // filter items
+    searchInput.addEventListener("keyup", () => {
+        let value = searchInput.value.toLowerCase();
+
+        items.forEach(item => {
+            item.style.display =
+                item.textContent.toLowerCase().includes(value)
+                ? "block"
+                : "none";
+        });
+    });
+
+    // select item
+    items.forEach(item => {
+        item.addEventListener("click", () => {
+            searchInput.value = item.textContent;
+            hiddenInput.value = item.dataset.id;
+            list.style.display = "none";
+        });
+    });
+}
+
+
+// ================= INITIALIZE ALL DROPDOWNS =================
+setupDropdown("examSearch", "examList", "exam_id");
+setupDropdown("teacherSearch", "teacherList", "teacher_id");
+setupDropdown("roleSearch", "roleList", "role");
+
+
+// ================= CLOSE WHEN CLICKING OUTSIDE =================
+document.addEventListener("click", (e) => {
+    if (!e.target.closest(".dropdown-wrapper")) {
+        document.querySelectorAll(".dropdown-list").forEach(list => {
+            list.style.display = "none";
+        });
+    }
+});
+</script>
+
+{% endblock %}

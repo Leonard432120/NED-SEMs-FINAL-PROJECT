@@ -1,39 +1,71 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Edit User</title>
-<link rel="stylesheet" href="/static/css/form.css">
-<link rel="stylesheet" href="/static/css/admin.css">
-</head>
+{% extends "admin/base.html" %}
+{% block content %}
 
-<body>
+<!-- ================= HEADER ================= -->
+<h2 style="margin-bottom: 20px;">Edit User</h2>
 
-<div class="content">
+<!-- ================= CARD ================= -->
+<div class="card card-accent-blue">
 
-<h2>Edit User</h2>
+    <div class="form-container">
 
-<div class="card">
+        <form method="POST">
 
-<form method="POST">
+            <!-- NAME -->
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" name="name" value="{{ user.name }}" required>
+            </div>
 
-<input type="text" name="name" value="{{ user.name }}" required>
-<input type="email" name="email" value="{{ user.email }}" required>
-<input type="text" name="phone" value="{{ user.phone }}">
+            <!-- EMAIL -->
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email" value="{{ user.email }}" required>
+            </div>
 
-<select name="role">
-<option value="admin">Admin</option>
-<option value="teacher">Teacher</option>
-<option value="headteacher">Headteacher</option>
-<option value="examination_officer">Examination Officer</option>
-</select>
+            <!-- PHONE -->
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="text" name="phone" value="{{ user.phone }}">
+            </div>
 
-<button class="btn">Update</button>
+            <!-- ROLE -->
+            <div class="form-group">
+                <label>Role</label>
+                <select name="role" required>
 
-</form>
+                    <option value="admin"
+                        {% if user.role == 'admin' %}selected{% endif %}>
+                        Admin
+                    </option>
+
+                    <option value="teacher"
+                        {% if user.role == 'teacher' %}selected{% endif %}>
+                        Teacher
+                    </option>
+
+                    <option value="headteacher"
+                        {% if user.role == 'headteacher' %}selected{% endif %}>
+                        Headteacher
+                    </option>
+
+                    <option value="examination_officer"
+                        {% if user.role == 'examination_officer' %}selected{% endif %}>
+                        Exam Officer
+                    </option>
+
+                </select>
+            </div>
+
+            <!-- BUTTON -->
+            <button type="submit" class="btn btn-dark">
+                Update User
+            </button>
+
+        </form>
+
+    </div>
 
 </div>
 
-</div>
-
-</body>
-</html>
+{% endblock %}

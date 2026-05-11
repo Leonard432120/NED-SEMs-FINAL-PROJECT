@@ -45,6 +45,7 @@ def login():
     if user:
         session['user_id'] = user['user_id']
         session['role'] = user['role']
+        session['school_id'] = user['school_id']
 
         if user['role'] == 'admin':
             return redirect('/admin/dashboard')

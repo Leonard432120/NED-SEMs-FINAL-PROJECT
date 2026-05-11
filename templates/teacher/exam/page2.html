@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Section A - Page 2</title>
+<link rel="stylesheet" href="/static/css/exam.css">
+
+<style>
+.paper-flex {
+    display: flex;
+    gap: 20px;
+}
+
+.col {
+    flex: 1;
+}
+
+.divider {
+    width: 2px;
+    background: black;
+}
+
+.q {
+    margin-bottom: 15px;
+}
+
+.option {
+    margin-left: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="paper">
+
+<div class="student-line">
+NAME OF STUDENT: ________________________________ 
+SECTION: _____________
+</div>
+
+<h2 class="center">SECTION A (CONTINUED)</h2>
+
+<div class="paper-flex">
+
+    <!-- LEFT COLUMN -->
+    <div class="col">
+        {% for q in questions[0:5] %}
+        <div class="q">
+            <b>{{ loop.index + 10 }}. {{ q.question_text }}</b>
+
+            <div class="option"><input type="radio" name="q{{ q.question_id }}"> A</div>
+            <div class="option"><input type="radio" name="q{{ q.question_id }}"> B</div>
+            <div class="option"><input type="radio" name="q{{ q.question_id }}"> C</div>
+            <div class="option"><input type="radio" name="q{{ q.question_id }}"> D</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="col">
+        {% for q in questions[5:10] %}
+        <div class="q">
+            <b>{{ loop.index + 15 }}. {{ q.question_text }}</b>
+
+            <div class="option"><input type="radio" name="q{{ q.question_id }}"> A</div>
+            <div class="option"><input type="radio" name="q{{ q.question_id }}"> B</div>
+            <div class="option"><input type="radio" name="q{{ q.question_id }}"> C</div>
+            <div class="option"><input type="radio" name="q{{ q.question_id }}"> D</div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<br>
+
+<div class="nav">
+<a href="/teacher/view-paper/{{ exam.exam_id }}?page=page1"><button>Previous</button></a>
+<a href="/teacher/view-paper/{{ exam.exam_id }}?page=page3"><button>Next Section</button></a>
+</div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,30 @@
+{% extends "admin/base.html" %}
+{% block content %}
+
+<h2>Edit Assignment</h2>
+
+<div class="card">
+
+<p><b>Exam:</b> {{ assignment.exam_name }}</p>
+<p><b>Teacher:</b> {{ assignment.name }}</p>
+
+<form method="POST">
+
+<label>Role</label>
+<select name="role">
+    <option value="item_writer" {% if assignment.role=='item_writer' %}selected{% endif %}>
+        Item Writer
+    </option>
+    <option value="moderator" {% if assignment.role=='moderator' %}selected{% endif %}>
+        Moderator
+    </option>
+</select>
+
+<br><br>
+<button class="btn">Update Assignment</button>
+
+</form>
+
+</div>
+
+{% endblock %}

@@ -272,3 +272,180 @@ def delete_student(student_id):
     conn.close()
 
     return redirect('/headteacher/manage-students')
+
+
+@headteacher.route('/reports', methods=['GET', 'POST'])
+def school_reports():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    db = get_db_connection()
+    cursor = db.cursor(dictionary=True)
+
+    school_id = session.get('school_id')  # SAFE FIX
+
+    if not school_id:
+        return "School not assigned to this headteacher", 403
+
+    # =========================
+    # 1. SAVE REPORT (POST)
+    # =========================
+    if request.method == 'POST':
+        term = request.form.get('term')
+        year = request.form.get('year')
+        comments = request.form.get('comments')
+
+        # compute attendance + pass rate from results
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as total_students,
+                AVG(r.percentage) as pass_rate
+            FROM results r
+            JOIN students s ON s.student_id = r.student_id
+            WHERE s.school_id = %s
+        """, (school_id,))
+        data = cursor.fetchone()
+
+        total_students = data['total_students'] or 0
+        pass_rate = data['pass_rate'] or 0
+
+        attendance_rate = 0  # NOT AVAILABLE IN YOUR DB (safe default)
+
+        cursor.execute("""
+            INSERT INTO school_reports 
+            (school_id, term, year, total_students, attendance_rate, pass_rate, comments)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (school_id, term, year, total_students, attendance_rate, pass_rate, comments))
+
+        db.commit()
+
+    # =========================
+    # 2. LOAD REPORTS
+    # =========================
+    cursor.execute("""
+        SELECT term, year, total_students, attendance_rate, pass_rate, comments, created_at
+        FROM school_reports
+        WHERE school_id = %s
+        ORDER BY created_at DESC
+    """, (school_id,))
+    reports = cursor.fetchall()
+
+    # =========================
+    # 3. PERFORMANCE TREND (YEARLY)
+    # =========================
+    cursor.execute("""
+        SELECT 
+            YEAR(r.recorded_at) as year,
+            AVG(r.percentage) as avg_score
+        FROM results r
+        JOIN students s ON s.student_id = r.student_id
+        WHERE s.school_id = %s
+        GROUP BY YEAR(r.recorded_at)
+        ORDER BY year ASC
+    """, (school_id,))
+    trend_data = cursor.fetchall()
+
+    years = [str(r['year']) for r in trend_data]
+    scores = [float(r['avg_score']) if r['avg_score'] else 0 for r in trend_data]
+
+    # =========================
+    # 4. SCHOOL INSIGHTS (AI-like logic)
+    # =========================
+    avg_pass = sum(scores)/len(scores) if scores else 0
+
+    if avg_pass >= 75:
+        insight = "Excellent performance. Maintain teaching quality."
+    elif avg_pass >= 50:
+        insight = "Moderate performance. Improvement needed in weak subjects."
+    else:
+        insight = "Low performance. Urgent intervention required."
+
+    return render_template(
+        'headteacher/reports.html',
+        reports=reports,
+        years=years,
+        scores=scores,
+        avg_pass=avg_pass,
+        insight=insight
+    )
+
+@headteacher.route('/performance')
+def performance_dashboard():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    db = get_db_connection()
+    cursor = db.cursor(dictionary=True)
+
+    # =========================
+    # SCHOOL RANKING (ALL SCHOOLS)
+    # =========================
+    cursor.execute("""
+        SELECT 
+            s.school_id,
+            s.school_name,
+            AVG(r.percentage) as avg_score,
+            COUNT(r.result_id) as total_results
+        FROM schools s
+        LEFT JOIN students st ON st.school_id = s.school_id
+        LEFT JOIN results r ON r.student_id = st.student_id
+        GROUP BY s.school_id
+        ORDER BY avg_score DESC
+    """)
+
+    schools = cursor.fetchall()
+
+    # =========================
+    # BEST & WORST SCHOOL
+    # =========================
+    best_school = schools[0] if schools else None
+    worst_school = schools[-1] if schools else None
+
+    # =========================
+    # DIVISION AVERAGE
+    # =========================
+    cursor.execute("""
+        SELECT AVG(r.percentage) as division_avg
+        FROM results r
+    """)
+    division = cursor.fetchone()
+
+    division_avg = division['division_avg'] or 0
+
+    return render_template(
+        'headteacher/performance.html',
+        schools=schools,
+        best=best_school,
+        worst=worst_school,
+        division_avg=division_avg
+    )
+
+@headteacher.route('/edm/report/pdf')
+def edm_pdf():
+    db = get_db_connection()
+    cursor = db.cursor()
+
+    cursor.execute("""
+        SELECT s.school_name, AVG(r.percentage)
+        FROM schools s
+        LEFT JOIN students st ON st.school_id = s.school_id
+        LEFT JOIN results r ON r.student_id = st.student_id
+        GROUP BY s.school_id
+    """)
+
+    data = cursor.fetchall()
+
+    buffer = io.BytesIO()
+    pdf = SimpleDocTemplate(buffer)
+
+    table_data = [["School", "Average Score"]]
+
+    for row in data:
+        table_data.append([row[0], round(row[1] or 0, 1)])
+
+    table = Table(table_data)
+    pdf.build([table])
+
+    buffer.seek(0)
+
+    return send_file(buffer, as_attachment=True, download_name="edm_report.pdf")

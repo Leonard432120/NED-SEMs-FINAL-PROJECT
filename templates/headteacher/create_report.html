@@ -1,0 +1,26 @@
+{% extends "headteacher/base.html" %}
+
+{% block content %}
+
+<h2>Create School Report</h2>
+
+<form method="POST" class="card">
+
+<label>Term</label>
+<select name="term" required>
+    <option>Term 1</option>
+    <option>Term 2</option>
+    <option>Term 3</option>
+</select>
+
+<label>Year</label>
+<input type="number" name="year" required>
+
+<label>Comments</label>
+<textarea name="comments" rows="4"></textarea>
+
+<button type="submit">Submit Report</button>
+
+</form>
+
+{% endblock %}

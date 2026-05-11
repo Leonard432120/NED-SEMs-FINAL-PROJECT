@@ -1,278 +1,123 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Manage Schools</title>
-<link rel="stylesheet" href="/static/css/admin.css">
-</head>
+{% extends "admin/base.html" %}
 
-<body>
+{% block content %}
 
-<!-- HEADER -->
-<div class="header">
-    <span class="dashboard-title">Manage Schools</span>
-</div>
+<h2 style="margin-bottom: 20px;">Schools Management</h2>
 
-<div class="dashboard">
+<!-- ================= SEARCH ================= -->
+<form method="GET" class="search-form">
 
-<!-- ===== SIDEBAR ===== -->
-<div class="sidebar">
+    <input type="text"
+           name="search"
+           placeholder="Search school..."
+           value="{{ search or '' }}">
 
-    <a href="/admin/dashboard">Dashboard</a>
-    <a href="/admin/manage-users">Users</a>
+    <select name="district">
 
-    <div class="sidebar-group">
-        <span onclick="toggleMenu('schoolMenu')">Schools ▼</span>
-        <div class="sidebar-sub" id="schoolMenu">
-            <a href="/admin/add-school">Add School</a>
-            <a href="/admin/manage-schools" class="active">Manage Schools</a>
-        </div>
-    </div>
+        <option value="">All Districts</option>
 
-    <a href="#">Subjects</a>
-    <a href="#">Exams</a>
+        {% for d in districts %}
+        <option value="{{ d.district }}"
+            {% if district_filter == d.district %}selected{% endif %}>
+            {{ d.district }}
+        </option>
+        {% endfor %}
 
-    <div class="sidebar-group">
-        <span onclick="toggleMenu('assignMenu')">Assignments ▼</span>
-        <div class="sidebar-sub" id="assignMenu">
-            <a href="/admin/assign">Assign Teachers</a>
-            <a href="/admin/assignments">View Assignments</a>
-        </div>
-    </div>
+    </select>
 
-    <a href="#">Results</a>
-    <a href="#">Moderation</a>
-    <a href="#">Reports</a>
-    <a href="#">Audit Logs</a>
-
-</div>
-
-<!-- CONTENT -->
-<div class="content">
-
-<h2>Schools Management</h2>
-
-<div class="card">
-
-<!-- SEARCH + FILTER -->
-<form method="GET" class="search-bar">
-
-<input type="text" name="search" placeholder="Search school..."
-       value="{{ search }}">
-
-<select name="district">
-    <option value="">All Districts</option>
-    {% for d in districts %}
-    <option value="{{ d.district }}"
-        {% if district_filter == d.district %}selected{% endif %}>
-        {{ d.district }}
-    </option>
-    {% endfor %}
-</select>
-
-<button class="btn">Filter</button>
+    <button type="submit">Filter</button>
 
 </form>
 
-<br>
+<!-- ================= TABLE ================= -->
+<div class="card">
 
-<!-- TABLE -->
-<div class="table-container">
+    <div class="table-container">
 
-<table>
+        <table>
 
-<thead>
-<tr>
-    <th>ID</th>
-    <th>School Name</th>
-    <th>District</th>
-    <th>Address</th>
-    <th>Actions</th>
-</tr>
-</thead>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>School Name</th>
+                    <th>District</th>
+                    <th>Address</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
 
-<tbody>
+            <tbody>
 
-{% for s in schools %}
-<tr>
-    <td>{{ s.school_id }}</td>
-    <td>{{ s.school_name }}</td>
+                {% if schools and schools|length > 0 %}
 
-    <td>
-        <span class="badge badge-admin">
-            {{ s.district }}
-        </span>
-    </td>
+                    {% for s in schools %}
+                    <tr>
 
-    <td>{{ s.address }}</td>
+                        <td>{{ s.school_id }}</td>
+                        <td>{{ s.school_name }}</td>
 
-    <td>
-        <a href="/admin/edit-school/{{ s.school_id }}"
-           class="btn btn-edit btn-small">
-            Edit
-        </a>
+                        <td>
+                            <span class="badge badge-admin">
+                                {{ s.district }}
+                            </span>
+                        </td>
 
-        <button  class="btn btn-delete btn-small"
-                onclick="openDeleteModal('{{ s.school_id }}')">
-            Delete
-        </button>
-    </td>
-</tr>
-{% endfor %}
+                        <td>{{ s.address }}</td>
 
-</tbody>
+                        <td class="actions">
 
-</table>
+                            <a href="/admin/edit-school/{{ s.school_id }}"
+                               class="btn btn-edit">
+                               Edit
+                            </a>
+
+                            <a href="#"
+                               class="btn btn-delete"
+                               onclick="openDeleteModal('/admin/delete-school/{{ s.school_id }}')">
+                               Delete
+                            </a>
+
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+
+                {% else %}
+
+                    <tr>
+                        <td colspan="5" style="text-align:center; padding:20px;">
+                            No schools found.
+                        </td>
+                    </tr>
+
+                {% endif %}
+
+            </tbody>
+
+        </table>
+
+    </div>
 
 </div>
 
-<!-- PAGINATION -->
+<!-- ================= PAGINATION ================= -->
 <div class="pagination">
 
-{% if page > 1 %}
-<a href="?page={{ page-1 }}&search={{ search }}&district={{ district_filter }}">Prev</a>
-{% endif %}
+    {% if page > 1 %}
+        <a href="?page={{ page-1 }}&search={{ search }}&district={{ district_filter }}">Prev</a>
+    {% endif %}
 
-{% for p in range(1, total_pages + 1) %}
-<a href="?page={{ p }}&search={{ search }}&district={{ district_filter }}"
-   class="{% if p == page %}active{% endif %}">
-   {{ p }}
-</a>
-{% endfor %}
+    {% for p in range(1, total_pages + 1) %}
+        <a href="?page={{ p }}&search={{ search }}&district={{ district_filter }}"
+           class="{% if p == page %}active{% endif %}">
+            {{ p }}
+        </a>
+    {% endfor %}
 
-{% if page < total_pages %}
-<a href="?page={{ page+1 }}&search={{ search }}&district={{ district_filter }}">Next</a>
-{% endif %}
-
-</div>
-
-</div>
-</div>
-</div>
-
-<!-- MODAL -->
-<div id="deleteModal" class="modal">
-    <div class="modal-content">
-
-        <h3>Delete School?</h3>
-
-        <p>
-            This will unassign teachers and students before deleting the school.
-            Teachers will need to be reassigned.
-        </p>
-
-        <div class="modal-actions">
-
-            <button onclick="closeModal()">Cancel</button>
-
-            <a id="confirmDeleteBtn" href="#" class="btn btn-delete btn-small">
-                Yes, Delete
-            </a>
-
-        </div>
-    </div>
-</div>
-
-<!-- SCRIPT -->
-<script>
-function toggleMenu(id) {
-    const menu = document.getElementById(id);
-    menu.style.display = (menu.style.display === "flex") ? "none" : "flex";
-}
-
-function openDeleteModal(id) {
-    const modal = document.getElementById("deleteModal");
-    const btn = document.getElementById("confirmDeleteBtn");
-
-    modal.style.display = "block";
-    btn.href = "/admin/delete-school/" + id;
-}
-
-function closeModal() {
-    document.getElementById("deleteModal").style.display = "none";
-}
-
-// close when clicking outside modal
-window.onclick = function(event) {
-    const modal = document.getElementById("deleteModal");
-    if (event.target == modal) {
-        modal.style.display = "none";
-    }
-}
-</script>
-
-<!-- FOOTER -->
-<footer class="footer">
-
-<div class="footer-container">
-
-<div class="footer-section">
-<h4>NED-SEMS</h4>
-<p>Centralized platform for managing national examinations securely and efficiently.</p>
-</div>
-
-<div class="footer-section">
-<h4>Modules</h4>
-<ul>
-<li>Users</li>
-<li>Schools</li>
-<li>Exams</li>
-<li>Results</li>
-<li>Moderation</li>
-</ul>
-</div>
-
-<div class="footer-section">
-<h4>System</h4>
-<ul>
-<li>Version 1.0</li>
-<li>MySQL Database</li>
-<li>Status: Operational</li>
-</ul>
-</div>
-
-<div class="footer-section">
-<h4>Support</h4>
-<ul>
-<li>Email: support@ned-sems.gov</li>
-<li>Phone: +265</li>
-</ul>
-</div>
+    {% if page < total_pages %}
+        <a href="?page={{ page+1 }}&search={{ search }}&district={{ district_filter }}">Next</a>
+    {% endif %}
 
 </div>
 
-<div class="footer-bottom">
-© 2026 NED-SEMS | All Rights Reserved
-</div>
-
-</footer>
-
-<style>
-    .modal {
-    display: none;
-    position: fixed;
-    z-index: 999;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.6);
-}
-
-.modal-content {
-    background: white;
-    padding: 20px;
-    width: 400px;
-    margin: 15% auto;
-    border-radius: 10px;
-    text-align: center;
-}
-
-.modal-actions {
-    margin-top: 20px;
-    display: flex;
-    justify-content: space-between;
-}
-
-</style>
-</body>
-</html>
+{% endblock %}

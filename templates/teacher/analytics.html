@@ -1,0 +1,239 @@
+{% extends "teacher/base.html" %}
+
+{% block title %}Analytics{% endblock %}
+
+{% block content %}
+
+<!-- ================= HEADER ================= -->
+<div class="page-header">
+    <h2 class="page-title">Exam Analytics Dashboard</h2>
+
+    <div class="header-actions">
+        <button class="btn-small btn-dark" onclick="openAI()">
+            AI Insights
+        </button>
+    </div>
+</div>
+
+<!-- ================= STATS ================= -->
+<div class="stats">
+
+    <div class="stat-box">
+        <h4>Total Students</h4>
+        <p>{{ stats.total_students if stats else 0 }}</p>
+    </div>
+
+    <div class="stat-box">
+        <h4>Average Score</h4>
+        <p>{{ stats.avg_score|round(1) if stats and stats.avg_score else 0 }}%</p>
+    </div>
+
+    <div class="stat-box">
+        <h4>Pass Rate</h4>
+        <p>{{ pass_rate or 0 }}%</p>
+    </div>
+
+</div>
+
+<!-- ================= CHARTS ================= -->
+<div class="dashboard-grid">
+
+    <div class="card">
+        <h3>Performance Trend</h3>
+        <canvas id="trendChart"></canvas>
+    </div>
+
+    <div class="card">
+        <h3>Subject Performance</h3>
+        <canvas id="subjectChart"></canvas>
+    </div>
+
+</div>
+
+<!-- ================= STUDENT TABLE ================= -->
+<div class="card">
+    <h3>Student Results</h3>
+
+    <div class="table-container">
+        <table>
+
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Student Name</th>
+                    <th>Score</th>
+                    <th>Remark</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% if results and results|length > 0 %}
+
+                    {% for r in results %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ r.name }}</td>
+                        <td><b>{{ r.percentage }}%</b></td>
+                        <td>{{ r.remarks if r.remarks else "-" }}</td>
+                    </tr>
+                    {% endfor %}
+
+                {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align:center;color:red;">
+                            No student results available
+                        </td>
+                    </tr>
+                {% endif %}
+
+            </tbody>
+
+        </table>
+    </div>
+</div>
+
+<!-- ================= AI MODAL ================= -->
+<div id="aiModal" class="ai-modal">
+    <div class="ai-box">
+
+        <div class="ai-header">
+            <h3>AI Insights</h3>
+            <span onclick="closeAI()" class="ai-close">&times;</span>
+        </div>
+
+        <div class="ai-body">
+
+            {% if ai_insights %}
+                <ul>
+                    {% for i in ai_insights %}
+                        <li>{{ i }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No insights available</p>
+            {% endif %}
+
+            {% if predicted_next %}
+            <div class="ai-highlight">
+                Predicted Next Performance: <b>{{ predicted_next }}%</b>
+            </div>
+            {% endif %}
+
+        </div>
+
+    </div>
+</div>
+
+<!-- ================= CHART.JS ================= -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+/* ================= DATA FROM PYTHON ================= */
+const trendLabels = {{ historical | map(attribute='year') | list | tojson }};
+const trendData   = {{ historical | map(attribute='avg_score') | list | tojson }};
+
+const subjectLabels = {{ subject_performance | map(attribute='subject_name') | list | tojson }};
+const subjectData   = {{ subject_performance | map(attribute='avg_score') | list | tojson }};
+
+/* ================= PERFORMANCE TREND ================= */
+new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+        labels: trendLabels,
+        datasets: [{
+            label: 'Average Score',
+            data: trendData,
+            borderWidth: 3,
+            fill: false,
+            tension: 0.4
+        }]
+    }
+});
+
+/* ================= SUBJECT PERFORMANCE ================= */
+new Chart(document.getElementById('subjectChart'), {
+    type: 'bar',
+    data: {
+        labels: subjectLabels,
+        datasets: [{
+            label: 'Average Score',
+            data: subjectData,
+            borderWidth: 1
+        }]
+    }
+});
+
+/* ================= AI MODAL ================= */
+function openAI(){
+    document.getElementById("aiModal").style.display = "flex";
+}
+
+function closeAI(){
+    document.getElementById("aiModal").style.display = "none";
+}
+
+</script>
+
+<!-- ================= MODAL STYLES ================= -->
+<style>
+
+.ai-modal{
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.6);
+    justify-content:center;
+    align-items:center;
+    z-index:9999;
+}
+
+.ai-box{
+    width:400px;
+    background:white;
+    border-radius:12px;
+    overflow:hidden;
+    animation:pop 0.2s ease;
+}
+
+.ai-header{
+    background:#1e293b;
+    color:white;
+    padding:12px;
+    display:flex;
+    justify-content:space-between;
+}
+
+.ai-close{
+    cursor:pointer;
+    font-size:20px;
+}
+
+.ai-body{
+    padding:15px;
+}
+
+.ai-body ul{
+    padding-left:18px;
+}
+
+.ai-highlight{
+    margin-top:12px;
+    padding:10px;
+    background:#e0f2fe;
+    border-left:4px solid #0284c7;
+    border-radius:6px;
+}
+
+@keyframes pop{
+    from{transform:scale(0.8); opacity:0;}
+    to{transform:scale(1); opacity:1;}
+}
+
+</style>
+
+{% endblock %}

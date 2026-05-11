@@ -1,0 +1,116 @@
+body{
+    background:#cfcfcf;
+    font-family:"Times New Roman", serif;
+}
+
+.paper{
+    width:820px;
+    margin:30px auto;
+    background:white;
+    padding:50px;
+    border:1px solid black;
+}
+
+/* HEADER */
+.student-line{
+    font-weight:bold;
+    margin-bottom:20px;
+}
+
+.header{
+    display:flex;
+    align-items:center;
+    gap:20px;
+}
+
+.logo{
+    width:100px;
+}
+
+.header-text h2,
+.header-text h3{
+    margin:3px;
+}
+
+.subject{
+    letter-spacing:2px;
+    text-align:center;
+}
+
+.center{
+    text-align:center;
+}
+
+/* TWO COLUMN LAYOUT */
+.two-columns{
+    display:flex;
+    margin-top:25px;
+    gap:25px;
+}
+
+/* LEFT SIDE */
+.instructions{
+    width:55%;
+    line-height:1.6;
+}
+
+/* RIGHT SIDE */
+.table-area{
+    width:45%;
+}
+
+.top-right-info{
+    text-align:right;
+    font-size:14px;
+    margin-bottom:10px;
+    line-height:1.4;
+}
+
+/* TABLE DESIGN */
+.exam-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+}
+
+.exam-table th,
+.exam-table td{
+    border:1px solid black;
+    text-align:center;
+    height:38px;
+}
+
+.total-row td{
+    height:30px;
+}
+
+.exam-table th:nth-child(1),
+.exam-table td:nth-child(1){ width:90px; }
+
+.exam-table th:nth-child(2),
+.exam-table td:nth-child(2){ width:110px; }
+
+.exam-table th:nth-child(3),
+.exam-table td:nth-child(3),
+.exam-table th:nth-child(4),
+.exam-table td:nth-child(4){ width:60px; }
+
+.no-border{
+    border-left: none !important;
+    border-bottom: none !important;
+}
+
+.lined{
+width:100%;
+border:none;
+outline:none;
+resize:none;
+font-family:"Times New Roman";
+font-size:16px;
+line-height:28px;
+background-image: linear-gradient(to bottom, transparent 27px, black 28px);
+background-size:100% 28px;
+}
+
+.nav{text-align:center;margin-top:20px}
+button{padding:10px 20px;font-size:16px}

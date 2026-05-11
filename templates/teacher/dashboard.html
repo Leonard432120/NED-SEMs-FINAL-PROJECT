@@ -1,91 +1,223 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Teacher Dashboard</title>
-<link rel="stylesheet" href="/static/css/admin.css">
-</head>
+{% extends "teacher/base.html" %}
 
-<body>
+{% block content %}
+<!-- ================= NOTIFICATION MODAL ================= -->
+{% set has_writer = assigned > 0 %}
+{% set has_moderator = moderations > 0 %}
 
-<!-- HEADER -->
-<div class="header">
-    <div class="header-left">
-        <h3>Teacher Portal</h3>
-    </div>
+{% if has_writer or has_moderator %}
+<div id="notifyModal" class="modal-overlay">
 
-    <div class="header-right">
-        <span>{{ session.name }}</span>
-        <a href="/logout">Logout</a>
+    <div class="modal-box">
+
+        <span class="modal-close" onclick="closeModal()">×</span>
+
+        <h2>🔔 New Role Assignment</h2>
+
+        <div class="modal-body">
+
+            {% if has_writer %}
+            <div class="notify-card writer">
+                <h3>📝 Item Writer Assignment</h3>
+                <p>
+                    You have been assigned to create and upload exam questions.
+                    Please visit the Item Writer Tasks section to begin.
+                </p>
+                <a href="/teacher/assigned_exams" class="btn btn-primary">
+                    Go to Item Writer Tasks
+                </a>
+            </div>
+            {% endif %}
+
+            {% if has_moderator %}
+            <div class="notify-card moderator">
+                <h3>🔎 Moderator Assignment</h3>
+                <p>
+                    You have exams waiting for moderation and review.
+                    Please open the Moderator Tasks section.
+                </p>
+                <a href="/teacher/moderation-exams" class="btn btn-teal">
+                    Go to Moderation Tasks
+                </a>
+            </div>
+            {% endif %}
+
+        </div>
     </div>
 </div>
+{% endif %}
 
+<h2 style="margin-bottom:15px;">Teacher & Moderator Dashboard</h2>
 
-<div class="dashboard">
+<!-- ================= STATS ================= -->
+<div class="stats">
 
-    <!-- SIDEBAR -->
-    <div class="sidebar">
-        <a href="/teacher/dashboard">Dashboard</a>
+    <div class="stat-box">
+        <h4>Assigned Exams</h4>
+        <p>{{ assigned }}</p>
+    </div>
+
+    <div class="stat-box">
+        <h4>Moderation Tasks</h4>
+        <p>{{ moderations }}</p>
+    </div>
+
+    <div class="stat-box">
+        <h4>My Submissions</h4>
+        <p>{{ submissions }}</p>
+    </div>
+
+    <div class="stat-box">
+        <h4>Pending Reviews</h4>
+        <p>{{ pending }}</p>
+    </div>
+
+</div>
+
+<!-- ================= QUICK ACTIONS ================= -->
+<div class="card">
+
+    <h3>Quick Actions</h3>
+
+    <div class="quick-links">
         <a href="/teacher/assigned_exams">Item Writer Tasks</a>
         <a href="/teacher/moderation-exams">Moderator Tasks</a>
         <a href="/teacher/my-submissions">My Submissions</a>
     </div>
 
+</div>
 
-    <!-- CONTENT -->
-    <div class="content">
+<!-- ================= MAIN GRID ================= -->
+<div class="dashboard-grid">
 
-        <h2>Overview Dashboard</h2>
-
-        <!-- STATS CARDS -->
-        <div class="dashboard-grid">
-
-            <!-- ITEM WRITER CARD -->
-            <div class="card card-accent-blue">
-                <h3>Item Writer</h3>
-                <p>Assigned Exams: <b>{{ assigned }}</b></p>
-                <p>Status: Upload exam papers</p>
-            </div>
-
-            <!-- MODERATOR CARD -->
-            <div class="card card-accent-orange">
-                <h3>Moderator</h3>
-                <p>Pending Reviews: <b>{{ moderations }}</b></p>
-                <p>Status: Review submitted exams</p>
-            </div>
-
-            <!-- SUBMISSIONS CARD -->
-            <div class="card card-accent-green">
-                <h3>My Work</h3>
-                <p>Uploaded Documents</p>
-                <p>Status: Tracking submissions</p>
-            </div>
-
+    <div class="card">
+        <h3>Item Writer Work</h3>
+        <p>You are responsible for creating and uploading exam questions.</p>
+        <div class="quick-links">
+            <a href="/teacher/assigned_exams">View Tasks</a>
         </div>
+    </div>
 
-
-        <!-- QUICK ACTIONS -->
-        <div style="margin-top:20px;">
-
-            <h3>Quick Actions</h3>
-
-            <a href="/teacher/assigned_exams">
-                <button>View Item Writer Tasks</button>
-            </a>
-
-            <a href="/teacher/moderation-exams">
-                <button>View Moderator Tasks</button>
-            </a>
-
-            <a href="/teacher/my-submissions">
-                <button>My Submissions</button>
-            </a>
-
+    <div class="card">
+        <h3>Moderator Work</h3>
+        <p>Review and validate submitted exams before approval.</p>
+        <div class="quick-links">
+            <a href="/teacher/moderation-exams">Start Review</a>
         </div>
-
     </div>
 
 </div>
 
-</body>
-</html>
+<!-- ================= TABLE ================= -->
+<div class="card">
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Exam</th>
+                    <th style="width:200px;">Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% if exams and exams|length > 0 %}
+
+                    {% for exam in exams %}
+                    <tr>
+
+                        <td>{{ exam.exam_name }}</td>
+
+                        <td class="actions">
+                            <a href="/teacher/enter-results/{{ exam.exam_id }}"
+                               class="btn btn-teal btn-small">
+                                Enter Results
+                            </a>
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+
+                {% else %}
+
+                    <tr>
+                        <td colspan="2" style="text-align:center;padding:20px;">
+                            No exams available for results yet.
+                        </td>
+                    </tr>
+
+                {% endif %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+    <style>
+.modal-overlay{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.65);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:9999;
+}
+
+.modal-box{
+    background:#fff;
+    width:550px;
+    max-width:95%;
+    padding:30px;
+    border-radius:10px;
+    position:relative;
+    animation:pop 0.3s ease;
+}
+
+@keyframes pop{
+    from{transform:scale(0.8);opacity:0}
+    to{transform:scale(1);opacity:1}
+}
+
+.modal-close{
+    position:absolute;
+    right:15px;
+    top:10px;
+    font-size:26px;
+    cursor:pointer;
+}
+
+.modal-body{
+    margin-top:20px;
+}
+
+.notify-card{
+    border-radius:8px;
+    padding:18px;
+    margin-bottom:15px;
+}
+
+.writer{
+    background:#eef6ff;
+    border-left:5px solid #3b82f6;
+}
+
+.moderator{
+    background:#ecfeff;
+    border-left:5px solid #14b8a6;
+}
+</style>
+<script>
+function closeModal(){
+    document.getElementById("notifyModal").style.display="none";
+}
+</script>
+ 
+</div>
+{% endblock %}

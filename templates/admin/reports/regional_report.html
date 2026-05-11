@@ -1,0 +1,12 @@
+{% extends "admin/base.html" %}
+{% block content %}
+
+<h2>Regional Summary</h2>
+
+<ul>
+    <li>Total Schools: {{ schools }}</li>
+    <li>Total Students: {{ students }}</li>
+    <li>Regional Average Score: {{ avg_score }}%</li>
+</ul>
+
+{% endblock %}
