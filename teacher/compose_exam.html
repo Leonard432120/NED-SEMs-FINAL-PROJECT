@@ -1,0 +1,399 @@
+{% extends "teacher/base.html" %}
+
+{% block title %}Compose Exam{% endblock %}
+
+{% block content %}
+
+<style>
+body{
+    background:#f1f5f9;
+    font-family: Arial, sans-serif;
+    color:#0f172a;
+}
+
+.page-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+}
+
+.page-title{
+    font-size:28px;
+    font-weight:700;
+}
+
+.exam-meta{
+    color:#64748b;
+    font-size:14px;
+}
+
+.moderation-layout{
+    display:grid;
+    grid-template-columns:320px 1fr;
+    gap:20px;
+}
+
+.question-list{
+    background:#dfdcdc;
+    border:2px solid #c7baba;
+    border-radius:16px;
+    padding:15px;
+    height:82vh;
+    overflow:auto;
+}
+
+.question-item{
+    background:#f8fafc;
+    padding:12px;
+    border-radius:10px;
+    margin-bottom:10px;
+    cursor:pointer;
+    border-left:4px solid transparent;
+}
+
+.question-item:hover{
+    background:#e2e8f0;
+}
+
+.question-item.active{
+    border-left:4px solid #3b82f6;
+    background:#dbeafe;
+}
+
+.question-panel{
+    background:#dfdcdc;
+    border:2px solid #c7baba;
+    border-radius:16px;
+    padding:25px;
+    min-height:82vh;
+}
+
+.card{
+    background:#fff;
+    border-radius:14px;
+    padding:15px;
+    margin-bottom:15px;
+}
+
+label{
+    font-weight:600;
+    font-size:14px;
+    display:block;
+    margin-bottom:5px;
+}
+
+input, textarea, select{
+    width:100%;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid #cbd5e1;
+}
+
+.dashboard-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:15px;
+}
+
+.btn{
+    padding:12px 18px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:600;
+}
+
+.btn-dark{background:#111827;color:#fff;}
+.btn-teal{background:#0f766e;color:#fff;}
+
+#mcqBox{
+    display:none;
+    background:#f8fafc;
+    padding:15px;
+    border-radius:12px;
+    border:1px solid #e2e8f0;
+    margin-top:10px;
+}
+
+.modal{
+    display:none;
+    position:fixed;
+    top:0;left:0;
+    width:100%;height:100%;
+    background:rgba(0,0,0,0.6);
+    z-index:999;
+}
+
+.modal-content{
+    width:700px;
+    margin:80px auto;
+    background:#fff;
+    border-radius:14px;
+    overflow:hidden;
+}
+
+.modal-header{
+    display:flex;
+    justify-content:space-between;
+    padding:15px;
+    background:#111827;
+    color:#fff;
+}
+
+.modal-body{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:15px;
+    padding:20px;
+}
+
+.ai-box{
+    background:#f1f5f9;
+    padding:10px;
+    border-radius:10px;
+    margin-bottom:10px;
+}
+
+.ai-warning{
+    color:#dc2626;
+    font-weight:600;
+}
+
+.modal-footer{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    padding:15px;
+    border-top:1px solid #eee;
+}
+</style>
+
+<!-- HEADER -->
+<div class="page-header">
+    <div>
+        <div class="page-title">{{ exam.exam_name }}</div>
+        <div class="exam-meta">Year: {{ exam.year }} | Class: {{ exam.class }}</div>
+    </div>
+</div>
+
+<script>
+const questions = {{ questions | tojson }};
+const aiMap = {{ ai_map | tojson }};
+</script>
+
+<div class="moderation-layout">
+
+    <!-- LEFT -->
+    <div class="question-list">
+        <div class="question-item" onclick="loadNew()">
+            ➕ Add New Question
+        </div>
+
+        {% for q in questions %}
+        <div class="question-item" onclick="loadQuestion({{ q.question_id }})">
+            <b>Q{{ q.question_order or loop.index }}</b><br>
+            {{ q.question_text[:60] }}...
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- RIGHT -->
+    <div class="question-panel">
+
+        <div class="card">
+            <h3 id="formTitle">Add Question</h3>
+
+            <form id="questionForm">
+
+                <label>Section</label>
+                <select id="section" name="section_name" onchange="toggleMCQ()">
+                    <option value="">Select</option>
+                    <option value="Section A">Section A</option>
+                    <option value="Section B">Section B</option>
+                    <option value="Section C">Section C</option>
+                </select>
+
+                <div class="dashboard-grid">
+                    <div>
+                        <label>Order</label>
+                        <input type="number" id="order" name="order">
+                    </div>
+
+                    <div>
+                        <label>Marks</label>
+                        <input type="number" id="marks" name="marks">
+                    </div>
+                </div>
+
+                <label>Question</label>
+                <textarea id="question_text" name="question_text"></textarea>
+
+                <!-- MCQ -->
+                <div id="mcqBox">
+                    <label>Option A</label>
+                    <input id="option_a" name="option_a">
+
+                    <label>Option B</label>
+                    <input id="option_b" name="option_b">
+
+                    <label>Option C</label>
+                    <input id="option_c" name="option_c">
+
+                    <label>Option D</label>
+                    <input id="option_d" name="option_d">
+
+                    <label>Correct</label>
+                    <select id="correct_option" name="correct_option">
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                    </select>
+                </div>
+
+                <button type="button" class="btn btn-dark" onclick="openAIModal()">
+                    🚀 Run AI Analysis
+                </button>
+
+            </form>
+        </div>
+
+    </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="aiModal">
+    <div class="modal-content">
+
+        <div class="modal-header">
+            <h3>AI Review</h3>
+            <span onclick="closeModal()" style="cursor:pointer">&times;</span>
+        </div>
+
+        <div class="modal-body">
+
+            <div>
+                <div class="ai-box"><b>Quality</b><h3 id="ai_quality"></h3></div>
+                <div class="ai-box"><b>Bloom</b><h3 id="ai_bloom"></h3></div>
+                <div class="ai-box"><b>Suggested</b><h3 id="ai_suggested"></h3></div>
+                <div class="ai-warning" id="ai_warning"></div>
+            </div>
+
+            <div>
+                <label>Edit Marks</label>
+                <input type="number" id="final_marks_input">
+
+                <label>Summary</label>
+                <textarea id="ai_summary" readonly></textarea>
+            </div>
+
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-teal" onclick="confirmSave()">Save</button>
+            <button class="btn btn-dark" onclick="closeModal()">Cancel</button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+
+let currentForm = {};
+let lastAI = null;
+
+function toggleMCQ(){
+    document.getElementById("mcqBox").style.display =
+        document.getElementById("section").value === "Section A"
+        ? "block" : "none";
+}
+
+function loadNew(){
+    document.getElementById("questionForm").reset();
+    document.getElementById("formTitle").innerText = "Add Question";
+}
+
+function loadQuestion(id){
+
+    const q = questions.find(x => x.question_id === id);
+    if(!q) return;
+
+    document.getElementById("formTitle").innerText = "Edit Question";
+
+    document.getElementById("section").value = q.section_name;
+    document.getElementById("order").value = q.question_order;
+    document.getElementById("marks").value = q.marks;
+    document.getElementById("question_text").value = q.question_text;
+
+    document.getElementById("option_a").value = q.option_a || "";
+    document.getElementById("option_b").value = q.option_b || "";
+    document.getElementById("option_c").value = q.option_c || "";
+    document.getElementById("option_d").value = q.option_d || "";
+
+    toggleMCQ();
+}
+
+/* ================= AI ================= */
+function openAIModal(){
+
+    const form = document.getElementById("questionForm");
+
+    const data = new FormData(form);
+    data.append("action", "preview");
+
+    fetch("", {
+        method: "POST",
+        body: data
+    })
+    .then(r => r.text())
+    .then(() => {
+
+        const keys = Object.keys(aiMap);
+        lastAI = aiMap[keys[keys.length - 1]];
+
+        document.getElementById("ai_quality").innerText =
+            Math.floor(lastAI.quality_score/10) + "/10";
+
+        document.getElementById("ai_bloom").innerText =
+            lastAI.bloom_level;
+
+        document.getElementById("ai_suggested").innerText =
+            lastAI.suggested_marks;
+
+        document.getElementById("final_marks_input").value =
+            document.getElementById("marks").value;
+
+        document.getElementById("ai_warning").innerText =
+            lastAI.suggested_marks != document.getElementById("marks").value
+            ? "⚠ AI suggests different marks" : "";
+
+        document.getElementById("ai_summary").value =
+            lastAI.explanations?.summary || "";
+
+        document.getElementById("aiModal").style.display = "block";
+    });
+}
+
+function confirmSave(){
+
+    const form = document.getElementById("questionForm");
+
+    const data = new FormData(form);
+    data.append("action", "save");
+
+    fetch("", {
+        method: "POST",
+        body: data
+    }).then(() => {
+        location.reload();
+    });
+}
+
+function closeModal(){
+    document.getElementById("aiModal").style.display = "none";
+}
+
+</script>
+
+{% endblock %}

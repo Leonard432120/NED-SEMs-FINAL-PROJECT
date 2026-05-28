@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: May 11, 2026 at 06:02 AM
+-- Generation Time: May 27, 2026 at 09:55 PM
 -- Server version: 8.4.7
 -- PHP Version: 8.3.28
 
@@ -42,6 +42,25 @@ CREATE TABLE IF NOT EXISTS `ai_alerts` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `ai_moderation_logs`
+--
+
+DROP TABLE IF EXISTS `ai_moderation_logs`;
+CREATE TABLE IF NOT EXISTS `ai_moderation_logs` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `question_text` text COLLATE utf8mb4_unicode_ci,
+  `bloom_level` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `bloom_confidence` float DEFAULT NULL,
+  `complexity_score` float DEFAULT NULL,
+  `quality_score` float DEFAULT NULL,
+  `feedback` text COLLATE utf8mb4_unicode_ci,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `audit_logs`
 --
 
@@ -54,7 +73,64 @@ CREATE TABLE IF NOT EXISTS `audit_logs` (
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`log_id`),
   KEY `user_id` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=52 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `audit_logs`
+--
+
+INSERT INTO `audit_logs` (`log_id`, `user_id`, `action`, `details`, `created_at`) VALUES
+(1, 2, 'update_user', 'Updated user ID 47 (ponje 1)', '2026-05-22 10:22:10'),
+(2, 2, 'delete_user', 'Soft deleted user ID 47', '2026-05-22 10:22:48'),
+(3, 2, 'deactivate', 'Admin 2 performed deactivate on user 62', '2026-05-22 10:41:15'),
+(4, 2, 'activate', 'Admin 2 performed activate on user 62', '2026-05-22 10:41:48'),
+(5, 2, 'deactivate', 'Admin 2 performed deactivate on user 62', '2026-05-22 10:53:46'),
+(6, 2, 'deactivate', 'Bulk deactivate by admin 2 on user 63', '2026-05-22 10:59:20'),
+(7, 2, 'deactivate', 'Bulk deactivate by admin 2 on user 62', '2026-05-22 10:59:20'),
+(8, 2, 'deactivate', 'Bulk deactivate by admin 2 on user 61', '2026-05-22 10:59:20'),
+(9, 2, 'deactivate', 'Bulk deactivate by admin 2 on user 52', '2026-05-22 10:59:20'),
+(10, 2, 'deactivate', 'Bulk deactivate by admin 2 on user 48', '2026-05-22 10:59:20'),
+(11, 2, 'activate', 'Bulk activate by admin 2 on user 63', '2026-05-22 10:59:39'),
+(12, 2, 'activate', 'Bulk activate by admin 2 on user 62', '2026-05-22 10:59:39'),
+(13, 2, 'activate', 'Bulk activate by admin 2 on user 61', '2026-05-22 10:59:39'),
+(14, 2, 'activate', 'Bulk activate by admin 2 on user 52', '2026-05-22 10:59:39'),
+(15, 2, 'activate', 'Bulk activate by admin 2 on user 48', '2026-05-22 10:59:39'),
+(16, 2, 'deactivate', 'Admin 2 performed deactivate on user 62', '2026-05-22 11:01:18'),
+(17, 2, 'deactivate', 'Admin 2 performed deactivate on user 61', '2026-05-22 11:31:53'),
+(18, 2, 'activate', 'Admin 2 performed activate on user 62', '2026-05-22 11:32:12'),
+(19, NULL, 'activate', 'Bulk activate on user 61', '2026-05-22 11:32:43'),
+(20, 2, 'deactivate', 'Admin 2 performed deactivate on user 63', '2026-05-22 11:38:33'),
+(21, 2, 'activate', 'Admin 2 performed activate on user 63', '2026-05-22 11:41:29'),
+(22, 2, 'deactivate', 'Bulk deactivate on user 63', '2026-05-22 11:41:38'),
+(23, 2, 'activate', 'Bulk activate on user 63', '2026-05-22 11:44:35'),
+(24, 2, 'deactivate', 'Admin 2 performed deactivate on user 63', '2026-05-22 11:46:10'),
+(25, 2, 'activate', 'Admin 2 performed activate on user 63', '2026-05-22 11:46:12'),
+(26, 2, 'deactivate', 'Admin 2 performed deactivate on user 61', '2026-05-22 12:01:43'),
+(27, 2, 'activate', 'Admin 2 performed activate on user 61', '2026-05-22 12:02:23'),
+(28, 2, 'deactivate', 'Bulk deactivate on user 61', '2026-05-22 12:03:10'),
+(29, 2, 'activate', 'Admin 2 performed activate on user 61', '2026-05-22 12:13:45'),
+(30, 2, 'create_user', 'Admin 2 created user Robert Mlungu (leonardponjemlungu@outlook.com)', '2026-05-22 12:20:59'),
+(31, 2, 'deactivate', 'Admin 2 performed deactivate on user 64', '2026-05-22 12:37:22'),
+(32, 2, 'activate', 'Admin 2 performed activate on user 64', '2026-05-22 12:37:53'),
+(33, 2, 'create_user', 'Admin 2 created user Robert Mlungu (leonardponjemlungu@outlook.com)', '2026-05-22 12:38:57'),
+(34, 2, 'create_user', 'Admin 2 created email', '2026-05-22 13:07:15'),
+(35, 2, 'create_user', 'Admin 2 created judithmatupi7@gmail.com', '2026-05-22 13:07:15'),
+(36, 2, 'create_user', 'Admin 2 created ict-01-26-22@unilia.ac.mw', '2026-05-22 13:07:20'),
+(37, 2, 'create_user', 'Admin 2 created matupijudith71@gmail.com', '2026-05-22 13:07:25'),
+(38, 2, 'create_user', 'Admin 2 created leonardmlungupro@gmail.com', '2026-05-22 13:07:30'),
+(39, 2, 'create_user', 'Admin 2 created leonardponjemlungu@outlook.com', '2026-05-22 13:07:35'),
+(40, 2, 'create_user', 'Admin 2 created judithmatupi7@gmail.com', '2026-05-22 13:26:30'),
+(41, 2, 'create_user', 'Admin 2 created ict-01-26-22@unilia.ac.mw', '2026-05-22 13:26:35'),
+(42, 2, 'create_user', 'Admin 2 created matupijudith71@gmail.com', '2026-05-22 13:26:41'),
+(43, 2, 'create_user', 'Admin 2 created leonardmlungupro@gmail.com', '2026-05-22 13:26:46'),
+(44, 2, 'deactivate', 'Admin 2 performed deactivate on user 82', '2026-05-24 08:21:09'),
+(45, 2, 'activate', 'Admin 2 performed activate on user 82', '2026-05-24 08:21:55'),
+(46, 2, 'deactivate', 'Bulk deactivate on user 82', '2026-05-24 08:24:40'),
+(47, 2, 'deactivate', 'Bulk deactivate on user 81', '2026-05-24 08:24:47'),
+(48, 2, 'activate', 'Bulk activate on user 82', '2026-05-24 08:25:05'),
+(49, 2, 'activate', 'Bulk activate on user 81', '2026-05-24 08:25:11'),
+(50, 2, 'update_user', 'Updated user ID 82 (Ponje mlungu)', '2026-05-24 08:26:15'),
+(51, 2, 'update_user', 'Updated user ID 82 (Ponje mlungu)', '2026-05-24 08:33:58');
 
 -- --------------------------------------------------------
 
@@ -78,25 +154,17 @@ CREATE TABLE IF NOT EXISTS `exams` (
   KEY `fk_exam_subject` (`subject_id`),
   KEY `fk_exam_creator` (`created_by`),
   KEY `idx_exam_status` (`status`)
-) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `exams`
 --
 
 INSERT INTO `exams` (`exam_id`, `exam_name`, `subject_id`, `created_by`, `exam_date`, `duration_minutes`, `total_marks`, `status`, `year`, `class`) VALUES
-(1, 'COMPUTER', 1, 2, '2026-03-03', 60, 40, 'approved', '2022', 'Form 2'),
-(2, 'FORM', 2, 2, '2026-08-10', 90, 100, 'approved', '2026', 'Form 2'),
-(8, 'Math Test 2022', 1, 2, NULL, NULL, NULL, 'draft', '2022', 'Form 1'),
-(9, 'Math Test 2023', 1, 2, NULL, NULL, NULL, 'draft', '2023', 'Form 1'),
-(10, 'Math Test 2024', 1, 2, NULL, NULL, NULL, 'draft', '2024', 'Form 1'),
-(11, 'Math Test 2025', 1, 2, NULL, NULL, NULL, 'draft', '2025', 'Form 1'),
-(12, 'Math Test 2026', 1, 2, NULL, NULL, NULL, 'draft', '2026', 'Form 1'),
-(13, 'Math Test 2022', 1, 2, NULL, NULL, NULL, 'draft', '2022', 'Form 1'),
-(14, 'Math Test 2023', 1, 2, NULL, NULL, NULL, 'draft', '2023', 'Form 1'),
-(15, 'Math Test 2024', 1, 2, NULL, NULL, NULL, 'draft', '2024', 'Form 1'),
-(16, 'Math Test 2025', 1, 2, NULL, NULL, NULL, 'draft', '2025', 'Form 1'),
-(17, 'Math Test 2026', 1, 2, NULL, NULL, NULL, 'draft', '2026', 'Form 1');
+(1, 'COMPUTER', 1, 2, '2026-03-03', 60, 40, 'draft', '2022', 'Form 2'),
+(2, 'FORM', 2, 2, '2026-08-10', 90, 100, 'submitted', '2026', 'Form 2'),
+(17, 'Math Test 2026', 1, 2, '2026-05-14', 80, 100, 'assigned', '2022', 'Form 2'),
+(18, 'Mathematics 2026', 3, 2, '2026-05-13', 80, 100, 'approved', '2026', 'Form 2');
 
 -- --------------------------------------------------------
 
@@ -113,19 +181,12 @@ CREATE TABLE IF NOT EXISTS `exam_assignments` (
   `assigned_by` int NOT NULL,
   `assigned_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `email_sent` tinyint(1) DEFAULT '0',
+  `status` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT 'assigned',
   PRIMARY KEY (`assignment_id`),
   UNIQUE KEY `unique_assignment` (`exam_id`,`teacher_id`,`role`),
   KEY `assigned_by` (`assigned_by`),
   KEY `fk_assign_teacher` (`teacher_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `exam_assignments`
---
-
-INSERT INTO `exam_assignments` (`assignment_id`, `exam_id`, `teacher_id`, `role`, `assigned_by`, `assigned_at`, `email_sent`) VALUES
-(17, 1, 60, 'moderator', 2, '2026-05-02 15:27:24', 0),
-(18, 2, 60, 'item_writer', 2, '2026-05-02 15:28:45', 0);
+) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -214,17 +275,6 @@ CREATE TABLE IF NOT EXISTS `moderation` (
   KEY `reviewer_id` (`reviewer_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `moderation`
---
-
-INSERT INTO `moderation` (`moderation_id`, `exam_id`, `reviewer_id`, `comments`, `status`, `review_date`, `version_number`) VALUES
-(1, 1, 48, 'this is good ', 'needs_revision', '2026-04-12 14:52:22', NULL),
-(2, 1, 48, 'yes', 'needs_revision', '2026-04-12 15:12:56', NULL),
-(3, 1, 48, 'yes', 'needs_revision', '2026-04-12 15:17:51', NULL),
-(4, 1, 47, 'good', 'needs_revision', '2026-04-27 18:20:34', NULL),
-(5, 2, 60, 'this is good', 'needs_revision', '2026-05-06 14:04:41', NULL);
-
 -- --------------------------------------------------------
 
 --
@@ -253,21 +303,18 @@ CREATE TABLE IF NOT EXISTS `questions` (
   PRIMARY KEY (`question_id`),
   KEY `fk_question_exam` (`exam_id`),
   KEY `idx_question_moderation` (`moderation_status`)
-) ENGINE=InnoDB AUTO_INCREMENT=76 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=94 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `questions`
 --
 
 INSERT INTO `questions` (`question_id`, `exam_id`, `question_order`, `question_text`, `marks`, `created_by`, `section_name`, `created_at`, `question_type`, `option_a`, `option_b`, `option_c`, `option_d`, `correct_option`, `ai_score`, `moderation_status`, `moderator_comment`) VALUES
-(68, 1, 1, 'what is agriculture?', 20, 47, 'Section B', '2026-04-30 16:58:30', 'structured', '', '', '', '', '', 1, 'approved', NULL),
-(69, 1, 2, 'who are you?', 3, 47, 'Section B', '2026-04-30 17:46:03', 'structured', '', '', '', '', '', 1, 'approved', NULL),
-(70, 1, 1, 'How many kilometers are ther?\r\n', 3, 60, 'Section B', '2026-05-06 10:11:30', 'structured', '', '', '', '', '', 1, 'revise', NULL),
-(71, 1, 1, 'what is poly?', 1, 60, 'Section A', '2026-05-07 07:48:00', 'mcq', 'you', '2', 'nnn', 'they', 'B', 1, 'approved', NULL),
-(72, 1, 2, 'what is it?', 1, 60, 'Section A', '2026-05-07 07:48:26', 'mcq', 'eeee', '2', 'nnn', 'they', 'C', 1, 'revise', NULL),
-(73, 1, 3, 'why they don\'t like me?', 3, 60, 'Section B', '2026-05-07 07:49:15', 'structured', '', '', '', '', '', 1, 'revise', NULL),
-(74, 1, 5, 'describe the use of computr in malawi?', 5, 60, 'Section B', '2026-05-07 07:49:51', 'structured', '', '', '', '', '', 1, 'approved', NULL),
-(75, 1, 6, 'explain 10 ways of creating a program in vs code?', 9, 60, 'Section C', '2026-05-07 07:50:32', 'essay', '', '', '', '', '', 1, 'approved', NULL);
+(89, 18, 1, 'wht is them?', 7, 63, 'Section B', '2026-05-13 13:01:30', 'structured', '', '', '', '', '', 1, 'approved', 'nice'),
+(90, 18, 1, 'wht is them?', 7, 63, 'Section B', '2026-05-13 13:01:58', 'structured', NULL, NULL, NULL, NULL, NULL, 1, 'pending', 'nice'),
+(91, 18, 2, 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', 3, 63, 'Section B', '2026-05-13 13:19:31', 'short', '', '', '', '', 'A', 1, 'revise', 'choka iwe'),
+(92, 18, 1, 'what is ai?', 7, 63, 'Section A', '2026-05-14 08:40:56', 'structured', '1', 'me', 'nnn', 'they', 'B', 1, 'pending', NULL),
+(93, 18, 10, 'wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww', 7, 63, 'Section B', '2026-05-14 08:41:31', 'structured', '', '', '', '', 'A', 1, 'pending', NULL);
 
 -- --------------------------------------------------------
 
@@ -285,7 +332,7 @@ CREATE TABLE IF NOT EXISTS `question_moderation` (
   `moderated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`moderation_id`),
   UNIQUE KEY `question_id` (`question_id`)
-) ENGINE=MyISAM AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `question_moderation`
@@ -299,7 +346,9 @@ INSERT INTO `question_moderation` (`moderation_id`, `question_id`, `moderator_id
 (5, 72, 60, 'revise', '', '2026-05-07 08:04:42'),
 (6, 73, 60, 'revise', '', '2026-05-07 08:04:42'),
 (7, 74, 60, 'approved', '', '2026-05-07 08:04:42'),
-(8, 75, 60, 'approved', '', '2026-05-07 08:04:42');
+(8, 75, 60, 'approved', '', '2026-05-07 08:04:42'),
+(9, 89, 63, 'approved', 'good', '2026-05-13 14:08:44'),
+(10, 91, 63, 'approved', 'ppp', '2026-05-13 14:08:55');
 
 -- --------------------------------------------------------
 
@@ -328,30 +377,20 @@ CREATE TABLE IF NOT EXISTS `results` (
   KEY `recorded_by` (`recorded_by`),
   KEY `fk_result_exam` (`exam_id`),
   KEY `idx_results_status` (`status`)
-) ENGINE=InnoDB AUTO_INCREMENT=54 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=55 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `results`
 --
 
 INSERT INTO `results` (`result_id`, `student_id`, `exam_id`, `total_score`, `grade`, `remarks`, `position_in_class`, `percentage`, `recorded_by`, `recorded_at`, `status`, `teacher_id`, `editable_until`, `locked`) VALUES
-(16, 17, 1, 10.00, 'F', 'Fail', 2, 25.00, 52, '2026-04-18 03:55:46', '', 52, '2026-04-25 03:55:46', 0),
-(20, 16, 1, 20.00, 'C', 'Pass', 1, 50.00, 60, '2026-05-09 22:42:59', '', NULL, NULL, 0),
 (39, 1, 1, 42.00, NULL, NULL, NULL, 42.00, NULL, '2026-05-09 22:56:02', 'draft', NULL, NULL, 0),
 (40, 2, 1, 45.00, NULL, NULL, NULL, 45.00, NULL, '2026-05-09 22:56:02', 'draft', NULL, NULL, 0),
 (41, 3, 1, 40.00, NULL, NULL, NULL, 40.00, NULL, '2026-05-09 22:56:02', 'draft', NULL, NULL, 0),
 (42, 1, 2, 50.00, NULL, NULL, NULL, 50.00, NULL, '2026-05-09 22:56:02', 'draft', NULL, NULL, 0),
 (43, 2, 2, 55.00, NULL, NULL, NULL, 55.00, NULL, '2026-05-09 22:56:02', 'draft', NULL, NULL, 0),
 (44, 3, 2, 52.00, NULL, NULL, NULL, 52.00, NULL, '2026-05-09 22:56:02', 'draft', NULL, NULL, 0),
-(45, 1, 8, 60.00, NULL, NULL, NULL, 60.00, NULL, '2026-05-09 22:56:02', 'draft', NULL, NULL, 0),
-(46, 2, 8, 62.00, NULL, NULL, NULL, 62.00, NULL, '2026-05-09 22:56:02', 'draft', NULL, NULL, 0),
-(47, 3, 8, 58.00, NULL, NULL, NULL, 58.00, NULL, '2026-05-09 22:56:02', 'draft', NULL, NULL, 0),
-(48, 1, 9, 70.00, NULL, NULL, NULL, 70.00, NULL, '2026-05-09 22:56:02', 'draft', NULL, NULL, 0),
-(49, 2, 9, 72.00, NULL, NULL, NULL, 72.00, NULL, '2026-05-09 22:56:02', 'draft', NULL, NULL, 0),
-(50, 3, 9, 68.00, NULL, NULL, NULL, 68.00, NULL, '2026-05-09 22:56:02', 'draft', NULL, NULL, 0),
-(51, 1, 10, 80.00, NULL, NULL, NULL, 80.00, NULL, '2026-05-09 22:56:02', 'draft', NULL, NULL, 0),
-(52, 2, 10, 78.00, NULL, NULL, NULL, 78.00, NULL, '2026-05-09 22:56:02', 'draft', NULL, NULL, 0),
-(53, 3, 10, 75.00, NULL, NULL, NULL, 75.00, NULL, '2026-05-09 22:56:02', 'draft', NULL, NULL, 0);
+(54, 16, 1, 10.00, 'F', 'Fail', 2, 25.00, 63, '2026-05-14 09:06:18', '', NULL, NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -388,16 +427,21 @@ CREATE TABLE IF NOT EXISTS `schools` (
   `district` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `address` text COLLATE utf8mb4_unicode_ci,
   `division` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Unknown',
+  `status` enum('active','inactive') COLLATE utf8mb4_unicode_ci DEFAULT 'active',
   PRIMARY KEY (`school_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `schools`
 --
 
-INSERT INTO `schools` (`school_id`, `school_name`, `district`, `address`, `division`) VALUES
-(29, 'KARONGA COMMUNITY SECONDARY SCHOOL', 'Karonga', 'P.O BOX 39', 'Northen'),
-(30, 'Lufita seecondary school', 'Chitipa', 'P.OBOX 18', 'Northen');
+INSERT INTO `schools` (`school_id`, `school_name`, `district`, `address`, `division`, `status`) VALUES
+(29, 'KARONGA COMMUNITY SECONDARY SCHOOL', 'Karonga', 'P.O BOX 39', 'Northen', 'active'),
+(32, 'Maghemo secondary school', 'Karonga', 'p.o.box 111', 'Unknown', 'active'),
+(33, 'Maghemo secondary school', 'Karonga', 'p.o.box 111', 'Unknown', 'active'),
+(34, 'Mlare secondary school', 'Karonga', 'p.o.box 11', 'Unknown', 'active'),
+(35, 'Karonga girls secondary school', 'Karonga', 'p.o.box 10', 'Unknown', 'active'),
+(37, 'IPONGA CDSS', 'CHITIPA', 'p.o.box 101', 'Northern', 'active');
 
 -- --------------------------------------------------------
 
@@ -498,7 +542,7 @@ CREATE TABLE IF NOT EXISTS `subjects` (
   `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
   PRIMARY KEY (`subject_id`),
   UNIQUE KEY `subject_name` (`subject_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `subjects`
@@ -541,21 +585,27 @@ CREATE TABLE IF NOT EXISTS `users` (
   `role` enum('admin','teacher','headteacher','examination_officer') COLLATE utf8mb4_unicode_ci NOT NULL,
   `school_id` int DEFAULT NULL,
   `status` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT 'active',
+  `deleted_at` datetime DEFAULT NULL,
+  `deleted_by` int DEFAULT NULL,
+  `login_count` int DEFAULT '0',
+  `last_login` datetime DEFAULT NULL,
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `email` (`email`),
   KEY `fk_user_school` (`school_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=61 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=83 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`user_id`, `name`, `email`, `phone`, `password`, `role`, `school_id`, `status`) VALUES
-(2, 'Admin User', 'leonardponjemlungu@gmail.com', '0984487626', '1234', 'admin', NULL, 'active'),
-(47, 'ponje 12', 'judithmatupi7@gmail.com', '0984487626', '1234', 'headteacher', 30, 'active'),
-(48, 'PROGRAMMER', 'ict-01-26-22@unilia.ac.mw', '0984487621', '1234', 'teacher', 29, 'active'),
-(52, 'TEACHER WANE', 'matupijudith71@gmail.com', '0899520423', '1234', 'teacher', 29, 'deleted'),
-(60, 'John Thomas Mlungu', 'leonardmlungupro@gmail.com', '0899520423', '123', 'teacher', 29, 'active');
+INSERT INTO `users` (`user_id`, `name`, `email`, `phone`, `password`, `role`, `school_id`, `status`, `deleted_at`, `deleted_by`, `login_count`, `last_login`) VALUES
+(2, 'Admin User', 'leonardponjemlungu@gmail.com', '0984487626', '1234', 'admin', NULL, 'active', NULL, NULL, 100, '2026-05-11 10:12:10'),
+(63, 'Abuya Awa', 'leonardmlungu111111@gmail.com', '0899520423', '1234', 'teacher', 29, 'active', NULL, NULL, 0, NULL),
+(77, 'John Ponje', 'judithmatupi7@gmail.com', '984487627', '$2y$10$kReUb.an3zmHH4LpuZ34QeocxZ2ADWFOEp5TjJArXLfGWeuOPu2JO', 'headteacher', 35, 'active', NULL, NULL, 0, NULL),
+(78, 'Moses Mughogho', 'ict-01-26-22@unilia.ac.mw', '984487621', '$2y$10$5MoXbv/R2THIyvrOSTmWI.Qf71CDhn4r6tEyUNsq3OIGus880BOg6', 'teacher', 32, 'active', NULL, NULL, 0, NULL),
+(79, 'Judith Matupi', 'matupijudith71@gmail.com', '899520423', '$2y$10$3nJJZgBs.PIykX2jqDamI.8d7UWcFxV9uLCnt.qhGk0DEOBPEAKJC', 'examination_officer', 34, 'active', NULL, NULL, 0, NULL),
+(81, 'Leonard Mlungu', 'leonardponjemlungu@outlook.com', '805112419.88889', '$2y$10$aYJK5lOM8mVL3HJ7nhtU0.BtrtgJpIZFMl2IIFABwEEW7ARwXtxIq', 'teacher', 32, 'active', NULL, NULL, 0, NULL),
+(82, 'Ponje mlungu', 'leonardmlungupro@gmail.com', '0899520423', '$2y$10$JQPZH8SWLbqkUvjoEv/71uNxk6t8XqqEl4l3qhfJ6Zs5ZyRYkHv92', 'teacher', 34, 'active', NULL, NULL, 0, NULL);
 
 --
 -- Constraints for dumped tables

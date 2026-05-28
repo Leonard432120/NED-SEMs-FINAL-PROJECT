@@ -1,0 +1,93 @@
+{% extends "teacher/base.html" %}
+{% block title %}Moderation Tasks{% endblock %}
+
+{% block content %}
+
+<!-- ================= HEADER ================= -->
+<div class="page-header">
+    <h2 class="page-title">Moderation Tasks</h2>
+</div>
+
+<!-- ================= SEARCH + FILTER ================= -->
+<form method="GET" class="search-filter-bar">
+
+    <input type="text"
+           name="search"
+           placeholder="Search exam title..."
+           value="{{ search or '' }}">
+
+    <select name="status">
+        <option value="">All Status</option>
+        <option value="submitted" {% if status=='submitted' %}selected{% endif %}>Submitted</option>
+        <option value="under_moderation" {% if status=='under_moderation' %}selected{% endif %}>Under Moderation</option>
+        <option value="needs_revision" {% if status=='needs_revision' %}selected{% endif %}>Needs Revision</option>
+        <option value="approved" {% if status=='approved' %}selected{% endif %}>Approved</option>
+        <option value="rejected" {% if status=='rejected' %}selected{% endif %}>Rejected</option>
+    </select>
+
+    <button type="submit">Filter</button>
+
+</form>
+
+<!-- ================= TABLE ================= -->
+<div class="card">
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Exam Title</th>
+                    <th>Subject</th>
+                    <th>Teacher</th>
+                    <th>Year</th>
+                    <th>Class</th>
+                    <th>Status</th>
+                    <th style="width:200px;">Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for exam in exams %}
+                <tr>
+
+                    <td>{{ exam.exam_name }}</td>
+                    <td>{{ exam.subject_name }}</td>
+                    <td>{{ exam.name }}</td>
+                    <td>{{ exam.year }}</td>
+                    <td>{{ exam.class }}</td>
+
+                    <td>
+                        <span class="badge badge-{{ exam.status }}">
+                            {{ exam.status }}
+                        </span>
+                    </td>
+
+                    <td class="actions">
+
+                        <a href="{{ url_for('teacher.moderate_exam_view', exam_id=exam.exam_id) }}"
+                           class="btn btn-teal btn-small">
+                           Moderate
+                        </a>
+
+                        <a href="/teacher/view-paper/{{ exam.exam_id }}?page=cover"
+                           class="btn btn-dark btn-small">
+                           View Paper
+                        </a>
+
+                    </td>
+
+                </tr>
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}
