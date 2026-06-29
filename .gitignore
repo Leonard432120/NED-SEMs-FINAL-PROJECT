@@ -1,14 +1,46 @@
+# ========================
+# PHP / Composer
+# ========================
+vendor/
+
+# ========================
+# Environment / Config
+# ========================
+.env
+config/db.php
+config/ai.php
+
+# ========================
+# Uploads / User files
+# ========================
+uploads/
+static/uploads/
+
+# ========================
 # Python cache
+# ========================
 __pycache__/
 *.pyc
 
-# Virtual environment (if you use one later)
+# ========================
+# Virtual environment
+# ========================
 venv/
-.env
 
+# ========================
+# Logs & temp
+# ========================
+*.log
+cache/
+tmp/
+
+# ========================
 # VS Code
+# ========================
 .vscode/
 
+# ========================
 # OS files
+# ========================
 .DS_Store
 Thumbs.db

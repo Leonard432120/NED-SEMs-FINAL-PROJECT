@@ -1,279 +1,235 @@
 <?php
 session_start();
 include '../config/db.php';
-
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
     header("Location: ../login.php");
     exit();
 }
-
 $conn = get_db_connection();
 
-/* ================= STATS ================= */
-$schools = $conn->query("SELECT COUNT(*) AS total FROM schools")->fetch_assoc()['total'];
-$users = $conn->query("SELECT COUNT(*) AS total FROM users")->fetch_assoc()['total'];
-$exams = $conn->query("SELECT COUNT(*) AS total FROM exams")->fetch_assoc()['total'];
-$results = $conn->query("SELECT COUNT(*) AS total FROM results")->fetch_assoc()['total'];
+/* ================= CORE STATS ================= */
+$total_schools = $conn->query("SELECT COUNT(*) AS total FROM schools")->fetch_assoc()['total'];
+$active_schools = $conn->query("SELECT COUNT(*) AS total FROM schools WHERE status = 'active'")->fetch_assoc()['total'] ?? 0;
 
-$pending = $conn->query("SELECT COUNT(*) AS total FROM exams WHERE status='under_moderation'")->fetch_assoc()['total'];
-$active_exams = $conn->query("SELECT COUNT(*) AS total FROM exams WHERE status IN ('submitted','approved')")->fetch_assoc()['total'];
+$total_users = $conn->query("SELECT COUNT(*) AS total FROM users")->fetch_assoc()['total'];
+$male_users = $conn->query("SELECT COUNT(*) AS t FROM users WHERE gender='Male' OR gender='male'")->fetch_assoc()['t'] ?? 0;
+$female_users = $conn->query("SELECT COUNT(*) AS t FROM users WHERE gender='Female' OR gender='female'")->fetch_assoc()['t'] ?? 0;
 
-/* ================= AI ALERTS ================= */
-$low = $conn->query("SELECT COUNT(*) AS t FROM ai_alerts WHERE severity='low'")->fetch_assoc()['t'];
-$medium = $conn->query("SELECT COUNT(*) AS t FROM ai_alerts WHERE severity='medium'")->fetch_assoc()['t'];
-$high = $conn->query("SELECT COUNT(*) AS t FROM ai_alerts WHERE severity='high'")->fetch_assoc()['t'];
+$teachers = $conn->query("SELECT COUNT(*) AS t FROM users WHERE role='teacher'")->fetch_assoc()['t'] ?? 0;
+$students = $conn->query("SELECT COUNT(*) AS t FROM users WHERE role='student'")->fetch_assoc()['t'] ?? 0;
 
-/* ================= ROLE DISTRIBUTION ================= */
-$roles = $conn->query("SELECT role, COUNT(*) as total FROM users GROUP BY role");
+$total_exams = $conn->query("SELECT COUNT(*) AS total FROM exams")->fetch_assoc()['total'];
+$draft_exams = $conn->query("SELECT COUNT(*) AS t FROM exams WHERE status='draft'")->fetch_assoc()['t'] ?? 0;
+$published_exams = $total_exams - $draft_exams;
 
-/* ================= RECENT USERS ================= */
+$pending_moderation = $conn->query("SELECT COUNT(*) AS t FROM exams WHERE status='under_moderation'")->fetch_assoc()['t'] ?? 0;
+
 $recent_users = $conn->query("SELECT name, role FROM users ORDER BY user_id DESC LIMIT 5");
-
-/* ================= LIVE ACTIVITY (FIXED COLUMN) ================= */
-$logs = $conn->query("
-    SELECT a.*, u.name
-    FROM audit_logs a
-    LEFT JOIN users u ON a.user_id = u.user_id
-    ORDER BY a.created_at DESC
-    LIMIT 5
+$logs = $conn->query("SELECT a.*, u.name FROM audit_logs a LEFT JOIN users u ON a.user_id = u.user_id ORDER BY a.created_at DESC LIMIT 5");
+$announcements = $conn->query("
+    SELECT a.*, u.name AS author_name, u.role AS author_role
+    FROM announcements a
+    LEFT JOIN users u ON a.published_by = u.user_id
+    ORDER BY a.created_at DESC LIMIT 3
 ");
-
-/* ================= CHART DATA ================= */
-$draft = $exams;
-$approved = $conn->query("SELECT COUNT(*) AS total FROM exams WHERE status='approved'")->fetch_assoc()['total'];
-$rejected = $conn->query("SELECT COUNT(*) AS total FROM exams WHERE status='rejected'")->fetch_assoc()['total'];
-
-$chart_labels = ['Draft', 'Approved', 'Rejected'];
-$chart_data = [$draft, $approved, $rejected];
-
 $conn->close();
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Admin Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <?php $module_css = 'admin'; include __DIR__ . '/../common/head_assets.php'; ?>
+    <style>
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 16px;
+            margin: 25px 0;
+        }
 
-<link rel="stylesheet" href="<?= BASE_URL ?>/static/css/admin.css">
+        .stat-box {
+            background: white;
+            border-radius: 12px;
+            padding: 20px 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            min-height: 172px;
+        }
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        .stat-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.1);
+        }
 
-<style>
-/* ===== MODERN GOVERNMENT STYLE UI ===== */
+        .stat-badge img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            margin-bottom: 10px;
+        }
 
-body {
-    background: #f4f6f9;
-    font-family: Arial, sans-serif;
-}
+        .stat-number {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin: 6px 0 4px;
+            color: #1e2937;
+        }
 
-.dashboard {
-    display: flex;
-}
+        .stat-box h4 {
+            margin: 0 0 6px 0;
+            font-size: 0.93rem;
+            color: #334155;
+            font-weight: 600;
+        }
 
-/* MAIN CONTENT */
-.content {
-    flex: 1;
-    padding: 20px;
-}
-
-/* STATS */
-.stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-.stat-box {
-    background: white;
-    padding: 15px;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-.stat-box h4 {
-    margin: 0;
-    font-size: 14px;
-    color: #555;
-}
-
-.stat-box p {
-    font-size: 20px;
-    font-weight: bold;
-    margin-top: 8px;
-}
-
-/* SECTION */
-.section {
-    margin-top: 20px;
-    background: white;
-    padding: 15px;
-    border-radius: 10px;
-}
-
-/* QUICK LINKS */
-.quick-links a {
-    display: inline-block;
-    margin: 5px;
-    padding: 8px 12px;
-    background: #2d6cdf;
-    color: white;
-    border-radius: 5px;
-    text-decoration: none;
-}
-
-/* ALERTS */
-.alert-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-}
-
-.alert {
-    padding: 12px;
-    border-radius: 8px;
-    color: white;
-    font-size: 14px;
-}
-
-.low { background: #2ecc71; }
-.medium { background: #f39c12; }
-.high { background: #e74c3c; }
-
-/* FEED */
-.feed-item {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-    font-size: 13px;
-}
-
-/* CHART */
-.chart-box {
-    height: 300px;
-}
-</style>
-
+        .stat-box small {
+            color: #64748b;
+            font-size: 0.82rem;
+            line-height: 1.4;
+        }
+    </style>
 </head>
-
 <body>
-
 <?php include '../common/header.php'; ?>
 
 <div class="dashboard">
+    <?php include '../common/sidebar.php'; ?>
+    
+    <div class="content">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Admin Dashboard</h1>
+                <p class="page-subtitle">Real-time overview & system insights</p>
+            </div>
+        </div>
 
-<?php include '../common/sidebar.php'; ?>
+        <!-- ================= WELL ALIGNED STAT CARDS ================= -->
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-badge">
+                    <img src="../static/icons/school.png" alt="Schools">
+                </div>
+                <h4>Schools</h4>
+                <p class="stat-number"><?= number_format($total_schools) ?></p>
+                <small><?= number_format($active_schools) ?> Active • <?= number_format($total_schools - $active_schools) ?> Inactive</small>
+                <a href="manage_schools.php" class="btn btn-small btn-view">View All</a>
+            </div>
 
-<!-- ================= MAIN CONTENT ================= -->
-<div class="content">
+            <div class="stat-box">
+                <div class="stat-badge">
+                    <img src="../static/icons/users.png" alt="Users">
+                </div>
+                <h4>Total Users</h4>
+                <p class="stat-number"><?= number_format($total_users) ?></p>
+                <small><?= $male_users ?> Male • <?= $female_users ?> Female</small>
+                <a href="manage_users.php" class="btn btn-small btn-view">Manage</a>
+            </div>
 
-<h2>EDM Dashboard Overview</h2>
+            <div class="stat-box">
+                <div class="stat-badge">
+                    <img src="../static/icons/teacher.png" alt="Teachers">
+                </div>
+                <h4>Teachers</h4>
+                <p class="stat-number"><?= number_format($teachers) ?></p>
+                <small>Active Teaching Staff</small>
+                <a href="manage_users.php" class="btn btn-small btn-view">View</a>
+            </div>
 
-<!-- ================= STATS ================= -->
-<div class="stats">
+            <div class="stat-box">
+                <div class="stat-badge">
+                    <img src="../static/icons/graduation-cap.png" alt="Students">
+                </div>
+                <h4>Students</h4>
+                <p class="stat-number"><?= number_format($students) ?></p>
+                <small>Enrolled Learners</small>
+                <a href="manage_users.php" class="btn btn-small btn-view">View</a>
+            </div>
 
-<div class="stat-box"><h4>Schools</h4><p><?= $schools ?></p></div>
-<div class="stat-box"><h4>Users</h4><p><?= $users ?></p></div>
-<div class="stat-box"><h4>Exams</h4><p><?= $exams ?></p></div>
-<div class="stat-box"><h4>Results</h4><p><?= $results ?></p></div>
-<div class="stat-box"><h4>Pending Moderation</h4><p><?= $pending ?></p></div>
-<div class="stat-box"><h4>Active Exams</h4><p><?= $active_exams ?></p></div>
+            <div class="stat-box">
+                <div class="stat-badge">
+                    <img src="../static/icons/exam.png" alt="Exams">
+                </div>
+                <h4>Total Exams</h4>
+                <p class="stat-number"><?= number_format($total_exams) ?></p>
+                <small><?= $published_exams ?> Published • <?= $draft_exams ?> Draft</small>
+                <a href="manage_exams.php" class="btn btn-small btn-view">View</a>
+            </div>
+            
+        </div>
 
-</div>
+        <!-- Quick Actions -->
+        <div class="section">
+            <h3>Quick Actions</h3>
+            <div class="quick-links">
+                <a href="add_user.php">+ Add User</a>
+                <a href="add_school.php">+ Add School</a>
+                <a href="create_exam.php">+ Create Exam</a>
+                <a href="assign_subject.php">+ Assign Teachers</a>
+            </div>
+        </div>
 
-<!-- ================= QUICK ACTIONS ================= -->
-<div class="section">
-<h3>Quick Actions</h3>
+        <!-- Announcements & Recent Users -->
+        <div class="panel-grid">
+            <div class="section">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                    <h3>Announcements</h3>
+                    <a href="../common/announcements.php" class="btn btn-primary">+ New Announcement</a>
+                </div>
+                <div class="announcement-section">
+                    <?php if ($announcements && $announcements->num_rows > 0): ?>
+                        <?php while ($ann = $announcements->fetch_assoc()): ?>
+                            <div class="announcement-item">
+                                <div class="announcement-header">
+                                    <strong><?= htmlspecialchars($ann['title']) ?></strong>
+                                    <span class="announcement-date" style="font-size: 0.8rem; color:#64748b;">
+                                        <?= date('M j, Y', strtotime($ann['created_at'])) ?>
+                                    </span>
+                                </div>
+                                <p style="margin-top: 5px; color:#334155;"><?= htmlspecialchars(mb_strimwidth($ann['content'], 0, 100, "...")) ?></p>
+                                <small style="color:#64748b; font-size:0.75rem;">By <?= htmlspecialchars($ann['author_name'] ?? 'System') ?> (<?= ucfirst(htmlspecialchars($ann['author_role'] ?? '')) ?>)</small>
+                            </div>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <p class="empty-state">No announcements published yet.</p>
+                    <?php endif; ?>
+                </div>
+            </div>
 
-<div class="quick-links">
-    <a href="add_user.php">+ Add User</a>
-    <a href="add_school.php">+ Add School</a>
-    <a href="create_exam.php">+ Create Exam</a>
-    <a href="assign.php">+ Assign Teachers</a>
-</div>
-</div>
-
-<!-- ================= ALERT CARDS ================= -->
-<div class="section">
-<h3>AI Alert Severity</h3>
-
-<div class="alert-grid">
-    <div class="alert low">Low Alerts: <?= $low ?></div>
-    <div class="alert medium">Medium Alerts: <?= $medium ?></div>
-    <div class="alert high">High Alerts: <?= $high ?></div>
-</div>
-
-</div>
-
-<!-- ================= CHART ================= -->
-<div class="section">
-    <h3>📊 Exam Status Overview</h3>
-    <div class="chart-box">
-        <canvas id="examChart"></canvas>
+            <div class="section">
+                <h3>Recent Users</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Role</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php while($u = $recent_users->fetch_assoc()): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($u['name']) ?></td>
+                                <td><?= ucwords(str_replace('_', ' ', $u['role'])) ?></td>
+                            </tr>
+                            <?php endwhile; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
-
-<!-- ================= LIVE ACTIVITY ================= -->
-<div class="section">
-<h3>Live Activity Feed</h3>
-
-<?php while($log = $logs->fetch_assoc()): ?>
-    <div class="feed-item">
-        <b><?= htmlspecialchars($log['name'] ?? 'System') ?></b>
-        - <?= htmlspecialchars($log['action'] ?? 'Activity') ?>
-        <small>(<?= $log['created_at'] ?>)</small>
-    </div>
-<?php endwhile; ?>
-
-</div>
-
-<!-- ================= RECENT USERS ================= -->
-<div class="section">
-<h3>Recent Users</h3>
-
-<table border="1" width="100%" cellpadding="8">
-<tr>
-<th>Name</th>
-<th>Role</th>
-</tr>
-
-<?php while($u = $recent_users->fetch_assoc()): ?>
-<tr>
-<td><?= htmlspecialchars($u['name']) ?></td>
-<td><?= htmlspecialchars($u['role']) ?></td>
-</tr>
-<?php endwhile; ?>
-
-</table>
-
-</div>
-
-</div>
 </div>
 
 <?php include '../common/footer.php'; ?>
-
-<!-- ================= CHART SCRIPT ================= -->
-<script>
-const ctx = document.getElementById('examChart');
-
-new Chart(ctx, {
-    type: 'bar',
-    data: {
-        labels: <?= json_encode($chart_labels) ?>,
-        datasets: [{
-            label: 'Exams',
-            data: <?= json_encode($chart_data) ?>,
-            borderWidth: 1
-        }]
-    },
-    options: {
-        responsive: true
-    }
-});
-</script>
-
 </body>
 </html>
-
-

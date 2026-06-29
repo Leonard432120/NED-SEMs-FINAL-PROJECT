@@ -1,0 +1,24 @@
+{
+  "trained_at": "2026-06-26 18:10:35",
+  "model_name": "all-MiniLM-L6-v2",
+  "model_local_path": "C:\\wamp64\\www\\NED-SEMs FINAL YEAR PROJECT\\services\\ai\\model_cache\\minilm_local",
+  "bloom_levels": [
+    "Remember",
+    "Understand",
+    "Apply",
+    "Analyze",
+    "Evaluate",
+    "Create"
+  ],
+  "bloom_examples_per_level": {
+    "Remember": 15,
+    "Understand": 15,
+    "Apply": 15,
+    "Analyze": 15,
+    "Evaluate": 15,
+    "Create": 15
+  },
+  "validation_accuracy_pct": 100,
+  "python_version": "3.14.5 (tags/v3.14.5:5607950, May 10 2026, 10:43:50) [MSC v.1944 64 bit (AMD64)]",
+  "status": "ready"
+}

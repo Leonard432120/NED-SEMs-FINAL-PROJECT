@@ -1,0 +1,108 @@
+2026-06-13 00:03:59 | AI failed | {"script":"analyze_question.py","exit":255,"cmd":"echo \"{ question : hhhhhhhhhhhhhhh , marks :5, existing_questions :[ ttttt , rggggg , 1111 ]}\" | python3 \"C:\\wamp64\\www\\NED-SEMs FINAL YEAR PROJECT\/services\/ai\/analyze_question.py\" 2>&1","output":["'python3' is not recognized as an internal or external command,","operable program or batch file."]}
+2026-06-13 00:12:57 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-13 00:14:43 | AI failed | 
+2026-06-13 00:52:39 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-13 00:53:58 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 00:55:39 | compose | Python not found | {"candidates":["python","py -3","python3"]}
+2026-06-13 00:58:55 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-13 00:59:21 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-13 01:00:29 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:01:01 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-13 01:01:51 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:02:55 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:03:48 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:05:45 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-13 01:06:33 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:07:31 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:08:19 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:08:50 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-13 01:09:42 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:11:38 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-13 01:12:37 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:13:24 | compose | Added column | {"column":"ai_difficulty"}
+2026-06-13 01:13:24 | compose | Added column | {"column":"ai_cognitive_level"}
+2026-06-13 01:13:24 | compose | Added column | {"column":"ai_recommendations"}
+2026-06-13 01:13:24 | compose | Added column | {"column":"ai_topic"}
+2026-06-13 01:13:24 | compose | Added column | {"column":"ai_quality_score"}
+2026-06-13 01:13:24 | compose | Added column | {"column":"ai_analysis_date"}
+2026-06-13 01:13:25 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-13 01:14:40 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:15:28 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:16:23 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:17:26 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-13 01:18:23 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:21:53 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-13 01:22:41 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:23:45 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:24:43 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:25:34 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-13 01:26:25 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:27:28 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:28:18 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:29:34 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-13 01:30:28 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:36:26 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-13 01:37:39 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:38:28 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-13 01:39:36 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-15 04:35:37 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-15 04:37:50 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-15 04:38:52 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-15 04:39:46 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-15 04:42:57 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-15 04:43:53 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-15 04:46:08 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-15 04:47:58 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-15 04:48:22 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-15 04:50:30 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-15 04:50:49 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-15 04:52:04 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-15 04:54:29 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-15 04:56:17 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-15 04:57:39 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-15 04:59:23 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-15 08:07:02 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-15 08:12:32 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-15 08:18:15 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-15 08:19:30 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-15 08:20:10 | AI failed | 
+2026-06-15 08:20:53 | AI failed | 
+2026-06-15 08:59:04 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-15 09:00:20 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-15 09:00:21 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-15 09:01:17 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-15 09:02:21 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-15 09:12:57 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-15 09:40:58 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-15 09:41:29 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-15 09:41:35 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-15 09:42:39 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-26 07:39:44 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-26 07:40:44 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-26 07:41:43 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-26 07:42:57 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-26 07:43:31 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-26 07:49:00 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-26 07:53:05 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-26 07:53:09 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-26 07:57:42 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-26 07:58:58 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-26 07:59:04 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-26 07:59:39 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-26 15:13:22 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-26 15:50:18 | compose | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-06-26 15:52:08 | compose | AI success | {"script":"analyze_question.py"}
+2026-06-26 16:15:48 | AI | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe"}
+2026-06-26 16:16:05 | AI | AI success | {"quality":76,"bloom":"Analyze"}
+2026-06-26 16:16:48 | AI | Question saved | {"question_id":103,"exam_id":27,"ai_quality":76,"mod_status":"revise"}
+2026-06-29 10:07:02 | AI | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe"}
+2026-06-29 10:07:29 | AI | AI success | {"quality":90,"bloom":"Understand"}
+2026-06-29 10:10:35 | AI | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe"}
+2026-06-29 10:10:36 | AI | Spawned AI microservice server in background.
+2026-06-29 10:11:06 | AI | AI microservice success | {"quality":90,"bloom":"Understand"}
+2026-06-29 10:19:52 | AI | AI microservice success | {"quality":51,"bloom":"Create"}
+2026-06-29 10:20:22 | AI | Question saved | {"question_id":104,"exam_id":27,"ai_quality":51,"mod_status":"revise"}
+2026-06-29 10:28:16 | AI | AI microservice success | {"quality":37,"bloom":"Understand"}
+2026-06-29 10:28:21 | AI | Question saved | {"question_id":105,"exam_id":27,"ai_quality":37,"mod_status":"revise"}
+2026-06-29 10:33:00 | AI | AI microservice success | {"quality":47,"bloom":"Apply"}
+2026-06-29 10:33:00 | AI | Question saved | {"question_id":106,"exam_id":27,"ai_quality":47,"mod_status":"revise"}

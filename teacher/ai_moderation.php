@@ -1,43 +1,67 @@
 <?php
-header('Content-Type: application/json');
 require_once __DIR__ . '/teacher_init.php';
+require_once __DIR__ . '/../services/ai/compose_bridge.php';
 
-$question_text = trim($_POST['question_text'] ?? $_GET['question_text'] ?? '');
-$marks = isset($_POST['marks']) ? (int)$_POST['marks'] : 0;
+header('Content-Type: application/json');
 
-if (!$question_text) {
-    echo json_encode(['error' => 'Question text is required.']);
-    exit();
+@set_time_limit(300);
+@ini_set('max_execution_time', '300');
+
+$conn = get_db_connection();
+$user_id = $_SESSION['user_id'] ?? 0;
+
+$exam_id = (int)($_POST['exam_id'] ?? 0);
+$question_text = trim($_POST['question_text'] ?? '');
+$marks = (int)($_POST['marks'] ?? 0);
+$section_name = trim($_POST['section_name'] ?? 'Section A');
+$order = (int)($_POST['order'] ?? 1);
+
+if (!$exam_id || !$question_text || $marks <= 0) {
+    echo json_encode(['success' => false, 'error' => 'Invalid input. Exam, question text, and marks are required.']);
+    $conn->close();
+    exit;
 }
 
-function shell_escape($value) {
-    return '"' . str_replace('"', '\\"', $value) . '"';
+/* ================= ACCESS CHECK ================= */
+$stmt = $conn->prepare("
+    SELECT 1
+    FROM subject_assignments ea
+    INNER JOIN exams e ON ea.subject_id = e.subject_id
+    WHERE e.exam_id = ?
+      AND ea.teacher_id = ?
+      AND ea.role = 'item_writer'
+");
+$stmt->bind_param('ii', $exam_id, $user_id);
+$stmt->execute();
+
+if ($stmt->get_result()->num_rows === 0) {
+    echo json_encode(['success' => false, 'error' => 'Access denied']);
+    $stmt->close();
+    $conn->close();
+    exit;
 }
+$stmt->close();
 
-$repoRoot = dirname(__DIR__);
-$cli = $repoRoot . '/ai_moderation_cli.py';
-$question_arg = shell_escape($question_text);
-$marks_arg = shell_escape((string)$marks);
-
-$pythonCandidates = ['python', 'py -3', 'python3'];
-$output = [];
-$exitCode = 1;
-
-foreach ($pythonCandidates as $python) {
-    $output = [];
-    $command = 'cd /d ' . shell_escape($repoRoot) . ' && ' . $python . ' ' . shell_escape($cli) . ' --question ' . $question_arg . ' --marks ' . $marks_arg . ' 2>&1';
-    exec($command, $output, $exitCode);
-    if ($exitCode === 0) {
-        break;
-    }
+/* ================= EXISTING QUESTIONS FOR DUPLICATE CHECK ================= */
+$existing = [];
+$stmt = $conn->prepare('SELECT question_text FROM questions WHERE exam_id = ?');
+$stmt->bind_param('i', $exam_id);
+$stmt->execute();
+$result = $stmt->get_result();
+while ($row = $result->fetch_assoc()) {
+    $existing[] = $row['question_text'];
 }
+$stmt->close();
+$conn->close();
 
-if ($exitCode !== 0) {
-    echo json_encode([
-        'error' => 'AI analysis unavailable.',
-        'details' => implode("\n", $output)
-    ]);
-    exit();
-}
+/* ================= PYTHON AI — NO DATABASE INSERT ================= */
+$ai = analyze_question_for_teacher($question_text, $marks, $existing);
 
-echo implode("\n", $output);
+echo json_encode([
+    'success' => ($ai['status'] ?? '') !== 'failed',
+    'ai' => $ai,
+    'preview' => true,
+    'message' => 'AI analysis complete. Review suggestions before saving.',
+]);
+
+?>

@@ -20,8 +20,7 @@ $conn->close();
 <head>
 <meta charset="UTF-8">
 <title>District Report</title>
-<link rel="stylesheet" href="<?= BASE_URL ?>/static/css/admin.css">
-<link rel="stylesheet" href="<?= BASE_URL ?>/static/css/form.css">
+<?php $module_css = 'admin'; include __DIR__ . '/../../common/head_assets.php'; ?>
 </head>
 <body>
 <div class="header">

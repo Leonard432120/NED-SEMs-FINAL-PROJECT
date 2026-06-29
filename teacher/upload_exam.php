@@ -87,44 +87,20 @@ $conn->close();
 <head>
 <meta charset="UTF-8">
 <title>Upload Exam</title>
-
-<link rel="stylesheet" href="<?= BASE_URL ?>/static/css/styles.css">
-<link rel="stylesheet" href="<?= BASE_URL ?>/static/css/form.css">
+<?php
+$portal_title = 'NED-SEMS | Teacher Portal';
+$module_css = 'teacher';
+include __DIR__ . '/../common/head_assets.php';
+?>
 </head>
 
 <body>
 
-<!-- ================= HEADER ================= -->
-<div class="header">
+<?php include __DIR__ . '/../common/header.php'; ?>
 
-    <div class="header-left">
-        <span class="dashboard-title">EDM Staff Portal</span>
-    </div>
-
-    <div class="header-right">
-
-        <div class="profile">
-
-            <!-- Profile Name -->
-            <span class="profile-name"><?php echo htmlspecialchars($_SESSION['name'] ?? 'Teacher'); ?></span>
-
-            <!-- Profile Image -->
-            <img src="<?= BASE_URL ?>/static/images/user.png" alt="Profile">
-
-            <!-- Logout -->
-            <a href="<?= BASE_URL ?>/logout.php" class="logout-btn">Logout</a>
-
-        </div>
-
-    </div>
-
-</div>
-
-<!-- ================= MAIN LAYOUT ================= -->
 <div class="dashboard">
 
-    <!-- ================= SIDEBAR ================= -->
-    <?php include __DIR__ . '/teacher_sidebar.php'; ?>
+    <?php include __DIR__ . '/../common/sidebar.php'; ?>
 
     <!-- ================= MAIN CONTENT ================= -->
     <div class="main-content">
@@ -160,6 +136,4 @@ $conn->close();
 
 </div>
 
-<script src="<?= BASE_URL ?>/static/js/main.js"></script>
-</body>
-</html>
+<?php include __DIR__ . '/../common/footer.php'; ?>

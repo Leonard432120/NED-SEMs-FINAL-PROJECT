@@ -5,6 +5,10 @@
 <meta charset="UTF-8">
 <title>Section A - Page 2</title>
 <link rel="stylesheet" href="<?= BASE_URL ?>/static/css/exam.css">
+<style>
+.q { margin-bottom:18px; }
+.option { margin-left:15px; margin-top:3px; }
+</style>
 </head>
 <body>
 <?php endif; ?>
@@ -22,10 +26,10 @@ SECTION: _____________
 <div class="q">
     <b><?= $q['question_order'] ?>. <?= htmlspecialchars($q['question_text']) ?></b>
 
-    <div><input type="radio"> A</div>
-    <div><input type="radio"> B</div>
-    <div><input type="radio"> C</div>
-    <div><input type="radio"> D</div>
+    <div class="option">A. <?= htmlspecialchars($q['option_a'] ?? '') ?></div>
+    <div class="option">B. <?= htmlspecialchars($q['option_b'] ?? '') ?></div>
+    <div class="option">C. <?= htmlspecialchars($q['option_c'] ?? '') ?></div>
+    <div class="option">D. <?= htmlspecialchars($q['option_d'] ?? '') ?></div>
 </div>
 <?php endforeach; ?>
 

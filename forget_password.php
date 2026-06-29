@@ -1,5 +1,6 @@
 <?php
 session_start();
+date_default_timezone_set('Africa/Blantyre');
 
 if (!defined('BASE_URL')) {
     define('BASE_URL', '/NED-SEMs FINAL YEAR PROJECT');
@@ -149,8 +150,25 @@ $conn->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NED-SEMS Password Reset</title>
-    <link rel="stylesheet" href="<?= BASE_URL ?>/static/css/form.css">
+    
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/base.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/components.css">
+
     <style>
+        .login-logo {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .login-logo img {
+            max-width: 180px;
+            height: auto;
+        }
+
+        .login-card {
+            text-align: center;
+        }
+
         .login-wrapper {
             min-height: 100vh;
             display: flex;
@@ -180,44 +198,20 @@ $conn->close();
             color: #475569;
             margin-bottom: 26px;
         }
-
-        .login-card .form-footer {
-            margin-top: 22px;
-            font-size: 14px;
-            color: #64748b;
-            text-align: center;
-        }
-
-        .form-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .form-actions a {
-            color: #2563eb;
-            font-size: 14px;
-            text-decoration: none;
-        }
-
-        .form-actions a:hover {
-            text-decoration: underline;
-        }
-
-        .form-note {
-            font-size: 14px;
-            color: #475569;
-            margin-bottom: 20px;
-        }
     </style>
 </head>
 <body>
 
 <div class="login-wrapper">
     <div class="login-card">
+
+        <!-- Logo Added Here -->
+        <div class="login-logo">
+            <img src="<?= BASE_URL ?>/assets/images/logo.png" 
+                 alt="NED-SEMS - Northern Education Division Smart Examination Management System" 
+                 width="180">
+        </div>
+
         <h2>Password Reset</h2>
         <p class="subtitle">Use the OTP sent to your registered email to reset your password.</p>
 
@@ -241,19 +235,28 @@ $conn->close();
                 </div>
                 <button type="submit" class="btn btn-create">Send OTP</button>
             </form>
+
         <?php elseif ($step === 'verify_otp'): ?>
-            <p class="form-note">An OTP was sent to <strong><?= htmlspecialchars($reset_email ?: 'your email') ?></strong>. Enter it below.</p>
+            <p class="form-note">
+                An OTP was sent to <strong><?= htmlspecialchars($reset_email ?: 'your email') ?></strong>.<br>
+                The code expires at <strong><?= date('h:i A', strtotime($_SESSION['password_reset_expires'])) ?></strong>.
+            </p>
             <form method="POST" action="<?= BASE_URL ?>/forget_password.php">
                 <input type="hidden" name="action" value="verify_otp">
                 <div class="form-group">
                     <label for="otp">OTP Code</label>
-                    <input type="text" id="otp" name="otp" placeholder="Enter the OTP" maxlength="6" required>
+                    <input type="password" id="otp" name="otp" placeholder="Enter the 6-digit OTP" maxlength="6" required>
                 </div>
                 <div class="form-actions">
                     <a href="<?= BASE_URL ?>/login.php">Cancel</a>
                 </div>
+                <div class="show-password">
+                    <input type="checkbox" id="showPassword">
+                    <label for="showPassword">Show OTP</label>
+                </div>
                 <button type="submit" class="btn btn-create">Verify OTP</button>
             </form>
+
         <?php elseif ($step === 'new_password'): ?>
             <p class="form-note">Enter a new password for your account.</p>
             <form method="POST" action="<?= BASE_URL ?>/forget_password.php">
@@ -262,29 +265,54 @@ $conn->close();
                     <label for="password">New Password</label>
                     <input type="password" id="password" name="password" placeholder="New password" required>
                 </div>
+
                 <div class="form-group">
                     <label for="confirm_password">Confirm New Password</label>
                     <input type="password" id="confirm_password" name="confirm_password" placeholder="Repeat new password" required>
+                </div>
+
+                <div class="show-password">
+                    <input type="checkbox" id="showPassword">
+                    <label for="showPassword">Show Password</label>
                 </div>
                 <div class="form-actions">
                     <a href="<?= BASE_URL ?>/login.php">Cancel</a>
                 </div>
                 <button type="submit" class="btn btn-create">Reset Password</button>
             </form>
+
         <?php else: ?>
             <div class="form-group">
-                <p class="form-note">Your password has been reset. Use the button below to sign in.</p>
+                <p class="form-note">Your password has been reset successfully.<br>You may now log in with your new password.</p>
             </div>
             <div class="form-actions">
-                <a href="<?= BASE_URL ?>/login.php">Back to login</a>
+                <a href="<?= BASE_URL ?>/login.php" class="btn btn-create" style="display:inline-block; text-decoration:none; text-align:center;">Back to Login</a>
             </div>
         <?php endif; ?>
 
         <div class="form-footer">
             <p>Need help? Contact your system administrator.</p>
         </div>
+
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const showPassword = document.getElementById("showPassword");
+    if (showPassword) {
+        showPassword.addEventListener("change", function () {
+            const passwordInput = document.getElementById("password");
+            const confirmPasswordInput = document.getElementById("confirm_password");
+            const otpInput = document.getElementById("otp");
+
+            if (passwordInput) passwordInput.type = this.checked ? "text" : "password";
+            if (confirmPasswordInput) confirmPasswordInput.type = this.checked ? "text" : "password";
+            if (otpInput) otpInput.type = this.checked ? "text" : "password";
+        });
+    }
+});
+</script>
 
 </body>
 </html>

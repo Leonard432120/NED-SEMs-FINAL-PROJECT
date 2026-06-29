@@ -3,10 +3,10 @@ require_once __DIR__ . '/teacher_init.php';
 
 $conn = get_db_connection();
 $stmt = $conn->prepare("
-    SELECT e.exam_id
-    FROM exams e
-    JOIN exam_assignments ea ON e.exam_id = ea.exam_id
-    WHERE ea.teacher_id=?
+    SELECT DISTINCT es.exam_id
+    FROM exam_subjects es
+    JOIN subject_assignments sa ON es.subject_id = sa.subject_id
+    WHERE sa.teacher_id = ?
     LIMIT 1
 ");
 $stmt->bind_param("i", $user_id);
@@ -20,6 +20,6 @@ if (!$exam) {
     exit();
 }
 
-header("Location: enter_results.php?exam_id=" . $exam['exam_id']);
+header("Location: view_results.php?exam_id=" . $exam['exam_id']);
 exit();
 ?>

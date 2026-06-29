@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/teacher_init.php';
+require_once __DIR__ . '/../services/ai/compose_bridge.php';
 
 $exam_id = isset($_GET['exam_id']) ? (int)$_GET['exam_id'] : 0;
 
@@ -11,18 +12,30 @@ if ($exam_id <= 0) {
 $conn = get_db_connection();
 
 // Check access
+// Check moderator access
 $stmt = $conn->prepare("
-    SELECT 1 FROM exam_assignments
-    WHERE exam_id = ? AND teacher_id = ? AND role = 'moderator'
+    SELECT
+        e.*,
+        s.subject_name
+    FROM subject_assignments sa
+    INNER JOIN exam_subjects es ON sa.subject_id = es.subject_id
+    INNER JOIN exams e ON es.exam_id = e.exam_id
+    INNER JOIN subjects s ON es.subject_id = s.subject_id
+    WHERE e.exam_id = ?
+      AND sa.teacher_id = ?
+      AND sa.role = 'moderator'
 ");
+
 $stmt->bind_param("ii", $exam_id, $user_id);
 $stmt->execute();
-if ($stmt->get_result()->num_rows == 0) {
+$exam = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+if (!$exam) {
     $conn->close();
     header("Location: moderation_exams.php");
     exit();
 }
-$stmt->close();
 
 // Get exam
 $stmt = $conn->prepare("
@@ -32,8 +45,10 @@ $stmt = $conn->prepare("
         s.subject_name
     FROM exams e
     JOIN users u ON e.created_by = u.user_id
-    JOIN subjects s ON e.subject_id = s.subject_id
+    JOIN exam_subjects es ON e.exam_id = es.exam_id
+    JOIN subjects s ON es.subject_id = s.subject_id
     WHERE e.exam_id = ?
+    LIMIT 1
 ");
 $stmt->bind_param("i", $exam_id);
 $stmt->execute();
@@ -60,41 +75,52 @@ $stmt->close();
 
 // Handle POST for saving moderation
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $question_id = $_POST['question_id'] ?? '';
-    $status = $_POST['status'] ?? '';
-    $comment = $_POST['comment'] ?? '';
 
-    if ($question_id && $status) {
-        $stmt = $conn->prepare("UPDATE questions SET moderation_status=?, moderator_comment=? WHERE question_id=?");
+    $question_id = isset($_POST['question_id']) ? (int)$_POST['question_id'] : 0;
+    $status = $_POST['status'] ?? '';
+    $comment = trim($_POST['comment'] ?? '');
+
+    $allowed = ['approved', 'revise', 'rejected'];
+
+    if ($question_id > 0 && in_array($status, $allowed)) {
+
+        // 1. Update question main table
+        $stmt = $conn->prepare("
+            UPDATE questions 
+            SET moderation_status = ?, moderator_comment = ?
+            WHERE question_id = ?
+        ");
         $stmt->bind_param("ssi", $status, $comment, $question_id);
         $stmt->execute();
         $stmt->close();
-        $conn->commit();
+
+        // 2. Insert into moderation history table
+        $stmt = $conn->prepare("
+            INSERT INTO question_moderation 
+            (question_id, moderator_id, status, comment)
+            VALUES (?, ?, ?, ?)
+        ");
+        $stmt->bind_param("iiss", $question_id, $user_id, $status, $comment);
+        $stmt->execute();
+        $stmt->close();
+
+        // 3. Log workflow (optional but powerful)
+        $stmt = $conn->prepare("
+            INSERT INTO exam_workflow_logs 
+            (exam_id, action, performed_by, role, notes)
+            VALUES (?, 'question_moderation', ?, 'moderator', ?)
+        ");
+        $note = "Moderated question ID $question_id as $status";
+        $stmt->bind_param("iis", $exam_id, $user_id, $note);
+        $stmt->execute();
+        $stmt->close();
     }
+
     header("Location: moderate_exam.php?exam_id=$exam_id");
     exit();
 }
-
-// AI moderation map
-$ai_map = [];
-foreach ($questions as $q) {
-    $ai_result = run_ai_moderation($q["question_text"], $q["marks"]);
-    $ai_map[$q["question_id"]] = $ai_result;
-}
-
-// Previous moderation
-$stmt = $conn->prepare("
-    SELECT *
-    FROM moderation
-    WHERE exam_id = ?
-    ORDER BY review_date DESC
-    LIMIT 1
-");
-$stmt->bind_param("i", $exam_id);
-$stmt->execute();
-$previous = $stmt->get_result()->fetch_assoc();
-$stmt->close();
-
+// Fresh AI moderation report per question (independent from teacher compose analysis)
+$ai_map = compose_build_ai_map($conn, $questions, $exam_id);
 $conn->close();
 
 // Analytics
@@ -104,13 +130,13 @@ $medium = 0;
 $hard = 0;
 
 foreach ($questions as $q) {
-    $ai = $ai_map[$q["question_id"]] ?? [];
-    $bloom = $ai["bloom_level"] ?? "";
-    if (in_array($bloom, ["Remember", "Understand"])) {
+    $ai = $ai_map[$q['question_id']] ?? [];
+    $bloom = $ai['cognitive_level'] ?? $ai['bloom_level'] ?? '';
+    if (in_array($bloom, ['Remembering', 'Understanding', 'Remember', 'Understand'])) {
         $easy++;
-    } elseif (in_array($bloom, ["Apply", "Analyze"])) {
+    } elseif (in_array($bloom, ['Applying', 'Analysing', 'Apply', 'Analyze'])) {
         $medium++;
-    } elseif (in_array($bloom, ["Evaluate", "Create"])) {
+    } elseif (in_array($bloom, ['Evaluating', 'Creating', 'Evaluate', 'Create'])) {
         $hard++;
     }
 }
@@ -156,48 +182,17 @@ $ai_report = [
     "findings" => $findings
 ];
 
-function shell_escape($value) {
-    return '"' . str_replace('"', '\\"', $value) . '"';
-}
-
-function run_ai_moderation($question_text, $marks = 0) {
-    $repoRoot = dirname(__DIR__);
-    $cli = $repoRoot . '/ai_moderation_cli.py';
-    $question_arg = shell_escape($question_text);
-    $marks_arg = shell_escape((string)$marks);
-    $pythonCandidates = ['python', 'py -3', 'python3'];
-
-    foreach ($pythonCandidates as $python) {
-        $output = [];
-        $command = 'cd /d ' . shell_escape($repoRoot) . ' && ' . $python . ' ' . shell_escape($cli) . ' --question ' . $question_arg . ' --marks ' . $marks_arg . ' 2>&1';
-        exec($command, $output, $exitCode);
-
-        if ($exitCode === 0) {
-            $result = json_decode(implode("\n", $output), true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                return $result;
-            }
-        }
-    }
-
-    return [
-        'bloom_level' => 'Unknown',
-        'bloom_confidence' => 0,
-        'complexity_score' => 0,
-        'quality_score' => 0,
-        'suggested_marks' => $marks,
-        'current_marks' => $marks,
-        'ai_status' => 'AI Failed',
-        'feedback' => ['AI analysis unavailable.']
-    ];
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Moderate Exam - <?= htmlspecialchars($exam['exam_name']); ?></title>
-<link rel="stylesheet" href="<?= BASE_URL ?>/static/css/styles.css">
+<?php
+$portal_title = 'NED-SEMs | Teacher Portal';
+$module_css = 'teacher';
+include __DIR__ . '/../common/head_assets.php';
+?>
 <style>
 /* ================= GLOBAL ================= */
 body{
@@ -308,20 +303,42 @@ body{
     margin-top:30px;
 }
 
-.moderation-grid{
-    display:flex;
-    gap:12px;
-    margin-top:15px;
+.moderation-grid {
+    display: flex;
+    gap: 12px;
+    margin-top: 15px;
 }
 
-.choice{
-    flex:1;
-    background:white;
-    border:2px solid #cbd5e1;
-    padding:15px;
-    border-radius:12px;
-    text-align:center;
-    cursor:pointer;
+.choice {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #ffffff;
+    border: 2px solid #cbd5e1;
+    padding: 14px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+.choice:hover {
+    background: #f1f5f9;
+}
+
+.choice input[type="radio"] {
+    transform: scale(1.3);
+    cursor: pointer;
+}
+
+.choice span {
+    font-size: 15px;
+}
+
+/* highlight selected option */
+.choice input[type="radio"]:checked + span {
+    color: #2563eb;
 }
 
 textarea{
@@ -383,18 +400,9 @@ textarea{
 </style>
 </head>
 <body>
-<div class="header">
-    <div class="header-left">
-        <span class="dashboard-title">NED-SEMS | Teacher Portal</span>
-    </div>
-    <div class="header-right">
-        <div class="profile">
-            <a href="<?= BASE_URL ?>/logout.php">Logout</a><img src="<?= BASE_URL ?>/static/images/user.png" alt="User">
-        </div>
-    </div>
-</div>
+<?php include __DIR__ . '/../common/header.php'; ?>
 <div class="dashboard">
-    <?php include __DIR__ . '/teacher_sidebar.php'; ?>
+    <?php include __DIR__ . '/../common/sidebar.php'; ?>
     <div class="content">
         <div class="page-header">
             <div>
@@ -420,7 +428,6 @@ textarea{
             <div>
                 <?php foreach ($questions as $index => $q): ?>
                 <?php $ai = $ai_map[$q['question_id']] ?? []; ?>
-                <?php $exp = $ai['explanation'] ?? []; ?>
                 <div id="question-detail-<?= $q['question_id']; ?>"
                      class="question-panel question-detail"
                      style="display: <?= $index == 0 ? 'block' : 'none'; ?>">
@@ -452,74 +459,142 @@ textarea{
                     <?php endif; ?>
 
                     <?php if (!empty($ai)): ?>
+                    <?php
+                        $modRec = $ai['moderation_recommendation'] ?? [];
+                        $dup = $ai['duplicate_detection'] ?? [];
+                    ?>
                     <div class="ai-panel">
-                        <h2>AI Moderation Analysis</h2>
+                        <h2>AI Moderation Report (Fresh Analysis)</h2>
+                        <p style="color:#94a3b8;font-size:13px;margin-top:4px;">
+                            <?= htmlspecialchars($modRec['note'] ?? 'AI assists only — you make the final decision.'); ?>
+                        </p>
+
                         <div class="ai-grid">
-                            <div class="ai-card">
-                                <p>Bloom Level</p>
-                                <h2><?= htmlspecialchars($ai['bloom_level'] ?? 'Unknown'); ?></h2>
-                                <small><?= htmlspecialchars($exp['bloom_explained'] ?? ''); ?></small>
-                            </div>
-                            <div class="ai-card">
-                                <p>AI Confidence</p>
-                                <h2><?= htmlspecialchars($ai['bloom_confidence'] ?? 0); ?>%</h2>
-                                <small><?= htmlspecialchars($exp['confidence_explained'] ?? ''); ?></small>
-                            </div>
-                            <div class="ai-card">
-                                <p>Complexity</p>
-                                <h2><?= htmlspecialchars($ai['complexity_score'] ?? 0); ?></h2>
-                                <small><?= htmlspecialchars($exp['complexity_explained'] ?? ''); ?></small>
-                            </div>
                             <div class="ai-card">
                                 <p>Quality Score</p>
                                 <h2><?= htmlspecialchars($ai['quality_score'] ?? 0); ?>%</h2>
-                                <small><?= htmlspecialchars($exp['quality_explained'] ?? ''); ?></small>
+                            </div>
+                            <div class="ai-card">
+                                <p>Difficulty</p>
+                                <h2><?= htmlspecialchars($ai['difficulty_level'] ?? 'Unknown'); ?></h2>
+                            </div>
+                            <div class="ai-card">
+                                <p>Bloom's Taxonomy</p>
+                                <h2><?= htmlspecialchars($ai['cognitive_level'] ?? $ai['bloom_level'] ?? 'Unknown'); ?></h2>
+                            </div>
+                            <div class="ai-card">
+                                <p>AI Recommendation</p>
+                                <h2 style="color:#38bdf8;"><?= htmlspecialchars($modRec['label'] ?? 'Review'); ?></h2>
                             </div>
                         </div>
 
-                        <div style="margin-top:25px;background:#111827;padding:20px;border-radius:16px;">
-                            <h3>AI Marks Recommendation</h3>
-                            <div style="display:flex;gap:30px;margin-top:15px;">
-                                <div>
-                                    <p style="color:#94a3b8">Current Marks</p>
-                                    <h1><?= htmlspecialchars($ai['current_marks'] ?? $q['marks']); ?></h1>
-                                </div>
-                                <div>
-                                    <p style="color:#94a3b8">Suggested Marks</p>
-                                    <h1 style="color:#38bdf8"><?= htmlspecialchars($ai['suggested_marks'] ?? $q['marks']); ?></h1>
-                                </div>
-                            </div>
+                        <?php if (!empty($modRec['reason'])): ?>
+                        <div style="margin-top:18px;background:#111827;padding:16px;border-radius:12px;">
+                            <strong>Recommendation Reason</strong>
+                            <p style="margin-top:8px;"><?= htmlspecialchars($modRec['reason']); ?></p>
                         </div>
+                        <?php endif; ?>
 
-                        <div style="margin-top:25px">
-                            <h3>AI Feedback</h3>
-                            <?php foreach ($ai['feedback'] ?? [] as $item): ?>
-                            <div class="feedback-box">
-                                <?= htmlspecialchars($item); ?>
-                            </div>
+                        <?php if (!empty($ai['grammar_corrections'])): ?>
+                        <div style="margin-top:20px">
+                            <h3>Grammar Issues</h3>
+                            <?php foreach ($ai['grammar_corrections'] as $item): ?>
+                            <div class="feedback-box"><?= htmlspecialchars($item); ?></div>
                             <?php endforeach; ?>
                         </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($ai['ambiguities'])): ?>
+                        <div style="margin-top:20px">
+                            <h3>Ambiguity Warnings</h3>
+                            <?php foreach ($ai['ambiguities'] as $item): ?>
+                            <div class="feedback-box" style="border-left-color:#f59e0b;">Ambiguous term: <?= htmlspecialchars($item); ?></div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($dup['is_duplicate']) || ($dup['similarity_score'] ?? 0) >= 70): ?>
+                        <div style="margin-top:20px">
+                            <h3>Duplicate Detection</h3>
+                            <div class="feedback-box" style="border-left-color:#ef4444;">
+                                Similarity: <?= htmlspecialchars($dup['similarity_score'] ?? 0); ?>%
+                                <?php if (!empty($dup['matched_question'])): ?>
+                                — matched: "<?= htmlspecialchars($dup['matched_question']); ?>"
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($ai['suggested_question']) && $ai['suggested_question'] !== $q['question_text']): ?>
+                        <div style="margin-top:20px">
+                            <h3>Suggested Correction</h3>
+                            <div class="feedback-box"><?= nl2br(htmlspecialchars($ai['suggested_question'])); ?></div>
+                        </div>
+                        <?php endif; ?>
+
+                        <div style="margin-top:20px">
+                            <h3>AI Feedback & Recommendations</h3>
+                            <?php foreach ($ai['recommendations'] ?? [] as $item): ?>
+                            <div class="feedback-box"><?= htmlspecialchars($item); ?></div>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <?php if (!empty($ai['warnings'])): ?>
+                        <div style="margin-top:20px">
+                            <h3>Warnings</h3>
+                            <?php foreach ($ai['warnings'] as $item): ?>
+                            <div class="feedback-box" style="border-left-color:#ef4444;"><?= htmlspecialchars($item); ?></div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php endif; ?>
                     </div>
                     <?php endif; ?>
 
                     <form method="POST" action="moderate_exam.php?exam_id=<?= $exam_id; ?>">
+
                         <input type="hidden" name="question_id" value="<?= $q['question_id']; ?>">
+
                         <div class="moderation-section">
                             <h2>Moderation Decision</h2>
+
                             <div class="moderation-grid">
+
+                                <!-- APPROVE -->
                                 <label class="choice">
-                                    <input type="radio" name="status" value="approved"> Approve
+                                    <input type="radio" name="status" value="approved"
+                                        <?= ($q['moderation_status'] === 'approved') ? 'checked' : '' ?>>
+                                    <span>Approve</span>
                                 </label>
+
+                                <!-- REVISE -->
                                 <label class="choice">
-                                    <input type="radio" name="status" value="revise"> Revise
+                                    <input type="radio" name="status" value="revise"
+                                        <?= ($q['moderation_status'] === 'revise') ? 'checked' : '' ?>>
+                                    <span>Revise</span>
                                 </label>
+
+                                <!-- REJECT -->
                                 <label class="choice">
-                                    <input type="radio" name="status" value="rejected"> Reject
+                                    <input type="radio" name="status" value="rejected"
+                                        <?= ($q['moderation_status'] === 'rejected') ? 'checked' : '' ?>>
+                                    <span>Reject</span>
                                 </label>
+
                             </div>
-                            <textarea name="comment" placeholder="Write moderation feedback..."></textarea>
-                            <button type="submit" class="save-btn">Save Moderation</button>
+
+                            <!-- COMMENT BOX -->
+                            <textarea 
+                                name="comment" 
+                                placeholder="Write moderation feedback..."
+                            ><?= htmlspecialchars($q['moderator_comment'] ?? '') ?></textarea>
+
+                            <!-- SUBMIT BUTTON -->
+                            <button type="submit" class="save-btn">
+                                Save Moderation
+                            </button>
+
                         </div>
+
                     </form>
                 </div>
                 <?php endforeach; ?>
@@ -541,6 +616,4 @@ window.onload = function() {
     }
 }
 </script>
-<script src="<?= BASE_URL ?>/static/js/main.js"></script>
-</body>
-</html>
+<?php include __DIR__ . '/../common/footer.php'; ?>

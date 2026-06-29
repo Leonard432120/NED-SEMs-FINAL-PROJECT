@@ -28,8 +28,7 @@ function generateStrongPassword($length = 12) {
 }
 
 // ================= CREATE USER =================
-function createUser($conn, $name, $email, $role, $phone) {
-
+function createUser($conn, $name, $email, $role, $phone, $gender, $teacher_category, $qualification, $employment_number, $school_id = null, $major_subject = null, $minor_subject = null){
     $name  = trim($name);
     $email = trim($email);
     $role  = trim($role);
@@ -37,6 +36,12 @@ function createUser($conn, $name, $email, $role, $phone) {
 
     if (!$name || !$email || !$role) {
         return ['status' => 'error', 'message' => 'Missing required fields'];
+    }
+
+    // only require category for teachers
+    // only require category for teachers
+    if ($role === 'teacher' && empty($teacher_category)) {
+        return ['status' => 'error', 'message' => 'Teacher category is required'];
     }
 
     $check = $conn->prepare("SELECT user_id FROM users WHERE email = ?");
@@ -51,43 +56,129 @@ function createUser($conn, $name, $email, $role, $phone) {
     $hashed_password = password_hash($plain_password, PASSWORD_DEFAULT);
 
     $stmt = $conn->prepare("
-        INSERT INTO users (name, email, role, phone, password, status)
-        VALUES (?, ?, ?, ?, ?, 'active')
-    ");
-    $stmt->bind_param("sssss", $name, $email, $role, $phone, $hashed_password);
+            INSERT INTO users (
+                name,
+                email,
+                role,
+                phone,
+                gender,
+                password,
+                teacher_category,
+                qualification,
+                employment_number,
+                school_id,
+                major_subject,
+                minor_subject,
+                status
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+        ");
 
-    if ($stmt->execute()) {
-
-        send_email(
+    $stmt->bind_param(
+            "ssssssssssss",
+            $name,
             $email,
-            "Account Created - School Management System",
-            "Hello $name,
-
-Your account has been created.
-
-Email: $email
-Password: $plain_password
-Role: $role
-
-Please change your password after login."
+            $role,
+            $phone,
+            $gender,
+            $hashed_password,
+            $teacher_category,
+            $qualification,
+            $employment_number,
+            $school_id,
+            $major_subject,
+            $minor_subject
         );
+        
+        if ($stmt->execute()) {
 
-        return ['status' => 'success', 'message' => 'User created successfully'];
-    }
+            // Get ID of newly created user
+            $new_user_id = $stmt->insert_id;
 
-    return ['status' => 'error', 'message' => 'Failed to create user'];
+            // Admin performing the action
+            $admin_id = $_SESSION['user_id'];
+
+            // User IP address
+            $ip_address = $_SERVER['REMOTE_ADDR'];
+
+            // Determine action type
+            $action = isset($_POST['import_users'])
+                ? 'import_user'
+                : 'create_user';
+
+            // Description of activity
+            $details = "Created {$role} account for {$name} ({$email})";
+
+            // Save activity to audit logs
+            $log = $conn->prepare("
+                INSERT INTO audit_logs (
+                    user_id,
+                    target_user_id,
+                    action,
+                    details,
+                    ip_address
+                )
+                VALUES (?, ?, ?, ?, ?)
+            ");
+
+            $log->bind_param(
+                "iisss",
+                $admin_id,
+                $new_user_id,
+                $action,
+                $details,
+                $ip_address
+            );
+
+            $log->execute();
+            $log->close();
+
+            // Send account details to user
+            send_email(
+                $email,
+                "Account Created - School Management System",
+                "Hello $name,
+
+        Your account has been created.
+
+        Email: $email
+        Password: $plain_password
+        Role: $role
+        Category: $teacher_category
+
+        Please change your password after login."
+            );
+
+            return [
+                'status' => 'success',
+                'message' => 'User created successfully'
+            ];
+        }
+
+        return [
+            'status' => 'error',
+            'message' => 'Failed to create user'
+        ];
+
 }
 
 // ================= CREATE USER =================
 if (isset($_POST['create_user'])) {
 
     $res = createUser(
-        $conn,
-        $_POST['name'] ?? '',
-        $_POST['email'] ?? '',
-        $_POST['role'] ?? '',
-        $_POST['phone'] ?? ''
-    );
+    $conn,
+    $_POST['name'] ?? '',
+    $_POST['email'] ?? '',
+    $_POST['role'] ?? '',
+    $_POST['phone'] ?? '',
+    $_POST['gender'] ?? '',
+    $_POST['teacher_category'] ?? null,
+    $_POST['qualification'] ?? '',
+    $_POST['employment_number'] ?? '',
+    $_POST['school_id'] ?? null,
+    $_POST['major_subject'] ?? null,
+    $_POST['minor_subject'] ?? null
+);
 
     $message = $res['message'];
     $message_type = $res['status'];
@@ -99,40 +190,108 @@ if (isset($_POST['import_users'])) {
     if (!empty($_FILES['xlsx_file']['tmp_name'])) {
 
         try {
+
             $spreadsheet = IOFactory::load($_FILES['xlsx_file']['tmp_name']);
             $sheet = $spreadsheet->getActiveSheet()->toArray();
 
             $success = 0;
             $failed = 0;
+            $duplicates = 0;
 
             foreach ($sheet as $i => $row) {
 
-                if ($i === 0) continue;
+                // Skip header row
+                if ($i === 0) {
+                    continue;
+                }
 
+                // Skip completely empty rows
+                if (empty($row[0]) && empty($row[1])) {
+                    continue;
+                }
+
+                // Normalize Excel row data
                 $name  = trim($row[0] ?? '');
                 $email = trim($row[1] ?? '');
                 $role  = trim($row[2] ?? '');
                 $phone = trim($row[3] ?? '');
+                $gender = trim($row[4] ?? '');
 
-                if (!$name || !$email || !$role) {
+                $teacher_category = !empty($row[5]) ? trim($row[5]) : null;
+                $qualification = !empty($row[6]) ? trim($row[6]) : null;
+                $employment_number = !empty($row[7]) ? trim($row[7]) : null;
+                $major_subject = !empty($row[8]) ? trim($row[8]) : null;
+                $minor_subject = !empty($row[9]) ? trim($row[9]) : null;
+
+                // Validate required fields
+                if (empty($name) || empty($email) || empty($role) || empty($gender)) {
                     $failed++;
                     continue;
                 }
 
-                $res = createUser($conn, $name, $email, $role, $phone);
-                ($res['status'] === 'success') ? $success++ : $failed++;
+                // Create user
+                $res = createUser(
+                    $conn,
+                    $name,
+                    $email,
+                    $role,
+                    $phone,
+                    $gender,
+                    $teacher_category,
+                    $qualification,
+                    $employment_number,
+                    null, // school_id not applicable for bulk import
+                    $major_subject,
+                    $minor_subject
+                );
+
+                if ($res['status'] === 'success') {
+
+                    $success++;
+
+                } else {
+
+                    if ($res['message'] === 'Email already exists') {
+                        $duplicates++;
+                    } else {
+                        $failed++;
+                    }
+
+                    error_log("Import failed for {$email}: " . $res['message']);
+                }
             }
 
-            $message = "$success user(s) imported successfully. $failed failed.";
-            $message_type = 'success';
+            // Build message
+            $message = "$success user(s) imported successfully.";
+
+            if (!empty($duplicates)) {
+                $message .= " $duplicates user(s) already exist.";
+            }
+
+            if (!empty($failed)) {
+                $message .= " $failed user(s) failed to import.";
+            }
+
+            // Alert type
+            $message_type = ($failed > 0)
+                ? 'warning'
+                : 'success';
 
         } catch (Exception $e) {
-            $message = "Error: " . $e->getMessage();
+
+            $message = "Import Error: " . $e->getMessage();
             $message_type = 'error';
         }
+
+    } else {
+
+        $message = "Please select a valid Excel file.";
+        $message_type = 'error';
     }
 }
-
+// Fetch schools for dropdown
+$schools_res = $conn->query("SELECT school_id, school_name FROM schools ORDER BY school_name ASC");
+$schools = $schools_res ? $schools_res->fetch_all(MYSQLI_ASSOC) : [];
 $conn->close();
 ?>
 
@@ -143,11 +302,10 @@ $conn->close();
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Add User</title>
 
-<link rel="stylesheet" href="<?= BASE_URL ?>/static/css/admin.css">
-<link rel="stylesheet" href="<?= BASE_URL ?>/static/css/form.css">
+<?php $module_css = 'admin'; include __DIR__ . '/../common/head_assets.php'; ?>
 
 <style>
-/* ====== TWO COLUMN LAYOUT FIX ====== */
+/* ================= LAYOUT ================= */
 .main-content{
     width:100%;
     max-width:1100px;
@@ -157,21 +315,26 @@ $conn->close();
     align-items:start;
 }
 
-/* card spacing balance */
+/* ================= CARDS ================= */
 .card,
 .import-card{
     height:100%;
     display:flex;
     flex-direction:column;
     justify-content:flex-start;
+    background:#fff;
+    border-radius:12px;
+    padding:20px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.05);
+    transition:0.25s ease;
 }
 
-/* import card center */
-.import-card{
-    text-align:center;
+.card:hover,
+.import-card:hover{
+    transform:translateY(-2px);
 }
 
-/* nicer headings */
+/* ================= HEADINGS ================= */
 .card h3,
 .import-card h3{
     font-size:18px;
@@ -179,27 +342,30 @@ $conn->close();
     color:#0f172a;
 }
 
-/* smooth hover cards */
-.card:hover,
-.import-card:hover{
-    transform:translateY(-2px);
-    transition:0.3s ease;
-}
-
-/* button spacing inside form */
+/* ================= FORM ================= */
 .form-container{
     display:flex;
     flex-direction:column;
-    gap:10px;
+    gap:12px;
 }
 
-/* submit button spacing */
+.form-group label{
+    font-weight:600;
+    margin-bottom:4px;
+    display:block;
+}
+
+/* ================= BUTTONS ================= */
 .btn-create{
-    margin-top:10px;
-     color: #334155;
+    margin-top:15px;
+    color:#fff;
 }
 
-/* import button improvement */
+/* ================= IMPORT ================= */
+.import-card{
+    text-align:center;
+}
+
 .import-btn{
     display:flex;
     align-items:center;
@@ -210,8 +376,6 @@ $conn->close();
     padding:0 24px;
 
     border-radius:14px;
-
-    background:#fff;
     border:1px dashed #cbd5e1;
 
     font-weight:700;
@@ -221,6 +385,7 @@ $conn->close();
     transition:0.25s ease;
 
     margin-top:15px;
+    background:#fff;
 }
 
 .import-btn:hover{
@@ -229,6 +394,33 @@ $conn->close();
     background:#f8fafc;
     transform:translateY(-2px);
 }
+
+/* ================= TEACHER SECTION ================= */
+#teacherFields{
+    display:none;
+    padding-top:10px;
+    border-top:1px solid #e5e7eb;
+    margin-top:10px;
+}
+.spinner{
+    width:50px;
+    height:50px;
+    border:5px solid #ddd;
+    border-top:5px solid #2563eb;
+    border-radius:50%;
+    animation: spin 1s linear infinite;
+    margin:auto;
+}
+
+@keyframes spin{
+    from{
+        transform:rotate(0deg);
+    }
+    to{
+        transform:rotate(360deg);
+    }
+}
+
 </style>
 
 </head>
@@ -237,109 +429,236 @@ $conn->close();
 <?php include '../common/header.php'; ?>
 
 <div class="dashboard">
-<?php include '../common/sidebar.php'; ?>
+    <?php include '../common/sidebar.php'; ?>
 
-<div class="content">
+    <div class="content">
 
-    <!-- HEADER -->
-    <div class="page-header">
-        <div>
-            <h2 class="page-title">Add New User</h2>
-            <p class="page-subtitle">Create single or bulk user accounts</p>
+        <!-- HEADER -->
+        <div class="page-header">
+            <div>
+                <h2 class="page-title">Add New User</h2>
+                <p class="page-subtitle">Create single or bulk user accounts</p>
+            </div>
+
+            <a href="manage_users.php" class="btn-back">← Back</a>
         </div>
 
-        <a href="manage_users.php" class="btn-back">
-            ← Back
-        </a>
-    </div>
+        <!-- ALERT -->
+        <?php if (!empty($message)): ?>
+            <div class="alert alert-<?= htmlspecialchars($message_type) ?>">
+                <?= htmlspecialchars($message) ?>
+            </div>
+        <?php endif; ?>
 
-    <!-- ALERT -->
-    <?php if ($message): ?>
-        <div class="alert alert-<?= $message_type ?>">
-            <?= htmlspecialchars($message) ?>
-        </div>
-    <?php endif; ?>
+        <div class="main-content">
 
-    <!-- TWO COLUMN GRID -->
-    <div class="main-content">
+            <!-- ================= IMPORT USERS ================= -->
+            <div class="card import-card">
 
-        <!-- LEFT: IMPORT -->
-        <div class="card import-card">
+                <h3>Import Users</h3>
 
-            <h3>Import Users</h3>
-            <p class="page-subtitle">
-                Upload Excel file (Name, Email, Role, Phone)
-            </p>
+                <p class="page-subtitle">
+                    Upload Excel file with users data (Name, Email, Role, Phone, etc.)
+                </p>
 
-            <form method="POST" enctype="multipart/form-data" class="import-form">
-                <input type="hidden" name="import_users" value="1">
+                <form method="POST" enctype="multipart/form-data">
 
-                <label class="import-label">
-                    <input type="file" name="xlsx_file" accept=".xlsx"
-                           onchange="this.form.submit()">
+                    <input type="hidden" name="import_users" value="1">
 
-                    <span class="import-btn">
+                    <input type="file"
+                    name="xlsx_file"
+                    accept=".xlsx"
+                    required
+                    style="display:none;"
+                    id="fileInput"
+                    onchange="this.form.submit();">
+                    <label for="fileInput" class="import-btn">
                         📁 Choose Excel File
-                    </span>
-                </label>
-            </form>
+                    </label>
 
-        </div>
+                    <small style="display:block;margin-top:10px;color:#64748b;">
+                        File will be uploaded and processed automatically.
+                    </small>
+                    <div id="loadingBox" style="display:none;text-align:center;margin-top:20px;">
+                        <div class="spinner"></div>
+                        <p>Importing users and sending emails. Please wait...</p>
+                    </div>
 
-        <!-- RIGHT: CREATE USER -->
-        <div class="card">
+                </form>
 
-            <h3>Create User</h3>
+            </div>
 
-            <form method="POST" class="form-container">
-                <input type="hidden" name="create_user" value="1">
+            <!-- ================= CREATE USER ================= -->
+            <div class="card">
 
-                <div class="form-group">
-                    <label>Full Name</label>
-                    <input type="text" name="name" required>
-                </div>
+                <h3>Create User</h3>
 
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" name="email" required>
-                </div>
+                <form method="POST" class="form-container">
 
-                <div class="form-group">
-                    <label>Phone</label>
-                    <input type="text" name="phone">
-                </div>
+                    <input type="hidden" name="create_user" value="1">
 
-                <div class="form-group">
-                    <label>Role</label>
-                    <select name="role" required>
-                        <option value="">Select Role</option>
-                        <option value="admin">Admin</option>
-                        <option value="teacher">Teacher</option>
-                        <option value="headteacher">Headteacher</option>
-                        <option value="examination_officer">Examination Officer</option>
-                    </select>
-                </div>
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" name="name" required>
+                    </div>
 
-                <div class="info-popup">
-                    <h4>Auto Password System</h4>
-                    <p>
-                        A secure password will be generated automatically and sent to the user's email.
-                    </p>
-                </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" required>
+                    </div>
 
-                <button type="submit" class="btn btn-create">
-                    Create User
-                </button>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="text" name="phone">
+                    </div>
 
-            </form>
+                    <div class="form-group">
+                        <label>Gender</label>
+                        <select name="gender" required>
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select name="role" id="role" required>
+                            <option value="">Select Role</option>
+                            <option value="admin">Admin</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="headteacher">Headteacher</option>
+                            <option value="examination_officer">Examination Officer</option>
+                        </select>
+
+                    <!-- School Selection -->
+                    <div class="form-group">
+                        <label>School</label>
+                        <select name="school_id" required>
+                            <?php foreach ($schools as $sch): ?>
+                                <option value="<?php echo htmlspecialchars($sch['school_id']); ?>"><?php echo htmlspecialchars($sch['school_name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    </div>
+
+                    <!-- TEACHER DETAILS -->
+                    <div id="teacherFields">
+
+                        <div class="form-group">
+                            <label>Teacher Category</label>
+                            <select name="teacher_category">
+                                <option value="">Select Category</option>
+                                <option value="Science">Science</option>
+                                <option value="Humanities">Humanities</option>
+                                <option value="Languages">Languages</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Major Subject</label>
+                            <input type="text" name="major_subject" placeholder="e.g. Mathematics">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Minor Subject</label>
+                            <input type="text" name="minor_subject" placeholder="e.g. Computer Studies">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Qualification</label>
+                            <select name="qualification">
+                                <option value="">Select Qualification</option>
+                                <option value="Certificate">Certificate</option>
+                                <option value="Diploma">Diploma</option>
+                                <option value="Bachelor Degree">Bachelor Degree</option>
+                                <option value="Master Degree">Master Degree</option>
+                                <option value="PhD">PhD</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Employment Number</label>
+                            <input type="text" name="employment_number">
+                        </div>
+
+                    </div>
+
+                    <!-- INFO -->
+                    <div class="info-popup" style="margin-top:15px;">
+                        <h4>Auto Password System</h4>
+                        <p>
+                            A secure password will be generated automatically and sent to the user's email address.
+                        </p>
+                    </div>
+
+                    <button type="submit" class="btn btn-create">
+                        Create User
+                    </button>
+
+                </form>
+
+            </div>
 
         </div>
 
     </div>
-
-</div>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ================= ROLE HANDLING =================
+    const roleSelect = document.getElementById('role');
+    const teacherFields = document.getElementById('teacherFields');
+
+    function toggleTeacherFields() {
+
+        const teachingRoles = [
+            'teacher',
+            'headteacher',
+            'examination_officer'
+        ];
+
+        if (teachingRoles.includes(roleSelect.value)) {
+            teacherFields.style.display = 'block';
+        } else {
+            teacherFields.style.display = 'none';
+        }
+    }
+
+    // Run immediately when page loads
+    if (roleSelect && teacherFields) {
+        toggleTeacherFields();
+        roleSelect.addEventListener('change', toggleTeacherFields);
+    }
+
+
+    // ================= IMPORT FILE HANDLING =================
+    const fileInput = document.getElementById('fileInput');
+    const loadingBox = document.getElementById('loadingBox');
+
+    if (fileInput) {
+
+        fileInput.addEventListener('change', function () {
+
+            if (this.files.length > 0) {
+
+                // Show loading message/spinner
+                if (loadingBox) {
+                    loadingBox.style.display = 'block';
+                }
+
+                // Automatically submit the form
+                this.form.submit();
+            }
+
+        });
+
+    }
+
+});
+</script>
 <?php include '../common/footer.php'; ?>
 
 </body>

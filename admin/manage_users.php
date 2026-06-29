@@ -19,7 +19,7 @@ $page = max(1, (int)($_GET['page'] ?? 1));
 $per_page = 5;
 
 /* ================= COUNT ================= */
-$count_sql = "SELECT COUNT(*) as total FROM users WHERE deleted_at IS NULL";
+$count_sql = "SELECT COUNT(*) as total FROM users WHERE 1";
 $params = [];
 $types = '';
 
@@ -53,11 +53,18 @@ $pagination = paginate($total, $page, $per_page);
 $offset = ($page - 1) * $per_page;
 
 /* ================= USERS ================= */
+/*
+   users.school_id -> schools.school_id, schools.school_name.
+   LEFT JOIN so users with school_id = NULL (most rows right now)
+   still show up in the list with school_name = NULL -> "N/A" in the view.
+*/
 $sql = "
 SELECT u.*,
+s.school_name AS school_name,
 (SELECT COUNT(*) FROM audit_logs a WHERE a.user_id = u.user_id) AS activity_score
 FROM users u
-WHERE u.deleted_at IS NULL
+LEFT JOIN schools s ON s.school_id = u.school_id
+WHERE 1
 ";
 
 $params = [];
@@ -210,8 +217,7 @@ $conn->close();
 <meta charset="UTF-8">
 <title>Manage Users</title>
 
-<link rel="stylesheet" href="<?= BASE_URL ?>/static/css/admin.css">
-<link rel="stylesheet" href="<?= BASE_URL ?>/static/css/form.css">
+<?php $module_css = 'admin'; include __DIR__ . '/../common/head_assets.php'; ?>
 </head>
 
 <body>
@@ -255,7 +261,7 @@ $conn->close();
 </form>
 
 <!-- STATS -->
-<div style="margin:10px 0;font-weight:600;">
+<div class="table-meta">
     Showing <?= (($page - 1) * $per_page) + 1 ?> –
     <?= min($page * $per_page, $total) ?> of <?= $total ?> users
 </div>
@@ -293,9 +299,8 @@ $conn->close();
 <thead>
 <tr>
     <th><input type="checkbox" onclick="toggleAll(this)"></th>
-    <th>ID</th>
     <th>Name</th>
-    <th>Email</th>
+    <th>School</th>
     <th>Role</th>
     <th>Status</th>
     <th>Activity</th>
@@ -308,42 +313,50 @@ $conn->close();
 <?php foreach ($users as $u): ?>
 <tr>
 
-<td>
-    <input type="checkbox" name="selected_users[]" value="<?= $u['user_id'] ?>">
-</td>
+    <td>
+        <input type="checkbox" name="selected_users[]" value="<?= $u['user_id'] ?>">
+    </td>
 
-<td><?= $u['user_id'] ?></td>
-<td><?= htmlspecialchars($u['name']) ?></td>
-<td><?= htmlspecialchars($u['email']) ?></td>
-<td><?= $u['role'] ?></td>
+    <td><?= htmlspecialchars($u['name']) ?></td>
 
-<td>
-<span class="badge badge-<?= $u['status'] ?>">
-<?= $u['status'] ?>
-</span>
-</td>
+    <td><?= htmlspecialchars($u['school_name'] ?? 'N/A') ?></td>
 
-<td><?= $u['activity_score'] ?></td>
+    <td><?= ucfirst($u['role']) ?></td>
 
-<td class="actions">
+    <td>
+        <span class="badge badge-<?= $u['status'] ?>">
+            <?= ucfirst($u['status']) ?>
+        </span>
+    </td>
 
-<a href="edit_user.php?id=<?= $u['user_id'] ?>" class="btn btn-edit btn-small">
-Edit
-</a>
+    <td><?= $u['activity_score'] ?></td>
 
-<?php if ($u['status'] === 'active'): ?>
-<button type="button" class="btn btn-deactivate btn-small"
-onclick="openModal(<?= $u['user_id'] ?>,'deactivate')">
-Deactivate
-</button>
-<?php else: ?>
-<button type="button" class="btn btn-activate btn-small"
-onclick="openModal(<?= $u['user_id'] ?>,'activate')">
-Activate
-</button>
-<?php endif; ?>
+    <td class="actions">
 
-</td>
+        <!-- VIEW BUTTON -->
+        <a href="view_user.php?id=<?= $u['user_id'] ?>" class="btn btn-view btn-small">
+            View
+        </a>
+
+        <!-- EDIT -->
+        <a href="edit_user.php?id=<?= $u['user_id'] ?>" class="btn btn-edit btn-small">
+            Edit
+        </a>
+
+        <!-- ACTIVATE / DEACTIVATE -->
+        <?php if ($u['status'] === 'active'): ?>
+            <button type="button" class="btn btn-deactivate btn-small"
+                onclick="openModal(<?= $u['user_id'] ?>,'deactivate')">
+                Deactivate
+            </button>
+        <?php else: ?>
+            <button type="button" class="btn btn-activate btn-small"
+                onclick="openModal(<?= $u['user_id'] ?>,'activate')">
+                Activate
+            </button>
+        <?php endif; ?>
+
+    </td>
 
 </tr>
 <?php endforeach; ?>
@@ -411,86 +424,6 @@ cb.checked = source.checked;
 </script>
 
 <?php include '../common/footer.php'; ?>
-
-<style>
-/* YOUR BULK CSS KEPT EXACTLY SAME */
-.bulk-action-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    padding: 12px 14px;
-    border-radius: 10px;
-
-    margin-bottom: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-
-.bulk-left .bulk-label {
-    font-weight: 600;
-    font-size: 13px;
-    color: #334155;
-}
-
-.bulk-right-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-left: auto;
-}
-
-.bulk-select {
-    padding: 9px 12px;
-    border-radius: 8px;
-    border: 1px solid #cbd5e1;
-    font-size: 13px;
-    outline: none;
-    min-width: 220px;
-    background: #fff;
-}
-
-.bulk-select:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
-}
-
-.bulk-btn {
-    padding: 7px 14px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 600;
-    background: #111827;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-    min-width: 90px;
-}
-
-.bulk-btn:hover {
-    background: #2563eb;
-    transform: translateY(-1px);
-}
-
-@media (max-width: 768px) {
-    .bulk-action-bar {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-
-    .bulk-right-actions {
-        width: 100%;
-        flex-direction: column;
-    }
-
-    .bulk-select,
-    .bulk-btn {
-        width: 100%;
-    }
-}
-</style>
 
 </body>
 </html>

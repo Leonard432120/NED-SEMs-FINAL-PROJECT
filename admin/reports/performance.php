@@ -1,79 +1,160 @@
 <?php
 session_start();
-include '../../config/db.php';
+require_once __DIR__ . '/../../config/db.php';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
-    header("Location: " . BASE_URL . "/login.php");
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../login.php");
     exit();
 }
 
 $conn = get_db_connection();
-$total_exams = $conn->query("SELECT COUNT(*) AS total FROM exams")->fetch_assoc()['total'];
-$approved_exams = $conn->query("SELECT COUNT(*) AS total FROM exams WHERE status = 'approved'")->fetch_assoc()['total'];
-$avg_duration = $conn->query("SELECT AVG(duration_minutes) AS avg_duration FROM exams")->fetch_assoc()['avg_duration'];
-$conn->close();
+
+/* ================= SAMPLE KPI DATA ================= */
+// You can replace these with real SQL later
+$students = $conn->query("SELECT COUNT(*) as c FROM students")->fetch_assoc()['c'] ?? 0;
+$teachers = $conn->query("SELECT COUNT(*) as c FROM users WHERE role = 'teacher'")->fetch_assoc()['c'] ?? 0;
+$classes = $conn->query("SELECT COUNT(DISTINCT class) as c FROM students WHERE class IS NOT NULL")->fetch_assoc()['c'] ?? 0;
+$attendance = 94; // later calculate from attendance table
+
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Performance Report</title>
-<link rel="stylesheet" href="<?= BASE_URL ?>/static/css/admin.css">
-<link rel="stylesheet" href="<?= BASE_URL ?>/static/css/form.css">
+<title>Performance Dashboard</title>
+
+<?php $module_css = 'admin'; include __DIR__ . '/../../common/head_assets.php'; ?>
+
+
+<style>
+.dashboard-grid{
+    display:grid;
+    grid-template-columns: repeat(4,1fr);
+    gap:15px;
+    margin-bottom:20px;
+}
+
+.card-kpi{
+    background:#fff;
+    padding:15px;
+    border-radius:12px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.05);
+}
+
+.card-kpi h3{
+    font-size:14px;
+    color:#666;
+}
+
+.card-kpi h1{
+    font-size:26px;
+    margin-top:5px;
+}
+
+.chart-grid{
+    display:grid;
+    grid-template-columns: 2fr 1fr;
+    gap:20px;
+}
+
+.chart-box{
+    background:#fff;
+    padding:15px;
+    border-radius:12px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.05);
+}
+</style>
+
 </head>
+
 <body>
-<div class="header">
-    <div class="header-left">
-        <span class="dashboard-title">NED-SEMS | EDM Control Center</span>
-    </div>
-    <div class="header-right">
-        <div class="profile">
-           <a href="<?= BASE_URL ?>/logout.php">Logout</a><img src="<?= BASE_URL ?>/static/images/user.png">
-        </div>
-    </div>
-</div>
+
+<?php include __DIR__ . '/../../common/header.php'; ?>
+
 <div class="dashboard">
-    <div class="sidebar">
-        <a href="../dashboard.php">Dashboard</a>
-        <a href="../manage_users.php">Users</a>
-        <div class="sidebar-group">
-            <span onclick="toggleMenu('schoolMenu')">Schools ▼</span>
-            <div class="sidebar-sub" id="schoolMenu">
-                <a href="../add_school.php">Add School</a>
-                <a href="../manage_schools.php">Manage Schools</a>
-            </div>
-        </div>
-        <a href="../manage_subject.php">Subjects</a>
-        <a href="../exams.php">Exams</a>
-        <div class="sidebar-group">
-            <span onclick="toggleMenu('assignMenu')">Assignments ▼</span>
-            <div class="sidebar-sub" id="assignMenu">
-                <a href="../assign.php">Assign Teachers</a>
-                <a href="../view_assignments.php">View Assignments</a>
-            </div>
-        </div>
-        <div class="sidebar-group">
-            <span onclick="toggleMenu('reportMenu')">Reports ▼</span>
-            <div class="sidebar-sub" id="reportMenu">
-                <a href="anomalies.php">Anomalies</a>
-                <a href="compliance_report.php">Compliance</a>
-                <a href="district_report.php">District</a>
-                <a href="performance.php">Performance</a>
-                <a href="ranking.php">Ranking</a>
-            </div>
-        </div>
-    </div>
-    <div class="main-content">
-        <div class="page-header">
-            <h2>Performance Report</h2>
-        </div>
-        <div class="card card-accent-blue">
-            <p>Total exams: <?= htmlspecialchars($total_exams); ?></p>
-            <p>Approved exams: <?= htmlspecialchars($approved_exams); ?></p>
-            <p>Average duration: <?= htmlspecialchars(number_format($avg_duration ?? 0, 1)); ?> min</p>
-        </div>
-    </div>
+<?php include __DIR__ . '/../../common/sidebar.php'; ?>
+
+<div class="content">
+
+<!-- HEADER -->
+<div class="page-header">
+    <h2 class="page-title">Performance Dashboard</h2>
 </div>
-<script src="<?= BASE_URL ?>/static/js/main.js"></script>
+
+<!-- KPI CARDS -->
+<div class="dashboard-grid">
+
+    <div class="card-kpi">
+        <h3>Students</h3>
+        <h1><?= $students ?></h1>
+    </div>
+
+    <div class="card-kpi">
+        <h3>Teachers</h3>
+        <h1><?= $teachers ?></h1>
+    </div>
+
+    <div class="card-kpi">
+        <h3>Classes</h3>
+        <h1><?= $classes ?></h1>
+    </div>
+
+    <div class="card-kpi">
+        <h3>Attendance Rate</h3>
+        <h1><?= $attendance ?>%</h1>
+    </div>
+
+</div>
+
+<!-- CHARTS -->
+<div class="chart-grid">
+
+    <!-- LINE CHART -->
+    <div class="chart-box">
+        <h3>Student Performance Trend</h3>
+        <canvas id="lineChart"></canvas>
+    </div>
+
+    <!-- DONUT CHART -->
+    <div class="chart-box">
+        <h3>Attendance Overview</h3>
+        <canvas id="donutChart"></canvas>
+    </div>
+
+</div>
+
+</div>
+</div>
+
+<script>
+/* ================= LINE CHART ================= */
+new Chart(document.getElementById('lineChart'), {
+    type: 'line',
+    data: {
+        labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul'],
+        datasets: [{
+            label: 'Performance',
+            data: [65, 70, 68, 75, 80, 85, 90],
+            borderColor: '#4e73df',
+            fill: false,
+            tension: 0.4
+        }]
+    }
+});
+
+/* ================= DONUT CHART ================= */
+new Chart(document.getElementById('donutChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Present','Absent','Late'],
+        datasets: [{
+            data: [85,10,5],
+            backgroundColor: ['#1cc88a','#e74a3b','#f6c23e']
+        }]
+    }
+});
+</script>
+
 </body>
 </html>

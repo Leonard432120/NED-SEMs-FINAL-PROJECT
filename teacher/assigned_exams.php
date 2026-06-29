@@ -1,47 +1,61 @@
 <?php
 require_once __DIR__ . '/teacher_init.php';
+
 $conn = get_db_connection();
 
 $search = trim($_GET['search'] ?? '');
 $status = trim($_GET['status'] ?? '');
-$searchParam = "%{$search}%";
 
-$query = "SELECT e.*, s.subject_name, e.class AS exam_class
-          FROM exam_assignments ea
-          JOIN exams e ON ea.exam_id = e.exam_id
-          JOIN subjects s ON e.subject_id = s.subject_id
-          WHERE ea.teacher_id = ? AND ea.role = 'item_writer'";
+$query = "
+    SELECT DISTINCT
+        e.exam_id,
+        e.exam_name,
+        es.subject_id,
+        e.status,
+        e.year,
+        e.class AS exam_class,
+        s.subject_name
+    FROM subject_assignments ea
+    INNER JOIN exam_subjects es
+        ON ea.subject_id = es.subject_id
+    INNER JOIN exams e
+        ON es.exam_id = e.exam_id
+    INNER JOIN subjects s
+        ON es.subject_id = s.subject_id
+    WHERE ea.teacher_id = ?
+      AND ea.role = 'item_writer'
+      AND ea.status = 'assigned'
+";
+
+$params = [$user_id];
+$types = 'i';
 
 if ($status !== '') {
     $query .= " AND e.status = ?";
+    $params[] = $status;
+    $types .= 's';
 }
 
 if ($search !== '') {
     $query .= " AND e.exam_name LIKE ?";
+    $params[] = "%{$search}%";
+    $types .= 's';
 }
 
 $query .= " ORDER BY e.exam_id DESC";
 
-if ($status !== '' && $search !== '') {
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param('iss', $user_id, $status, $searchParam);
-} elseif ($status !== '') {
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param('is', $user_id, $status);
-} elseif ($search !== '') {
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param('is', $user_id, $searchParam);
-} else {
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param('i', $user_id);
-}
-
+$stmt = $conn->prepare($query);
+$stmt->bind_param($types, ...$params);
 $stmt->execute();
+
 $result = $stmt->get_result();
+
 $exams = [];
+
 while ($row = $result->fetch_assoc()) {
     $exams[] = $row;
 }
+
 $stmt->close();
 $conn->close();
 ?>
@@ -51,26 +65,19 @@ $conn->close();
 <head>
 <meta charset="UTF-8">
 <title>Item Writer Tasks</title>
-<link rel="stylesheet" href="<?= BASE_URL ?>/static/css/styles.css">
+<?php
+$portal_title = 'NED-SEMS | Teacher Portal';
+$module_css = 'teacher';
+include __DIR__ . '/../common/head_assets.php';
+?>
 </head>
 
 <body>
 
-<div class="header">
-    <div class="header-left">
-        <span class="dashboard-title">NED-SEMS | Teacher Portal</span>
-    </div>
-    <div class="header-right">
-        <div class="profile">
-            <span class="profile-name"><?php echo htmlspecialchars($_SESSION['name'] ?? 'Teacher'); ?></span>
-            <img src="<?= BASE_URL ?>/static/images/user.png" alt="Profile">
-            <a href="<?= BASE_URL ?>/logout.php" class="logout-btn">Logout</a>
-        </div>
-    </div>
-</div>
+<?php include __DIR__ . '/../common/header.php'; ?>
 
 <div class="dashboard">
-    <?php include __DIR__ . '/teacher_sidebar.php'; ?>
+    <?php include __DIR__ . '/../common/sidebar.php'; ?>
 
     <div class="main-content">
 
@@ -124,14 +131,17 @@ $conn->close();
                                     </span>
                                 </td>
                                 <td class="actions">
+
                                     <a href="compose_exam.php?exam_id=<?= $exam['exam_id']; ?>"
-                                       class="btn btn-teal btn-small">
+                                    class="btn btn-teal btn-small">
                                         Compose
                                     </a>
+
                                     <a href="<?= BASE_URL ?>/teacher/exam.php?id=<?= $exam['exam_id']; ?>&page=cover"
-                                       class="btn btn-dark btn-small">
+                                    class="btn btn-dark btn-small">
                                         View
                                     </a>
+
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -150,6 +160,4 @@ $conn->close();
     </div>
 </div>
 
-<script src="<?= BASE_URL ?>/static/js/main.js"></script>
-</body>
-</html>
+<?php include __DIR__ . '/../common/footer.php'; ?>

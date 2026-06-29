@@ -16,7 +16,7 @@ $edit_subject = null;
 $subject_id = (int)($_GET['edit_id'] ?? 0);
 
 if ($subject_id > 0) {
-    $stmt = $conn->prepare("SELECT subject_id, subject_name, status FROM subjects WHERE subject_id = ? LIMIT 1");
+    $stmt = $conn->prepare("SELECT * FROM subjects WHERE subject_id = ? LIMIT 1");
     $stmt->bind_param("i", $subject_id);
     $stmt->execute();
     $edit_subject = $stmt->get_result()->fetch_assoc();
@@ -30,9 +30,13 @@ if (!$edit_subject) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_subject'])) {
     $subject_name = trim($_POST['subject_name'] ?? '');
+    $subject_code = trim($_POST['subject_code'] ?? '');
+    $category = trim($_POST['category'] ?? '');
+    $paper_type = trim($_POST['paper_type'] ?? 'Theory');
+    $status = trim($_POST['status'] ?? 'active');
 
-    if (!$subject_name) {
-        $message = 'Subject name is required.';
+    if (!$subject_name || !$subject_code) {
+        $message = 'Subject name and code are required.';
         $message_type = 'error';
     } else {
         $check = $conn->prepare(
@@ -42,32 +46,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_subject'])) {
         $check->execute();
 
         if ($check->get_result()->num_rows > 0) {
-            $message = 'Subject already exists.';
+            $message = 'Subject name already exists.';
             $message_type = 'error';
         } else {
-            $stmt = $conn->prepare(
-                "UPDATE subjects SET subject_name = ? WHERE subject_id = ?"
+            $check2 = $conn->prepare(
+                "SELECT subject_id FROM subjects WHERE LOWER(subject_code) = LOWER(?) AND subject_id != ?"
             );
-            $stmt->bind_param("si", $subject_name, $subject_id);
+            $check2->bind_param("si", $subject_code, $subject_id);
+            $check2->execute();
 
-            if ($stmt->execute()) {
-                $_SESSION['message'] = 'Subject updated successfully.';
-                $_SESSION['message_type'] = 'success';
-                $stmt->close();
-                $conn->close();
-                header('Location: manage_subject.php');
-                exit();
-            } else {
-                $message = 'Failed to update subject.';
+            if ($check2->get_result()->num_rows > 0) {
+                $message = 'Subject code already exists.';
                 $message_type = 'error';
-                $stmt->close();
-            }
-        }
+            } else {
+                $stmt = $conn->prepare(
+                    "UPDATE subjects SET subject_name = ?, subject_code = ?, category = ?, paper_type = ?, status = ? WHERE subject_id = ?"
+                );
+                $stmt->bind_param("sssssi", $subject_name, $subject_code, $category, $paper_type, $status, $subject_id);
 
+                if ($stmt->execute()) {
+                    $_SESSION['message'] = 'Subject updated successfully.';
+                    $_SESSION['message_type'] = 'success';
+                    $stmt->close();
+                    $conn->close();
+                    header('Location: manage_subject.php');
+                    exit();
+                } else {
+                    $message = 'Failed to update subject.';
+                    $message_type = 'error';
+                    $stmt->close();
+                }
+            }
+            $check2->close();
+        }
         $check->close();
     }
 
-    $edit_subject['subject_name'] = htmlspecialchars($subject_name);
+    $edit_subject['subject_name'] = $subject_name;
+    $edit_subject['subject_code'] = $subject_code;
+    $edit_subject['category'] = $category;
+    $edit_subject['paper_type'] = $paper_type;
+    $edit_subject['status'] = $status;
 }
 
 $conn->close();
@@ -80,8 +99,7 @@ $conn->close();
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Edit Subject</title>
 
-<link rel="stylesheet" href="<?= BASE_URL ?>/static/css/admin.css">
-<link rel="stylesheet" href="<?= BASE_URL ?>/static/css/form.css">
+<?php $module_css = 'admin'; include __DIR__ . '/../common/head_assets.php'; ?>
 
 <style>
     .content {
@@ -127,6 +145,8 @@ $conn->close();
     }
 
     .form-container {
+        display: flex;
+        flex-direction: column;
         gap: 24px;
     }
 
@@ -134,9 +154,12 @@ $conn->close();
         font-size: 15px;
         color: #334155;
         font-weight: 700;
+        margin-bottom: 8px;
+        display: block;
     }
 
-    .form-group input[type="text"] {
+    .form-group input[type="text"],
+    .form-group select {
         width: 100%;
         height: 56px;
         border-radius: 16px;
@@ -147,7 +170,9 @@ $conn->close();
     }
 
     .form-actions {
+        display: flex;
         justify-content: flex-start;
+        margin-top: 12px;
     }
 
     .btn-create {
@@ -212,12 +237,45 @@ $conn->close();
         <h3>Edit Subject</h3>
         <form method="POST" class="form-container">
             <input type="hidden" name="update_subject" value="1">
+            
             <div class="form-group">
                 <label>Subject Name</label>
                 <input type="text" name="subject_name" value="<?= htmlspecialchars($edit_subject['subject_name']) ?>" required>
             </div>
+
+            <div class="form-group">
+                <label>Subject Code</label>
+                <input type="text" name="subject_code" value="<?= htmlspecialchars($edit_subject['subject_code'] ?? '') ?>" required>
+            </div>
+
+            <div class="form-group">
+                <label>Category</label>
+                <select name="category" required>
+                    <option value="">Select Category</option>
+                    <option value="science" <?= ($edit_subject['category'] ?? '') === 'science' ? 'selected' : '' ?>>Science</option>
+                    <option value="language" <?= ($edit_subject['category'] ?? '') === 'language' ? 'selected' : '' ?>>Language</option>
+                    <option value="humanities" <?= ($edit_subject['category'] ?? '') === 'humanities' ? 'selected' : '' ?>>Humanities</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Paper Type</label>
+                <select name="paper_type" required>
+                    <option value="Theory" <?= ($edit_subject['paper_type'] ?? '') === 'Theory' ? 'selected' : '' ?>>Theory</option>
+                    <option value="Practical" <?= ($edit_subject['paper_type'] ?? '') === 'Practical' ? 'selected' : '' ?>>Practical</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status" required>
+                    <option value="active" <?= ($edit_subject['status'] ?? '') === 'active' ? 'selected' : '' ?>>Active</option>
+                    <option value="inactive" <?= ($edit_subject['status'] ?? '') === 'inactive' ? 'selected' : '' ?>>Inactive</option>
+                </select>
+            </div>
+
             <div class="form-actions">
-                <button type="submit" class="btn btn-create">Save Changes</button>
+                <button type="submit" class="btn btn-create btn-dark">Save Changes</button>
             </div>
         </form>
     </div>

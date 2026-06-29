@@ -48,21 +48,16 @@ function badge_class($status) {
 <head>
 <meta charset="UTF-8">
 <title>My Submissions</title>
-<link rel="stylesheet" href="<?= BASE_URL ?>/static/css/styles.css">
+<?php
+$portal_title = 'NED-SEMS | Teacher Portal';
+$module_css = 'teacher';
+include __DIR__ . '/../common/head_assets.php';
+?>
 </head>
 <body>
-<div class="header">
-    <div class="header-left">
-        <span class="dashboard-title">NED-SEMS | Teacher Portal</span>
-    </div>
-    <div class="header-right">
-        <div class="profile">
-           <a href="<?= BASE_URL ?>/logout.php">Logout</a><img src="<?= BASE_URL ?>/static/images/user.png" alt="User">
-        </div>
-    </div>
-</div>
+<?php include __DIR__ . '/../common/header.php'; ?>
 <div class="dashboard">
-    <?php include __DIR__ . '/teacher_sidebar.php'; ?>
+    <?php include __DIR__ . '/../common/sidebar.php'; ?>
     <div class="main-content">
         <div class="page-header">
             <div>
@@ -114,6 +109,4 @@ function badge_class($status) {
         </div>
     </div>
 </div>
-<script src="<?= BASE_URL ?>/static/js/main.js"></script>
-</body>
-</html>
+<?php include __DIR__ . '/../common/footer.php'; ?>

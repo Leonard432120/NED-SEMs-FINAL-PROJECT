@@ -1,0 +1,265 @@
+Manage Exam Process Algorithm
+
+1. Authenticate and authorize user
+   - Verify session exists and user role is 'admin'.
+   - If not authorized, redirect to login page.
+
+2. Load exam management page
+   - Connect to the database.
+   - Build base query: select exams joined with subjects.
+   - Apply optional filters:
+     - Search by exam name if provided.
+     - Filter by exam status if provided.
+   - Execute query and fetch exam list.
+   - Display exams in a table with actions: Assign, View, Delete.
+
+3. Create new exam
+   - Display create exam form with fields: exam name, subject, date, duration, total marks, year, class.
+   - On form submission:
+     - Read POST values.
+     - Set initial status = 'draft'.
+     - Insert new exam record into the exams table.
+   - If insert succeeds, redirect back to exams listing.
+   - Otherwise, show an error message.
+
+4. Edit existing exam
+   - Get exam_id from query string and validate it.
+   - Load active subjects from subjects table.
+   - Fetch existing exam values for exam_id.
+   - Display form pre-filled with exam details.
+   - On form submission:
+     - Read updated values including status.
+     - Update the exams record with new values.
+     - Show success or failure feedback.
+
+5. Delete exam
+   - Use a delete confirmation modal to collect exam_id.
+   - Submit exam_id to delete_exam.php.
+   - Delete the exam from the database when confirmed.
+   - Refresh or redirect back to exam listing.
+
+6. Manage exam status and workflow
+   - Exams can move through statuses such as:
+     - draft -> assigned -> submitted -> under_moderation -> needs_revision -> approved -> rejected
+   - Status may be updated by editing exam details or by teacher/exam workflow.
+
+7. Additional management actions
+   - Assign teachers to an exam using the assignment flow.
+   - View an exam definition or exam page from the admin list.
+   - Use search and status filters to locate specific exams.
+
+
+Manage Results Process Algorithm
+
+1. Authenticate and authorize user
+   - Verify session exists and user role is 'admin' for admin result pages.
+   - If not authorized, redirect to login page.
+
+2. Load results dashboard
+   - Connect to the database.
+   - Compute summary counts:
+     - total results
+     - compiled results
+     - published results
+     - archived results
+     - average score
+   - Load available exams and classes for filter options.
+   - Query results joined with students and exams.
+   - Apply optional filters:
+     - exam_id if provided.
+     - student class if provided.
+   - Order results by total score descending.
+   - Display result rows with student name, exam, total score, percentage, grade, and status.
+
+3. Compile results process
+   - Display compile results page with exam selection.
+   - When an exam is selected, load all students and their marks for that exam.
+   - For each student:
+     - Sum their scores from marks table for the exam.
+     - Count subjects/mark entries.
+     - Calculate percentage.
+   - Sort students by total score descending.
+   - Assign position_in_class incrementally from highest score to lowest.
+   - Determine grade using percentage cutoffs:
+     - A: >= 80
+     - B: >= 70
+     - C: >= 60
+     - D: >= 50
+     - F: otherwise
+   - For each student result:
+     - If a result record already exists, update total_score, percentage, grade, position_in_class, status = 'eo_approved'.
+     - Otherwise insert a new results row with locked = 0 and recorded_at = NOW().
+   - Redirect with success state after compilation.
+
+4. Publish final results
+   - (Implicit workflow) Publish action should update result status from compiled/eo_approved to published.
+   - Final published results are listed in the final_results page.
+
+5. Display final published results
+   - Load filtered published results by exam and optional class.
+   - Join results to students and schools.
+   - Order by position_in_class ascending.
+   - Display report rows with position, name, exam number, school, class, total score, percentage, grade, and status.
+
+6. Result lifecycle
+   - Teacher enters marks for students.
+   - Admin compiles results to calculate totals, percentages, grades, and positions.
+   - Admin or system publishes compiled results.
+   - Published results are visible in the final results dashboard.
+   - Results may later be archived as part of the result management lifecycle.
+
+Manage Users Process Algorithm
+
+1. Authenticate and authorize user
+   - Verify session exists and user role is 'admin'.
+   - If not authorized, redirect to login page.
+
+2. Load manage users page
+   - Connect to the database.
+   - Build query to select users with optional joins to schools, roles, and status metadata.
+   - Apply optional filters:
+     - Search by name, email, or username.
+     - Filter by role (admin, teacher, headteacher, examination_officer, student).
+     - Filter by account status (active, deactivated).
+   - Apply pagination and ordering.
+   - Execute query and fetch user list.
+   - Display users in a table with columns: ID, Name, Email, Role, Status, Actions.
+
+3. Create new user
+   - Display add user form with fields: name, email, role, school, class/subject assignment, password, status.
+   - On form submission:
+     - Read POST values and validate required fields.
+     - Normalize and sanitize inputs.
+     - Hash the password securely before storage.
+     - Insert new user record into the users table.
+     - Set created_at and default status = 'active'.
+   - If insert succeeds, redirect back to manage users page with success message.
+   - Otherwise, show an error message.
+
+4. Edit existing user
+   - Get user_id from query string and validate it.
+   - Fetch existing user values for user_id.
+   - Load available roles, schools, classes, and related assignments.
+   - Display form pre-filled with user details.
+   - On form submission:
+     - Read updated values.
+     - Update the users record with new values.
+     - If password is changed, hash the new password before storing.
+     - Show success or failure feedback.
+
+5. Deactivate, reactivate, or delete user
+   - Use confirmation actions to collect user_id and chosen action.
+   - Update user status when deactivating or reactivating.
+   - For delete actions, remove the user record or mark it deleted based on business rules.
+   - Redirect back to the manage users listing.
+
+6. Additional management actions
+   - Enable quick filtering of active/inactive users.
+   - Provide links to edit, deactivate, reactivate, or delete each user.
+   - Audit administrative changes when user accounts are updated.
+
+Manage Timetable Process Algorithm
+
+1. Authenticate and authorize user
+   - Verify session exists and user role permits timetable management (admin, headteacher, teacher).
+   - If not authorized, redirect to login page.
+
+2. Load timetable page
+   - Connect to the database.
+   - Fetch timetable entries for the selected term, class, or exam window.
+   - Join timetable data with subjects, teachers, classrooms, and classes.
+   - Apply optional filters:
+     - Class/year.
+     - Subject.
+     - Teacher.
+     - Date or day of week.
+   - Display timetable in a calendar/grid view with date, time, subject, teacher, and room.
+
+3. Create timetable entry
+   - Display add timetable form with fields: class, subject, teacher, date, start time, end time, room, exam type.
+   - On form submission:
+     - Read POST values and validate date/time values.
+     - Check for schedule conflicts:
+       - same teacher assigned to overlapping slots.
+       - same room assigned to overlapping slots.
+       - same class assigned to overlapping slots.
+     - Insert timetable record if validation passes.
+   - Redirect with success or show validation errors.
+
+4. Edit existing timetable entry
+   - Get entry_id from query string and validate it.
+   - Load available subjects, teachers, rooms, and class options.
+   - Fetch current timetable entry values.
+   - Display form pre-filled with existing data.
+   - On submission:
+     - Update the timetable entry with new values.
+     - Re-check for conflicts before saving.
+     - Show success or error feedback.
+
+5. Delete timetable entry
+   - Use a confirmation flow to collect entry_id.
+   - Remove the timetable record from the database when confirmed.
+   - Refresh timetable listing.
+
+6. Schedule integrity
+   - Enforce no overlapping assignments for teachers, rooms, or classes.
+   - Provide clear reporting of conflicting date/time slots.
+   - Allow timetable views by class, teacher, or day for easy validation.
+
+Manage Reports Process Algorithm
+
+1. Authenticate and authorize user
+   - Verify session exists and user role is permitted to view reports.
+   - If not authorized, redirect to login page.
+
+2. Load reports dashboard
+   - Connect to the database.
+   - Determine available report types: performance, ranking, compliance, district, anomalies, export.
+   - Load filter options for exam, school, class, term, and date range.
+   - Display report selection controls and summary cards.
+
+3. Generate selected report
+   - If a report type is chosen, collect filter inputs.
+   - Build the report query with appropriate joins and aggregations.
+   - Execute the query and fetch report dataset.
+   - Render report output as tables, charts, or summary statistics.
+
+4. Export reports
+   - Provide export actions to generate PDF or CSV outputs.
+   - Collect current report filters and dataset.
+   - Format the report for export.
+   - Deliver the file to the user.
+
+5. Report lifecycle
+   - Allow repeat report generation with different filters.
+   - Cache or store report snapshots when appropriate.
+   - Display alert messages for missing or incomplete data.
+
+Manage Performance Process Algorithm
+
+1. Authenticate and authorize user
+   - Verify session exists and user role is permitted to view performance data.
+   - If not authorized, redirect to login page.
+
+2. Load performance dashboard
+   - Connect to the database.
+   - Load performance metrics for the selected school, class, or exam period.
+   - Collect filter inputs such as exam, class, subject, term, or year.
+
+3. Aggregate performance data
+   - Query results and marks data to calculate:
+     - average score.
+     - pass rate.
+     - grade distribution.
+     - highest and lowest performing subjects or classes.
+   - Compute trends over time by comparing current and previous periods.
+
+4. Display performance insights
+   - Render trend charts and summary panels.
+   - Show key indicators such as improvements, declines, or stable performance.
+   - Highlight top performers and risk areas.
+
+5. Drill-down and action
+   - Allow drilling into subject-level, class-level, or school-level performance.
+   - Provide links to related reports, student lists, and improvement actions.
+   - Refresh performance data when filters change.

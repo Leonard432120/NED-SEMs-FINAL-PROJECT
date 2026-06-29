@@ -1,0 +1,746 @@
+/* ============================================================
+   NED EXAM SYSTEM — GLOBAL STYLESHEET
+   Northern Education Division · Republic of Malawi
+   
+   HOW TO USE:
+   Include this file in every page of your system:
+   <link rel="stylesheet" href="assets/css/ned-global.css">
+   
+   All colours, fonts and base components are defined here.
+   To change the look of the entire system, edit the
+   :root variables below — nothing else needs to change.
+   ============================================================ */
+
+
+/* ── 1. COLOUR TOKENS ─────────────────────────────────────── */
+:root {
+    /* Government colours (from Malawi flag & coat of arms) */
+    --gov-black:        #1a1a1a;
+    --gov-red:          #c8102e;
+    --gov-red-dark:     #9e0c23;
+    --gov-red-light:    #fdecea;
+    --gov-green:        #2e7d32;
+    --gov-green-dark:   #1b5e20;
+    --gov-green-light:  #e8f5e9;
+    --gov-gold:         #f0b429;
+    --gov-gold-light:   #fff8e1;
+
+    /* Neutral palette */
+    --neutral-900:      #1a1a1a;
+    --neutral-700:      #444444;
+    --neutral-500:      #757575;
+    --neutral-300:      #cccccc;
+    --neutral-100:      #f5f5f0;
+    --neutral-50:       #fafaf8;
+    --white:            #ffffff;
+
+    /* Semantic aliases — change these to retheme the system */
+    --color-primary:        var(--gov-red);
+    --color-primary-dark:   var(--gov-red-dark);
+    --color-primary-light:  var(--gov-red-light);
+    --color-secondary:      var(--gov-green);
+    --color-secondary-dark: var(--gov-green-dark);
+    --color-secondary-light:var(--gov-green-light);
+    --color-accent:         var(--gov-gold);
+    --color-accent-light:   var(--gov-gold-light);
+    --color-header-bg:      var(--gov-black);
+    --color-footer-bg:      var(--gov-black);
+    --color-page-bg:        var(--neutral-100);
+    --color-surface:        var(--white);
+    --color-border:         #e0e0e0;
+    --color-border-strong:  var(--neutral-300);
+    --color-text:           var(--neutral-900);
+    --color-text-muted:     var(--neutral-500);
+    --color-text-light:     var(--neutral-700);
+
+    /* Status colours */
+    --color-success:        #2e7d32;
+    --color-success-light:  #e8f5e9;
+    --color-warning:        #f57c00;
+    --color-warning-light:  #fff3e0;
+    --color-danger:         #c62828;
+    --color-danger-light:   #ffebee;
+    --color-info:           #1565c0;
+    --color-info-light:     #e3f2fd;
+
+    /* Typography */
+    --font-main:    'Segoe UI', Arial, sans-serif;
+    --font-serif:   Georgia, 'Times New Roman', serif;
+    --font-mono:    'Courier New', Courier, monospace;
+
+    /* Spacing scale */
+    --space-xs:     4px;
+    --space-sm:     8px;
+    --space-md:     16px;
+    --space-lg:     24px;
+    --space-xl:     32px;
+    --space-2xl:    48px;
+
+    /* Border radius */
+    --radius-sm:    3px;
+    --radius-md:    5px;
+    --radius-lg:    8px;
+    --radius-pill:  50px;
+
+    /* Shadows */
+    --shadow-sm:    0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md:    0 3px 8px rgba(0,0,0,0.10);
+    --shadow-lg:    0 6px 20px rgba(0,0,0,0.12);
+
+    /* Layout */
+    --container-max: 1100px;
+    --sidebar-width: 320px;
+    --header-height: 80px;
+}
+
+
+/* ── 2. RESET & BASE ───────────────────────────────────────── */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: var(--font-main);
+    font-size: 15px;
+    color: var(--color-text);
+    background: var(--color-page-bg);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+img { max-width: 100%; display: block; }
+
+ul, ol { list-style: none; }
+
+
+/* ── 3. LAYOUT HELPERS ─────────────────────────────────────── */
+.container {
+    width: 100%;
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: 0 var(--space-lg);
+}
+
+.page-wrapper {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-content { flex: 1; }
+
+.two-col {
+    display: grid;
+    grid-template-columns: 1fr var(--sidebar-width);
+    gap: var(--space-lg);
+    align-items: start;
+}
+
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-md); }
+
+.flex        { display: flex; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-between{ display: flex; align-items: center; justify-content: space-between; }
+.gap-sm      { gap: var(--space-sm); }
+.gap-md      { gap: var(--space-md); }
+
+.text-center { text-align: center; }
+.text-muted  { color: var(--color-text-muted); }
+.text-sm     { font-size: 13px; }
+.text-xs     { font-size: 11px; }
+
+.mt-sm { margin-top: var(--space-sm); }
+.mt-md { margin-top: var(--space-md); }
+.mt-lg { margin-top: var(--space-lg); }
+.mb-md { margin-bottom: var(--space-md); }
+.mb-lg { margin-bottom: var(--space-lg); }
+
+
+/* ── 4. GOVERNMENT TOP BAR ─────────────────────────────────── */
+.gov-topbar {
+    background: var(--color-header-bg);
+    padding: 6px var(--space-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.gov-topbar .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    flex-shrink: 0;
+}
+
+.gov-topbar span {
+    font-size: 11px;
+    color: #bbb;
+    letter-spacing: 0.04em;
+}
+
+
+/* ── 5. SITE HEADER ────────────────────────────────────────── */
+.site-header {
+    background: var(--color-surface);
+    border-bottom: 4px solid var(--color-primary);
+    padding: var(--space-md) var(--space-lg);
+}
+
+.site-header .inner {
+    max-width: var(--container-max);
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.site-header .logo-area {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex: 1;
+}
+
+.site-header .brand-text .ministry-label {
+    font-size: 10px;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 2px;
+}
+
+.site-header .brand-text .system-name {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--color-text);
+    line-height: 1.2;
+}
+
+.site-header .brand-text .system-tag {
+    font-size: 12px;
+    color: var(--color-secondary);
+    margin-top: 2px;
+}
+
+/* Main nav */
+.site-nav { display: flex; align-items: center; gap: var(--space-xs); }
+
+.site-nav a {
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--color-text-light);
+    border-radius: var(--radius-md);
+    transition: background 0.15s, color 0.15s;
+}
+
+.site-nav a:hover,
+.site-nav a.active {
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+
+/* ── 6. RIBBON / ANNOUNCEMENT BAR ──────────────────────────── */
+.gov-ribbon {
+    background: var(--color-secondary);
+    padding: 7px var(--space-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
+.gov-ribbon span {
+    font-size: 12px;
+    color: rgba(255,255,255,0.92);
+}
+
+.gov-ribbon strong { color: #fff; }
+
+
+/* ── 7. FLAG STRIPE ────────────────────────────────────────── */
+.flag-stripe {
+    display: flex;
+    height: 5px;
+}
+.flag-stripe .band { flex: 1; }
+.flag-stripe .band-black  { background: var(--gov-black); }
+.flag-stripe .band-red    { background: var(--gov-red); }
+.flag-stripe .band-green  { background: var(--gov-green); }
+
+
+/* ── 8. HERO SECTION ───────────────────────────────────────── */
+.hero {
+    background: linear-gradient(170deg, #f5f5f0 0%, #fff 100%);
+    padding: var(--space-2xl) var(--space-lg);
+    text-align: center;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.hero h1 {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--color-text);
+    line-height: 1.3;
+    margin-bottom: var(--space-sm);
+    max-width: 620px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.hero p {
+    font-size: 15px;
+    color: var(--color-text-muted);
+    max-width: 500px;
+    margin: 0 auto var(--space-lg);
+    line-height: 1.7;
+}
+
+
+/* ── 9. STAT BAR ───────────────────────────────────────────── */
+.stat-bar {
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.stat-bar .stat-item {
+    padding: var(--space-md) var(--space-xl);
+    text-align: center;
+    border-right: 1px solid var(--color-border);
+}
+.stat-bar .stat-item:last-child { border-right: none; }
+
+.stat-bar .stat-num {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.stat-bar .stat-lbl {
+    font-size: 11px;
+    color: var(--color-text-muted);
+    margin-top: 2px;
+}
+
+
+/* ── 10. CARDS ─────────────────────────────────────────────── */
+.card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+}
+
+.card-header {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+
+.card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+/* Feature card — green top border */
+.feat-card {
+    background: var(--neutral-50);
+    border: 1px solid var(--color-border);
+    border-top: 3px solid var(--color-secondary);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+}
+
+.feat-card .feat-icon {
+    font-size: 22px;
+    color: var(--color-secondary);
+    margin-bottom: var(--space-sm);
+}
+
+.feat-card h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.feat-card p {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    line-height: 1.55;
+}
+
+/* Sidebar login card — red top border */
+.login-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-top: 4px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-md);
+}
+
+.login-card .login-heading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: 4px;
+}
+
+.login-card .login-heading span {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.login-card .login-heading .icon {
+    color: var(--color-primary);
+    font-size: 18px;
+}
+
+.login-card .login-sub {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-md);
+    line-height: 1.5;
+}
+
+
+/* ── 11. FORM ELEMENTS ─────────────────────────────────────── */
+.form-group { margin-bottom: var(--space-md); }
+
+.form-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 5px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 14px;
+    font-family: var(--font-main);
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-md);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+}
+
+.form-control:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.12);
+}
+
+.form-control::placeholder { color: var(--color-text-muted); }
+
+select.form-control { cursor: pointer; }
+
+textarea.form-control { resize: vertical; min-height: 100px; }
+
+
+/* ── 12. BUTTONS ───────────────────────────────────────────── */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: 9px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: var(--font-main);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    white-space: nowrap;
+}
+
+.btn:active { transform: scale(0.98); }
+
+/* Primary — red */
+.btn-primary {
+    background: var(--color-primary);
+    color: #fff;
+}
+.btn-primary:hover {
+    background: var(--color-primary-dark);
+    color: #fff;
+    text-decoration: none;
+}
+
+/* Secondary — green */
+.btn-secondary {
+    background: var(--color-secondary);
+    color: #fff;
+}
+.btn-secondary:hover {
+    background: var(--color-secondary-dark);
+    color: #fff;
+    text-decoration: none;
+}
+
+/* Outline */
+.btn-outline {
+    background: transparent;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+}
+.btn-outline:hover {
+    background: var(--color-primary-light);
+    text-decoration: none;
+}
+
+/* Full width */
+.btn-block { width: 100%; }
+
+/* Sizes */
+.btn-sm { padding: 6px 14px; font-size: 12px; }
+.btn-lg { padding: 12px 28px; font-size: 15px; }
+
+
+/* ── 13. NOTICES & ALERTS ──────────────────────────────────── */
+.notice {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: flex-start;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    line-height: 1.55;
+    margin-top: var(--space-sm);
+}
+
+.notice-warning {
+    background: var(--color-accent-light);
+    border: 1px solid #ffe082;
+    color: #5d4037;
+}
+
+.notice-danger {
+    background: var(--color-danger-light);
+    border: 1px solid #ef9a9a;
+    color: var(--color-danger);
+}
+
+.notice-success {
+    background: var(--color-success-light);
+    border: 1px solid #a5d6a7;
+    color: var(--color-success);
+}
+
+.notice-info {
+    background: var(--color-info-light);
+    border: 1px solid #90caf9;
+    color: var(--color-info);
+}
+
+.notice .notice-icon { flex-shrink: 0; margin-top: 1px; }
+
+
+/* ── 14. SECTION HEADING ────────────────────────────────────── */
+.section-heading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+
+.section-heading::before {
+    content: '';
+    width: 4px;
+    height: 20px;
+    background: var(--color-primary);
+    border-radius: 2px;
+    display: block;
+    flex-shrink: 0;
+}
+
+.section-heading h2 {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+
+/* ── 15. HOW-IT-WORKS STEPS ─────────────────────────────────── */
+.steps-list { display: flex; flex-direction: column; }
+
+.step-item {
+    display: flex;
+    gap: var(--space-md);
+    align-items: flex-start;
+    padding: var(--space-md) 0;
+    border-bottom: 1px solid var(--color-border);
+}
+.step-item:last-child { border-bottom: none; }
+
+.step-num {
+    min-width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--color-text);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.step-body h4 { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+.step-body p  { font-size: 12px; color: var(--color-text-muted); line-height: 1.5; }
+
+
+/* ── 16. ROLES BOX ──────────────────────────────────────────── */
+.roles-box {
+    background: var(--neutral-50);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+}
+
+.roles-box .roles-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-md);
+}
+
+.role-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 8px 0;
+    border-bottom: 1px solid var(--color-border);
+}
+.role-row:last-child { border-bottom: none; }
+
+.role-row .role-icon { color: var(--color-secondary); font-size: 16px; width: 22px; }
+.role-row .role-name { font-size: 13px; font-weight: 600; }
+.role-row .role-desc { font-size: 11px; color: var(--color-text-muted); margin-left: auto; }
+
+
+/* ── 17. BADGES & TAGS ──────────────────────────────────────── */
+.badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: var(--radius-pill);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
+.badge-red     { background: var(--color-primary-light); color: var(--color-primary-dark); }
+.badge-green   { background: var(--color-secondary-light); color: var(--color-secondary-dark); }
+.badge-gold    { background: var(--gov-gold-light); color: #7a5c10; }
+.badge-neutral { background: var(--neutral-100); color: var(--neutral-700); }
+
+
+/* ── 18. TABLE ──────────────────────────────────────────────── */
+.ned-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.ned-table th {
+    background: var(--neutral-100);
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+    border-bottom: 2px solid var(--color-border);
+}
+
+.ned-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+}
+
+.ned-table tr:hover td { background: var(--neutral-50); }
+
+
+/* ── 19. DASHBOARD PANELS (for inner pages) ─────────────────── */
+.dash-stat {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    border-left: 4px solid var(--color-primary);
+}
+
+.dash-stat .ds-value {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.dash-stat .ds-label {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-top: 2px;
+}
+
+
+/* ── 20. FOOTER ─────────────────────────────────────────────── */
+.site-footer {
+    background: var(--color-footer-bg);
+    color: #aaa;
+    padding: var(--space-lg) var(--space-xl);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
+.site-footer p   { font-size: 11px; }
+.site-footer .motto { font-size: 11px; color: var(--color-primary); font-style: italic; }
+
+
+/* ── 21. RESPONSIVE ─────────────────────────────────────────── */
+@media (max-width: 860px) {
+    .two-col { grid-template-columns: 1fr; }
+    .grid-3  { grid-template-columns: repeat(2, 1fr); }
+    .grid-4  { grid-template-columns: repeat(2, 1fr); }
+    .site-nav { display: none; }
+    .stat-bar .stat-item { padding: var(--space-md); }
+}
+
+@media (max-width: 560px) {
+    .hero h1  { font-size: 22px; }
+    .grid-2   { grid-template-columns: 1fr; }
+    .grid-3   { grid-template-columns: 1fr; }
+    .grid-4   { grid-template-columns: 1fr; }
+    .hero-btns{ flex-direction: column; align-items: center; }
+    .site-footer { flex-direction: column; text-align: center; }
+}

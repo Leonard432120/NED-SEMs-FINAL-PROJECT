@@ -9,14 +9,14 @@ include 'config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $loginValue = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
+    $password   = $_POST['password'] ?? '';
 
     $conn = get_db_connection();
     $stmt = $conn->prepare("SELECT * FROM users WHERE email = ? OR name = ? LIMIT 1");
     $stmt->bind_param("ss", $loginValue, $loginValue);
     $stmt->execute();
-    $result = $stmt->get_result();
-    $user = $result->fetch_assoc();
+    $user = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
 
     $authenticated = false;
 
@@ -33,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $update->execute();
                 $update->close();
             }
+
         } elseif ($password === $storedPassword) {
             $authenticated = true;
             $rehash = password_hash($password, PASSWORD_DEFAULT);
@@ -44,26 +45,40 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     if ($authenticated) {
-        $_SESSION['user_id'] = $user['user_id'];
-        $_SESSION['role'] = $user['role'];
-        $_SESSION['school_id'] = $user['school_id'];
-        $_SESSION['name'] = $user['name'];
+        /* Update login count & last login */
+        $track = $conn->prepare("
+            UPDATE users
+            SET login_count = login_count + 1,
+                last_login  = NOW()
+            WHERE user_id = ?
+        ");
+        $track->bind_param("i", $user['user_id']);
+        $track->execute();
+        $track->close();
 
-        if ($user['role'] == 'admin') {
-            header("Location: " . BASE_URL . "/admin/dashboard.php");
-        } elseif ($user['role'] == 'headteacher') {
-            header("Location: " . BASE_URL . "/headteacher/dashboard.php");
-        } elseif ($user['role'] == 'examination_officer') {
-            header("Location: " . BASE_URL . "/examination_officer/dashboard.php");
-        } elseif ($user['role'] == 'teacher') {
-            header("Location: " . BASE_URL . "/teacher/dashboard.php");
-        }
+        /* Set session variables */
+        $_SESSION['user_id']       = $user['user_id'];
+        $_SESSION['role']          = $user['role'];
+        $_SESSION['school_id']     = $user['school_id'];
+        $_SESSION['name']          = $user['name'];
+        $_SESSION['profile_image'] = $user['profile_image'];
+
+        /* Redirect by role */
+        $redirects = [
+            'admin'               => BASE_URL . '/admin/dashboard.php',
+            'headteacher'         => BASE_URL . '/headteacher/dashboard.php',
+            'examination_officer' => BASE_URL . '/examination_officer/dashboard.php',
+            'teacher'             => BASE_URL . '/teacher/dashboard.php',
+        ];
+
+        $destination = $redirects[$user['role']] ?? BASE_URL . '/login.php';
+        header("Location: " . $destination);
         exit();
+
     } else {
         $login_error = true;
     }
 
-    $stmt->close();
     $conn->close();
 }
 ?>
@@ -74,32 +89,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NED-SEMS Login</title>
 
-    <link rel="stylesheet" href="<?= BASE_URL ?>/static/css/form.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/base.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/components.css">
+
     <style>
-        .form-actions {
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            margin-bottom: 20px;
+        .login-logo {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .login-logo img {
+            max-width: 180px;
+            height: auto;
         }
 
-        .form-actions a {
-            color: #2563eb;
-            font-size: 14px;
-            text-decoration: none;
-        }
-
-        .form-actions a:hover {
-            text-decoration: underline;
-        }
-
-        .show-password {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 24px;
-            font-size: 14px;
-            color: #475569;
+        .login-card {
+            text-align: center;
         }
     </style>
 </head>
@@ -109,6 +114,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <div class="login-card">
 
+        <!-- Logo Added Here -->
+        <div class="login-logo">
+            <img src="<?= BASE_URL ?>/assets/images/logo.png" 
+                 alt="NED-SEMS - Northern Education Division Smart Examination Management System" 
+                 width="180">
+        </div>
+
         <h2>Welcome Back</h2>
         <p class="subtitle">Sign in to access your dashboard and manage your assigned tasks.</p>
 
@@ -117,14 +129,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <?php endif; ?>
 
         <form method="POST" action="<?= BASE_URL ?>/login.php">
-
             <div class="form-group">
-                <label for="username">Email or Name</label>
+                <label for="username">Enter your Email</label>
                 <input type="text" id="username" name="username" placeholder="Enter your email or name" required>
             </div>
 
             <div class="form-group">
-                <label for="password">Password</label>
+                <label for="password">Enter your Password</label>
                 <input type="password" id="password" name="password" placeholder="Enter your password" required>
             </div>
 

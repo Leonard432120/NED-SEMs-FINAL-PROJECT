@@ -1,0 +1,351 @@
+/* =========================================================
+   EXAMINATION OFFICER MODULE — Exam Control Center UI
+   Scheduling, validation, and results oversight
+========================================================= */
+
+.welcome-banner {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    color: white;
+    padding: 28px 32px;
+    border-radius: 16px;
+    margin-bottom: 28px;
+    box-shadow: 0 12px 28px rgba(37, 99, 235, 0.15);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.welcome-banner h2 {
+    margin: 0 0 8px;
+    font-size: 1.6rem;
+    font-weight: 700;
+}
+
+.welcome-banner p {
+    margin: 0;
+    opacity: 0.95;
+    line-height: 1.6;
+}
+
+.welcome-banner__meta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.welcome-pill {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+}
+
+/* --- KPI Grid --- */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.kpi-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+}
+
+.kpi-card__icon {
+    font-size: 1.8rem;
+    min-width: 44px;
+    text-align: center;
+}
+
+.kpi-card__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.kpi-card__label {
+    display: block;
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.kpi-card__value {
+    display: block;
+    font-size: 1.6rem;
+    color: #0f172a;
+    font-weight: 700;
+}
+
+.kpi-card__hint {
+    display: block;
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.kpi-card--slate {
+    border-left: 4px solid #64748b;
+}
+
+.kpi-card--warning {
+    border-left: 4px solid #f59e0b;
+}
+
+.kpi-card--success {
+    border-left: 4px solid #10b981;
+}
+
+.kpi-card--danger {
+    border-left: 4px solid #ef4444;
+}
+
+.kpi-card--info {
+    border-left: 4px solid #3b82f6;
+}
+
+/* --- Page Header --- */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    gap: 20px;
+}
+
+.page-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.stats-info {
+    margin: 6px 0 0;
+    color: #64748b;
+    font-size: 0.95rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* --- Quick Links --- */
+.quick-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+}
+
+.quick-links a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 16px;
+    background: var(--secondary-color);
+    color: #fff;
+    text-decoration: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.78rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(63, 67, 92, 0.2);
+}
+
+.quick-links a:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(12, 14, 22, 0.3);
+}
+
+/* --- Search Form --- */
+.search-form {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.search-form input,
+.search-form select {
+    padding: 10px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: inherit;
+}
+
+.search-form input {
+    flex: 1;
+    min-width: 200px;
+}
+
+.search-form button {
+    padding: 10px 20px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.search-form button:hover {
+    background: #1e40af;
+}
+
+/* --- Badge Styles --- */
+.badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.badge-draft,
+.badge-assigned {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.badge-submitted {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.badge-under-moderation {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.badge-approved {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.badge-rejected {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* --- Table Container --- */
+.table-container {
+    background: white;
+    border-radius: 12px;
+    overflow: auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.table-striped {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-striped th {
+    background: #f1f5f9;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #334155;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.table-striped td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.table-striped tbody tr:nth-child(odd) {
+    background: #f8fafc;
+}
+
+.table-striped tbody tr:hover {
+    background: #f1f5f9;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    .welcome-banner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+
+    .page-header {
+        flex-direction: column;
+    }
+
+    .header-actions {
+        width: 100%;
+    }
+
+    .header-actions .btn {
+        flex: 1;
+    }
+
+    .quick-links {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
+
+    .search-form {
+        flex-direction: column;
+    }
+
+    .search-form input,
+    .search-form select {
+        width: 100%;
+    }
+}
+
+@media print {
+    .sidebar,
+    .header,
+    .search-form,
+    .header-actions,
+    .footer,
+    .btn,
+    .sidebar-toggle {
+        display: none !important;
+    }
+
+    .content {
+        padding: 0;
+    }
+
+    .dashboard {
+        display: block;
+    }
+}

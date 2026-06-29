@@ -1,0 +1,156 @@
+/* =========================================================
+   Teacher module — moderation & exam workflow UI
+========================================================= */
+
+.moderation-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 20px;
+}
+
+.question-list {
+    background: #f1f5f9;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 15px;
+    max-height: 82vh;
+    overflow: auto;
+}
+
+.question-item {
+    background: #f8fafc;
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    border-left: 4px solid transparent;
+    transition: 0.2s;
+}
+
+.question-item:hover {
+    background: #e2e8f0;
+}
+
+.question-item.active {
+    border-left-color: var(--info-color);
+    background: #dbeafe;
+}
+
+.question-panel {
+    background: #f1f5f9;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 25px;
+}
+
+.question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.edit-btn {
+    background: #f59e0b;
+    color: #fff;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.question-text {
+    font-size: 1.25rem;
+    line-height: 1.7;
+}
+
+.options {
+    margin-top: 20px;
+}
+
+.opt {
+    background: #fff;
+    border: 1px solid var(--border-color);
+    padding: 14px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+}
+
+.moderation-section {
+    margin-top: 30px;
+}
+
+.moderation-grid {
+    display: flex;
+    gap: 12px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.choice {
+    flex: 1;
+    min-width: 120px;
+    background: #fff;
+    border: 2px solid var(--border-color);
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.choice input {
+    display: none;
+}
+
+.save-btn {
+    margin-top: 18px;
+    background: var(--info-color);
+    color: #fff;
+    border: none;
+    padding: 14px 22px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.ai-panel {
+    background: #0f172a;
+    color: #fff;
+    border-radius: 18px;
+    padding: 25px;
+    margin-top: 25px;
+}
+
+.ai-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.ai-card {
+    background: #1e293b;
+    padding: 18px;
+    border-radius: 14px;
+}
+
+.ai-card p {
+    color: #94a3b8;
+    font-size: 0.8125rem;
+    margin-bottom: 8px;
+}
+
+.feedback-box {
+    background: #1e293b;
+    padding: 14px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    border-left: 4px solid #38bdf8;
+}
+
+@media (max-width: 992px) {
+    .moderation-layout {
+        grid-template-columns: 1fr;
+    }
+}

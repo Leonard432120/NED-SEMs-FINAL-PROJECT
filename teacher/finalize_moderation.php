@@ -21,8 +21,10 @@ $conn = get_db_connection();
 
 // Check access
 $stmt = $conn->prepare("
-    SELECT 1 FROM exam_assignments
-    WHERE exam_id = ? AND teacher_id = ? AND role = 'moderator'
+    SELECT 1 
+    FROM subject_assignments sa
+    JOIN exam_subjects es ON sa.subject_id = es.subject_id
+    WHERE es.exam_id = ? AND sa.teacher_id = ? AND sa.role = 'moderator'
 ");
 $stmt->bind_param("ii", $exam_id, $user_id);
 $stmt->execute();

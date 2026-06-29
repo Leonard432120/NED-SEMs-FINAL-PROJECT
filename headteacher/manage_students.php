@@ -3,81 +3,107 @@ session_start();
 include '../config/db.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'headteacher') {
-    header("Location: " . BASE_URL . "/login.php");
+    header("Location: ../login.php");
     exit();
 }
 
-$school_id = $_SESSION['school_id'];
+$school_id = (int)$_SESSION['school_id'];
+$search = trim($_GET['search'] ?? '');
+$class_filter = trim($_GET['class'] ?? '');
+$status_filter = trim($_GET['status'] ?? '');
+
 $conn = get_db_connection();
-$result = $conn->query("SELECT student_id, name, student_number, status FROM students WHERE school_id = $school_id ORDER BY name");
-$students = [];
-while ($row = $result->fetch_assoc()) {
-    $students[] = $row;
+$sql = "SELECT student_id, name, exam_number, class, status FROM students WHERE school_id = $school_id";
+if ($search !== '') {
+    $safe = $conn->real_escape_string($search);
+    $sql .= " AND (name LIKE '%$safe%' OR exam_number LIKE '%$safe%')";
 }
+if ($class_filter !== '') {
+    $safe = $conn->real_escape_string($class_filter);
+    $sql .= " AND class = '$safe'";
+}
+if ($status_filter !== '') {
+    $safe = $conn->real_escape_string($status_filter);
+    $sql .= " AND status = '$safe'";
+}
+$sql .= " ORDER BY name ASC";
+$result = $conn->query($sql);
+$students = [];
+while ($row = $result->fetch_assoc()) { $students[] = $row; }
+$total = count($students);
+$active = count(array_filter($students, fn($s) => $s['status'] === 'active'));
 $conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Manage Students</title>
-<link rel="stylesheet" href="<?= BASE_URL ?>/static/css/styles.css">
-<link rel="stylesheet" href="<?= BASE_URL ?>/static/css/form.css">
+<?php $module_css = 'headteacher'; include __DIR__ . '/../common/head_assets.php'; ?>
 </head>
 <body>
-<div class="header">
-    <div class="header-left">
-        <span class="dashboard-title">Headteacher Portal</span>
-    </div>
-    <div class="header-right">
-        <div class="profile">
-            <span class="profile-name"><?php echo htmlspecialchars($_SESSION['name'] ?? 'Headteacher'); ?></span>
-            <img src="<?= BASE_URL ?>/static/images/user.png" alt="Profile">
-            <a href="<?= BASE_URL ?>/logout.php" class="logout-btn">Logout</a>
-        </div>
-    </div>
-</div>
+<?php include '../common/header.php'; ?>
 <div class="dashboard">
-    <div class="sidebar">
-        <a href="dashboard.php">Dashboard</a>
-        <a href="manage_students.php">Manage Students</a>
-        <a href="add_student.php">Add Student</a>
-        <a href="reports.php">Reports</a>
-        <a href="performance.php">Performance</a>
-        <a href="released_results.php">Final Results</a>
+<?php include '../common/sidebar.php'; ?>
+<div class="content">
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Student Management</h1>
+        <p class="stats-info"><?= $total ?> students · <?= $active ?> active</p>
     </div>
-    <div class="main-content">
-        <h2>Manage Students</h2>
-        <div class="card">
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Student Number</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if ($students): ?>
-                            <?php foreach ($students as $student): ?>
-                                <tr>
-                                    <td><?= $student['student_id']; ?></td>
-                                    <td><?= htmlspecialchars($student['name']); ?></td>
-                                    <td><?= htmlspecialchars($student['student_number']); ?></td>
-                                    <td><?= htmlspecialchars($student['status']); ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr><td colspan="4" style="text-align:center;">No students found.</td></tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    <a href="add_student.php" class="btn btn-dark">+ Add Student</a>
+</div>
+
+<form method="GET" class="search-form">
+    <input type="text" name="search" placeholder="Search name or exam number..." value="<?= htmlspecialchars($search) ?>">
+    <select name="class">
+        <option value="">All Classes</option>
+        <option value="Form 1" <?= $class_filter === 'Form 1' ? 'selected' : '' ?>>Form 1</option>
+        <option value="Form 2" <?= $class_filter === 'Form 2' ? 'selected' : '' ?>>Form 2</option>
+    </select>
+    <select name="status">
+        <option value="">All Status</option>
+        <option value="active" <?= $status_filter === 'active' ? 'selected' : '' ?>>Active</option>
+        <option value="inactive" <?= $status_filter === 'inactive' ? 'selected' : '' ?>>Inactive</option>
+    </select>
+    <button type="submit">Filter</button>
+</form>
+
+<div class="section">
+    <div class="table-container">
+        <table class="table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Exam Number</th>
+                    <th>Class</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if ($students): foreach ($students as $student): ?>
+                    <tr>
+                        <td>#<?= (int)$student['student_id'] ?></td>
+                        <td><strong><?= htmlspecialchars($student['name']) ?></strong></td>
+                        <td><?= htmlspecialchars($student['exam_number']) ?></td>
+                        <td><?= htmlspecialchars($student['class'] ?? '—') ?></td>
+                        <td><span class="badge badge-<?= $student['status'] === 'active' ? 'active' : 'inactive' ?>"><?= ucfirst($student['status']) ?></span></td>
+                        <td class="actions">
+                            <a href="released_results.php" class="btn btn-small btn-primary">Results</a>
+                        </td>
+                    </tr>
+                <?php endforeach; else: ?>
+                    <tr><td colspan="6" class="text-center">No students found.</td></tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
     </div>
 </div>
-<script src="<?= BASE_URL ?>/static/js/main.js"></script>
-</body>
-</html>
+
+</div>
+</div>
+<?php include '../common/footer.php'; ?>

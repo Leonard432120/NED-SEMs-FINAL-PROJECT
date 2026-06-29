@@ -105,15 +105,14 @@ if (in_array($page, $question_pages, true)) {
     }
 }
 
-$viewed_pages = array_intersect($question_pages, $_SESSION['exam_progress'][$exam_id]);
-$download_ready = count($viewed_pages) === count($question_pages);
+$download_ready = count($questions) > 0;
 
 /* ===============================
    7. DOWNLOAD FULL EXAM PDF
 ================================ */
 if ($action === 'download') {
-    if (!$download_ready) {
-        die("Please view all exam pages before downloading the full paper.");
+    if (count($questions) === 0) {
+        die("Please add questions before downloading the exam paper.");
     }
 
     require_once __DIR__ . '/../vendor/autoload.php';

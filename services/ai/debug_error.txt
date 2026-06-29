@@ -1,0 +1,303 @@
+2026-06-13 00:14:43
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe "C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT/services/ai/analyze_question.py" "C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT/services/ai/payload_6a2ca089bfc066.67393393.json" 2>"C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT/services/ai/run_stderr_6a2ca089bfc1f1.51782858.txt"
+JSON ERROR: Malformed UTF-8 characters, possibly incorrectly encoded
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 00:53:58
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe "C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py" "C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/payload_6a2ca9d75a37e3.71365281.json" 2>"C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/run_stderr_6a2ca9d75a3b11.29981704.txt"
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 00:55:39
+COMMAND: 
+JSON ERROR: python missing
+STDERR:
+Python executable not found on PATH
+--------------------------------------------------------------------------------
+2026-06-13 01:00:29
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:01:51
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:02:55
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:03:48
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:06:33
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:07:31
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:08:19
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:09:42
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:12:37
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:14:40
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:15:28
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:16:23
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:18:23
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:22:41
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:23:45
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:24:43
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:26:25
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:27:28
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:28:18
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:30:28
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:37:39
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:38:28
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-13 01:39:36
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-15 04:37:50
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-15 04:38:52
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-15 04:39:46
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-15 04:43:53
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-15 04:47:58
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+'[WinError 10054] An existing connection was forcibly closed by the remote host' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/adapter_config.json
+Retrying in 1s [Retry 1/5].
+
+--------------------------------------------------------------------------------
+2026-06-15 04:50:30
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+'[WinError 10054] An existing connection was forcibly closed by the remote host' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/adapter_config.json
+Retrying in 1s [Retry 1/5].
+
+--------------------------------------------------------------------------------
+2026-06-15 04:52:04
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-15 04:56:17
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-15 04:57:39
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-15 04:59:23
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-15 08:20:10
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe "C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT/services/ai/moderator_report.py" "C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT/services/ai/payload_6a2fb547c1fbf9.02568140.json" 2>"C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT/services/ai/run_stderr_6a2fb547c1ff28.87557806.txt"
+JSON ERROR: Malformed UTF-8 characters, possibly incorrectly encoded
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-15 08:20:53
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe "C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT/services/ai/moderator_report.py" "C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT/services/ai/payload_6a2fb592ace261.18137690.json" 2>"C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT/services/ai/run_stderr_6a2fb592ace322.20739334.txt"
+JSON ERROR: Malformed UTF-8 characters, possibly incorrectly encoded
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-15 09:00:20
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-15 09:01:17
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+'[Errno 11001] getaddrinfo failed' thrown while requesting HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/processor_config.json
+Retrying in 1s [Retry 1/5].
+
+--------------------------------------------------------------------------------
+2026-06-15 09:41:29
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+(empty)
+--------------------------------------------------------------------------------
+2026-06-15 09:42:39
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
+2026-06-26 15:52:08
+COMMAND: C:\Users\DOBA\AppData\Local\Programs\Python\Python314\python.exe C:\wamp64\www\NED-SEMs FINAL YEAR PROJECT\services\ai/analyze_question.py
+JSON ERROR: none
+STDERR:
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+--------------------------------------------------------------------------------
