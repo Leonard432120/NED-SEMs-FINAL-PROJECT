@@ -1,3 +1,119 @@
+<?php
+
+/* ==========================================
+   LANDING PAGE FOOTER
+========================================== */
+
+if (isset($landing_page) && $landing_page === true):
+?>
+
+<style>
+.footer.landing-footer {
+    background: var(--gov-navy, #0B2545);
+    color: #cbd5e1;
+    padding: 44px 0 20px;
+}
+
+.landing-footer .footer-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 40px;
+}
+
+.landing-footer .footer-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.landing-footer .footer-logo img { height: 40px; width: auto; }
+.landing-footer .footer-logo h3 { color: #ffffff; margin: 0; font-family: Georgia, serif; }
+
+.landing-footer .footer-desc {
+    color: #94a3b8;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.landing-footer .footer-col h4 {
+    color: #ffffff;
+    font-size: 14px;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.landing-footer .footer-col ul { list-style: none; padding: 0; margin: 0; }
+.landing-footer .footer-col ul li { margin-bottom: 8px; }
+.landing-footer .footer-col ul li a,
+.landing-footer .footer-col ul li {
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 14px;
+}
+.landing-footer .footer-col ul li a:hover { color: var(--gov-gold, #C9A227); }
+
+.landing-footer .footer-bottom {
+    border-top: 1px solid #1e3a5f;
+    margin-top: 32px;
+    padding-top: 18px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+@media (max-width: 768px) {
+    .landing-footer .footer-grid { grid-template-columns: 1fr; }
+}
+</style>
+
+<footer class="footer landing-footer">
+    <div class="landing-container">
+        <div class="footer-grid">
+            <div>
+                <div class="footer-logo">
+                    <img src="/NED-SEMs FINAL YEAR PROJECT/assets/images/logo.png" alt="NED-SEMS Logo">
+                    <h3>NED-SEMS</h3>
+                </div>
+                <p class="footer-desc">
+                    Northern Education Division Smart Examination Management System.
+                    Official examination coordination platform for the Division.
+                </p>
+            </div>
+
+            <div class="footer-col">
+                <h4>Access</h4>
+                <ul>
+                    <li><a href="/NED-SEMs FINAL YEAR PROJECT/login.php">Portal Login</a></li>
+                    <li><a href="/NED-SEMs FINAL YEAR PROJECT/forget_password.php">Forgot Password</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h4>Contact</h4>
+                <ul>
+                    <li><a href="mailto:support@ned-sems.gov.mw">support@ned-sems.gov.mw</a></li>
+                    <li>Mzuzu, Malawi</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <div>&copy; <?= date('Y') ?> NED-SEMS | Northern Education Division. All rights reserved.</div>
+            <div style="font-weight:600;color:#ffffff;">Ministry of Education, Malawi</div>
+        </div>
+    </div>
+</footer>
+
+<?php
+return;
+endif;
+?>
+
 <!-- ================= FOOTER ================= -->
 <footer class="footer">
 
@@ -151,7 +267,7 @@ document.addEventListener("DOMContentLoaded", function () {
     ========================================================= */
     const currentPage = window.location.pathname.split("/").pop();
 
-    document.querySelectorAll('.sidebar a[data-link]').forEach(link => {
+    document.querySelectorAll('.sidebar a').forEach(link => {
 
         const linkPage = link.getAttribute('href').split("/").pop();
 
@@ -354,6 +470,3 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 </script>
-
-</body>
-</html>

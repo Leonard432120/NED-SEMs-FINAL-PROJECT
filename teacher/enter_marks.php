@@ -6,21 +6,21 @@
 require_once __DIR__ . '/teacher_init.php';
 require_once __DIR__ . '/../common/grade_helper.php';
 
-$conn      = get_db_connection();
+$conn       = get_db_connection();
 $teacher_id = (int)$_SESSION['user_id'];
-$message   = '';
-$msg_type  = '';
+$message    = '';
+$msg_type   = '';
 
-/* ── EXAM ── */
+/* ── GET PARAMETERS ── */
 $exam_id    = (int)($_GET['exam_id'] ?? 0);
 $subject_id = (int)($_GET['subject_id'] ?? 0);
+$school_id  = (int)($_SESSION['school_id'] ?? 0);
 
-$school_id = (int)($_SESSION['school_id'] ?? 0);
-
-/* ── SECURITY CHECK: URL Manipulation ── */
-$is_assigned = false;
-$deadline = null;
+/* ── SECURITY CHECK ── */
+$is_assigned   = false;
+$deadline      = null;
 $override_lock = 0;
+
 if ($exam_id > 0 && $subject_id > 0) {
     $stmt = $conn->prepare("
         SELECT deadline, override_lock 
@@ -32,21 +32,20 @@ if ($exam_id > 0 && $subject_id > 0) {
     $res = $stmt->get_result();
     if ($res->num_rows > 0) {
         $is_assigned = true;
-        $assignment_data = $res->fetch_assoc();
-        $deadline = $assignment_data['deadline'];
-        $override_lock = (int)$assignment_data['override_lock'];
+        $data = $res->fetch_assoc();
+        $deadline = $data['deadline'];
+        $override_lock = (int)$data['override_lock'];
     }
     $stmt->close();
-    
+
     if (!$is_assigned) {
-        $message = "You are not assigned to enter marks for this subject in this exam at your school.";
+        $message = "You are not assigned to enter marks for this subject in this exam.";
         $msg_type = "error";
-        $exam_id = 0;
-        $subject_id = 0;
+        $exam_id = $subject_id = 0;
     }
 }
 
-/* ── FETCH EXAMS WHERE TEACHER HAS ASSIGNED SUBJECTS (Active, Draft, or Ready) ── */
+/* ── FETCH TEACHER'S EXAMS ── */
 $my_exams = $conn->query("
     SELECT DISTINCT e.exam_id, e.exam_name, e.class, e.status
     FROM exams e
@@ -57,8 +56,8 @@ $my_exams = $conn->query("
     ORDER BY e.exam_name
 ")->fetch_all(MYSQLI_ASSOC);
 
-/* ── FETCH ASSIGNED SUBJECTS FOR CHOSEN EXAM ── */
-$exam       = null;
+/* ── FETCH EXAM & SUBJECTS ── */
+$exam = null;
 $my_subjects = [];
 if ($exam_id > 0) {
     /* ── EXAM DETAILS ── */
@@ -68,15 +67,20 @@ if ($exam_id > 0) {
     $exam = $stmt->get_result()->fetch_assoc();
     $stmt->close();
     
-    if (!empty($exam['marks_deadline'])) {
+    // IMPORTANT: Prefer assignment deadline (per subject) over exam-level deadline
+    // Only use exam deadline if assignment doesn't have one
+    if (empty($deadline) && !empty($exam['marks_deadline'])) {
         $deadline = $exam['marks_deadline'];
     }
 
+
     $my_subjects = $conn->query("
-        SELECT DISTINCT es.id AS es_id, es.subject_id, s.subject_name, s.subject_code, es.total_marks, ma.deadline
+        SELECT DISTINCT es.id AS es_id, es.subject_id, s.subject_name, s.subject_code, 
+               es.total_marks, ma.deadline
         FROM exam_subjects es
         JOIN subjects s ON s.subject_id = es.subject_id
-        JOIN marking_assignments ma ON es.subject_id = ma.subject_id AND es.exam_id = ma.exam_id
+        JOIN marking_assignments ma ON es.subject_id = ma.subject_id 
+                                   AND es.exam_id = ma.exam_id
         WHERE es.exam_id = {$exam_id} 
           AND ma.teacher_id = {$teacher_id} 
           AND ma.school_id = {$school_id}
@@ -84,11 +88,13 @@ if ($exam_id > 0) {
     ")->fetch_all(MYSQLI_ASSOC);
 }
 
-/* ── STUDENTS FOR THIS EXAM CLASS ── */
+/* ── STUDENTS & EXISTING MARKS ── */
 $students = [];
 $marks_map = [];
 $subject_info = null;
-$submitted    = false;
+$submitted = false;
+$rejection_reason = '';
+$hours_remaining = 0;
 
 if ($exam_id > 0 && $subject_id > 0 && $exam) {
     $stmt = $conn->prepare("
@@ -102,38 +108,33 @@ if ($exam_id > 0 && $subject_id > 0 && $exam) {
     $subject_info = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    /* Fetch students of the exam's class from the teacher's school */
-    $school_id = (int)($_SESSION['school_id'] ?? 0);
+    // Fetch students
     $stmt = $conn->prepare("
-        SELECT st.student_id, st.name, st.exam_number, st.class,
-               sc.school_name
+        SELECT st.student_id, st.name, st.exam_number, st.class, sc.school_name
         FROM students st
         LEFT JOIN schools sc ON sc.school_id = st.school_id
         WHERE st.class = ? AND st.status = 'active' AND st.school_id = ?
-        ORDER BY sc.school_name, st.name
+        ORDER BY st.name
     ");
     $stmt->bind_param("si", $exam['class'], $school_id);
     $stmt->execute();
     $students = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
 
-    /* Existing marks for this exam+subject by this teacher */
+    // Existing marks
     $m = $conn->query("
         SELECT student_id, score, grade, status, notes, submitted_at
         FROM marks
-        WHERE exam_id = {$exam_id} AND subject_id = {$subject_id} AND teacher_id = {$teacher_id}
+        WHERE exam_id = {$exam_id} AND subject_id = {$subject_id} 
+          AND teacher_id = {$teacher_id}
     ");
     while ($row = $m->fetch_assoc()) {
         $marks_map[$row['student_id']] = $row;
     }
 
-    /* Check if already submitted */
-    $rejection_reason = '';
-    $hours_remaining = 0;
+    // Check submitted status
     if (!empty($marks_map)) {
         $first = reset($marks_map);
-        $submitted = false;
-        
         if ($first['status'] === 'approved') {
             $submitted = true;
         } elseif ($first['status'] === 'submitted') {
@@ -159,40 +160,33 @@ if ($exam_id > 0 && $subject_id > 0 && $exam) {
 }
 
 /* ══════════════════════════════════
-   POST — Save draft OR Submit
+   POST — Save Draft or Submit
    ══════════════════════════════════ */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $exam_id > 0 && $subject_id > 0) {
-    $action     = trim($_POST['form_action'] ?? 'save');
-    $new_status = ($action === 'submit') ? 'submitted' : 'draft';
+    $action      = trim($_POST['form_action'] ?? 'save');
+    $new_status  = ($action === 'submit') ? 'submitted' : 'draft';
     $total_marks = (int)($subject_info['total_marks'] ?? 100);
 
-    $is_past_deadline = false;
-    if ($deadline && strtotime($deadline) < strtotime(date('Y-m-d'))) {
-        $is_past_deadline = true;
-    }
+    $is_past_deadline = $deadline && strtotime($deadline) < strtotime(date('Y-m-d'));
     $is_locked = $is_past_deadline && ($override_lock === 0);
 
     if ($is_locked) {
-        $message = "This marking assignment has been locked because the deadline has passed. Please contact the Headteacher to request an unlock.";
+        $message = "This marking assignment has been locked because the deadline has passed. Please contact the Headteacher.";
         $msg_type = "error";
     } elseif ($submitted && $action !== 'save') {
         $message  = 'Marks already submitted. Contact the Examination Officer to unlock.';
         $msg_type = 'error';
-    } elseif ($is_past_deadline && $action === 'submit') {
-        $message  = 'Submission deadline has passed. You can only save draft marks.';
-        $msg_type = 'error';
     } else {
-        $errors = 0;
+        // Process marks
         foreach ($_POST['marks'] as $sid => $score_raw) {
             $sid   = (int)$sid;
             $score = trim($score_raw);
             if ($score === '') continue;
+
             $score = max(0, min((float)$score, $total_marks));
             $grade = calcGrade(($score / $total_marks) * 100);
-
             $now   = date('Y-m-d H:i:s');
 
-            /* Upsert */
             $chk = $conn->prepare("SELECT mark_id, status, submitted_at FROM marks WHERE exam_id=? AND subject_id=? AND student_id=?");
             $chk->bind_param("iii", $exam_id, $subject_id, $sid);
             $chk->execute();
@@ -200,19 +194,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $exam_id > 0 && $subject_id > 0) {
             $chk->close();
 
             if ($existing) {
-                if ($existing['status'] === 'approved') continue; // locked
-                if ($existing['status'] === 'submitted' && (empty($existing['submitted_at']) || strtotime($existing['submitted_at']) <= strtotime('-1 day'))) continue; // locked
+                if ($existing['status'] === 'approved') continue;
                 
                 $upd = $conn->prepare("UPDATE marks SET score=?, grade=?, status=?, submitted_at=?, submission_status='submitted', notes=NULL WHERE mark_id=?");
-                
-                // If it's being submitted, either keep the old timestamp or start a new 24h window
-                $submitted_at = null;
-                if ($new_status === 'submitted') {
-                    $submitted_at = !empty($existing['submitted_at']) ? $existing['submitted_at'] : $now;
-                }
-                
+                $submitted_at = ($new_status === 'submitted') ? (!empty($existing['submitted_at']) ? $existing['submitted_at'] : $now) : null;
                 $upd->bind_param("dsssi", $score, $grade, $new_status, $submitted_at, $existing['mark_id']);
-                $upd->execute(); $upd->close();
+                $upd->execute();
+                $upd->close();
             } else {
                 $submitted_at = ($new_status === 'submitted') ? $now : null;
                 $ins = $conn->prepare("
@@ -220,22 +208,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $exam_id > 0 && $subject_id > 0) {
                                        submission_status, submitted_by, submitted_at, created_at)
                     VALUES (?,?,?,?,?,?,?,'submitted',?,?,NOW())
                 ");
-                $ins->bind_param("iiiidssss", $sid, $exam_id, $subject_id, $teacher_id,
-                                  $score, $grade, $new_status, $teacher_id, $submitted_at);
-                $ins->execute(); $ins->close();
+                $ins->bind_param("iiiidssss", $sid, $exam_id, $subject_id, $teacher_id, $score, $grade, $new_status, $teacher_id, $submitted_at);
+                $ins->execute();
+                $ins->close();
             }
         }
 
-        $message  = $action === 'submit'
-            ? 'Marks submitted successfully. They are now locked for review.'
-            : 'Draft marks saved successfully.';
+        // Success Message
+        if ($action === 'submit') {
+            $message = $is_past_deadline 
+                ? 'Marks submitted late successfully. They are now pending review.' 
+                : 'Marks submitted successfully. They are now locked for review.';
+        } else {
+            $message = 'Draft marks saved successfully.';
+        }
+
         $msg_type = 'success';
-        /* Reload to reflect new state */
         header("Location: enter_marks.php?exam_id={$exam_id}&subject_id={$subject_id}&msg=" . urlencode($message));
         exit();
     }
 }
 
+/* ── LATE SUBMISSION WARNING FLAG ── */
+$show_late_warning = false;
+if ($exam_id > 0 && $subject_id > 0 && !empty($deadline)) {
+    $is_past = strtotime($deadline) < strtotime(date('Y-m-d'));
+    if ($is_past && $override_lock == 1) {
+        $show_late_warning = true;
+    }
+}
+
+/* Get message from URL */
 if (!empty($_GET['msg'])) {
     $message  = htmlspecialchars($_GET['msg']);
     $msg_type = 'success';
@@ -286,6 +289,15 @@ include __DIR__ . '/../common/head_assets.php';
 
 <?php if ($message): ?>
 <div class="alert alert-<?= $msg_type ?>"><?= $message ?></div>
+<?php endif; ?>
+
+<?php if ($show_late_warning): ?>
+<div class="alert alert-danger" style="margin-top:15px; border:2px solid #991b1b; background:#fee2e2; color:#991b1b;">
+    <strong>LATE SUBMISSION DETECTED!</strong><br><br>
+    You have submitted marks after the deadline.<br>
+    <strong>You MUST meet the Headteacher personally</strong> to explain the reason for the delay.<br>
+    Failure to do so may result in your marks being rejected or not received.
+</div>
 <?php endif; ?>
 
 <!-- STEP 1 — Select Exam -->

@@ -132,12 +132,11 @@ $status        = ucfirst($result['status'] ?? 'draft');
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Report Card — <?= $student_name ?> | NED-SEMS</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
+
 <style>
 /* ─── Reset ─── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Inter', sans-serif; background: #0f172a; color: #1e293b; min-height: 100vh; }
+body { font-family: "Segoe UI", Tahoma, Verdana, sans-serif; background: #0f172a; color: #1e293b; min-height: 100vh; }
 
 /* ─── Toolbar (screen only) ─── */
 .toolbar {

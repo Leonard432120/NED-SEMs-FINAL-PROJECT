@@ -116,9 +116,7 @@ $conn->close();
         <!-- ================= WELL ALIGNED STAT CARDS ================= -->
         <div class="stats">
             <div class="stat-box">
-                <div class="stat-badge">
-                    <img src="../static/icons/school.png" alt="Schools">
-                </div>
+                
                 <h4>Schools</h4>
                 <p class="stat-number"><?= number_format($total_schools) ?></p>
                 <small><?= number_format($active_schools) ?> Active • <?= number_format($total_schools - $active_schools) ?> Inactive</small>
@@ -126,9 +124,7 @@ $conn->close();
             </div>
 
             <div class="stat-box">
-                <div class="stat-badge">
-                    <img src="../static/icons/users.png" alt="Users">
-                </div>
+                
                 <h4>Total Users</h4>
                 <p class="stat-number"><?= number_format($total_users) ?></p>
                 <small><?= $male_users ?> Male • <?= $female_users ?> Female</small>
@@ -136,9 +132,7 @@ $conn->close();
             </div>
 
             <div class="stat-box">
-                <div class="stat-badge">
-                    <img src="../static/icons/teacher.png" alt="Teachers">
-                </div>
+                
                 <h4>Teachers</h4>
                 <p class="stat-number"><?= number_format($teachers) ?></p>
                 <small>Active Teaching Staff</small>
@@ -146,25 +140,12 @@ $conn->close();
             </div>
 
             <div class="stat-box">
-                <div class="stat-badge">
-                    <img src="../static/icons/graduation-cap.png" alt="Students">
-                </div>
+                
                 <h4>Students</h4>
                 <p class="stat-number"><?= number_format($students) ?></p>
                 <small>Enrolled Learners</small>
                 <a href="manage_users.php" class="btn btn-small btn-view">View</a>
-            </div>
-
-            <div class="stat-box">
-                <div class="stat-badge">
-                    <img src="../static/icons/exam.png" alt="Exams">
-                </div>
-                <h4>Total Exams</h4>
-                <p class="stat-number"><?= number_format($total_exams) ?></p>
-                <small><?= $published_exams ?> Published • <?= $draft_exams ?> Draft</small>
-                <a href="manage_exams.php" class="btn btn-small btn-view">View</a>
-            </div>
-            
+            </div>            
         </div>
 
         <!-- Quick Actions -->
@@ -173,8 +154,8 @@ $conn->close();
             <div class="quick-links">
                 <a href="add_user.php">+ Add User</a>
                 <a href="add_school.php">+ Add School</a>
-                <a href="create_exam.php">+ Create Exam</a>
-                <a href="assign_subject.php">+ Assign Teachers</a>
+                <a href="add_exam.php">+ Create Exam</a>
+                <a href="assign.php">+ Assign Teachers</a>
             </div>
         </div>
 

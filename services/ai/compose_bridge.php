@@ -329,38 +329,15 @@ if (!function_exists('analyze_question_for_teacher')) {
 // PERMISSION CHECK
 // ─────────────────────────────────────────────────────────────────────────────
 if (!function_exists('compose_teacher_can_write_exam')) {
-    function compose_teacher_can_write_exam($conn, int $exam_id, int $user_id): bool {
-        // Primary check: subject_assignments with item_writer role
-        $stmt = $conn->prepare("
-            SELECT 1
-            FROM subject_assignments sa
-            INNER JOIN exam_subjects es ON sa.subject_id = es.subject_id
-            WHERE es.exam_id = ?
-              AND sa.teacher_id = ?
-              AND sa.role = 'item_writer'
-            LIMIT 1
-        ");
-        if ($stmt) {
-            $stmt->bind_param('ii', $exam_id, $user_id);
-            $stmt->execute();
-            $allowed = $stmt->get_result()->num_rows > 0;
-            $stmt->close();
-            if ($allowed) return true;
-        }
-
-        // Fallback: check if teacher created ANY question for this exam
-        $stmt2 = $conn->prepare("
-            SELECT 1 FROM questions WHERE exam_id = ? AND created_by = ? LIMIT 1
-        ");
-        if ($stmt2) {
-            $stmt2->bind_param('ii', $exam_id, $user_id);
-            $stmt2->execute();
-            $allowed = $stmt2->get_result()->num_rows > 0;
-            $stmt2->close();
-            if ($allowed) return true;
-        }
-
-        // Admin/headteacher override: check user role
+    /**
+     * Check if a teacher/admin can write questions for this exam+subject combination.
+     * @param $conn  DB connection
+     * @param int $exam_id  The exam ID
+     * @param int $user_id  The user attempting access
+     * @param int $subject_id  The subject ID (0 = any subject in this exam)
+     */
+    function compose_teacher_can_write_exam($conn, int $exam_id, int $user_id, int $subject_id = 0): bool {
+        // Admin/headteacher/exam_officer override
         $stmt3 = $conn->prepare("SELECT role FROM users WHERE user_id = ? LIMIT 1");
         if ($stmt3) {
             $stmt3->bind_param('i', $user_id);
@@ -369,6 +346,61 @@ if (!function_exists('compose_teacher_can_write_exam')) {
             $stmt3->close();
             if ($row && in_array($row['role'], ['admin', 'headteacher', 'examination_officer'])) {
                 return true;
+            }
+        }
+
+        // Primary check: subject_assignments with item_writer role scoped to subject
+        if ($subject_id > 0) {
+            $stmt = $conn->prepare("
+                SELECT 1
+                FROM subject_assignments sa
+                INNER JOIN exam_subjects es ON sa.subject_id = es.subject_id
+                WHERE es.exam_id = ?
+                  AND es.subject_id = ?
+                  AND sa.teacher_id = ?
+                  AND sa.role = 'item_writer'
+                LIMIT 1
+            ");
+            if ($stmt) {
+                $stmt->bind_param('iii', $exam_id, $subject_id, $user_id);
+                $stmt->execute();
+                $allowed = $stmt->get_result()->num_rows > 0;
+                $stmt->close();
+                if ($allowed) return true;
+            }
+        } else {
+            // Any subject in this exam
+            $stmt = $conn->prepare("
+                SELECT 1
+                FROM subject_assignments sa
+                INNER JOIN exam_subjects es ON sa.subject_id = es.subject_id
+                WHERE es.exam_id = ?
+                  AND sa.teacher_id = ?
+                  AND sa.role = 'item_writer'
+                LIMIT 1
+            ");
+            if ($stmt) {
+                $stmt->bind_param('ii', $exam_id, $user_id);
+                $stmt->execute();
+                $allowed = $stmt->get_result()->num_rows > 0;
+                $stmt->close();
+                if ($allowed) return true;
+            }
+        }
+
+        // Fallback: check if teacher created ANY question for this exam+subject
+        if ($subject_id > 0) {
+            $stmt2 = $conn->prepare("
+                SELECT 1 FROM questions q
+                JOIN exam_subjects es ON q.exam_subject_id = es.id
+                WHERE es.exam_id = ? AND es.subject_id = ? AND q.created_by = ? LIMIT 1
+            ");
+            if ($stmt2) {
+                $stmt2->bind_param('iii', $exam_id, $subject_id, $user_id);
+                $stmt2->execute();
+                $allowed = $stmt2->get_result()->num_rows > 0;
+                $stmt2->close();
+                if ($allowed) return true;
             }
         }
 
@@ -411,31 +443,59 @@ if (!function_exists('ensure_question_ai_columns')) {
 // BUILD AI MAP — for page load (shows existing AI data per question)
 // ─────────────────────────────────────────────────────────────────────────────
 if (!function_exists('compose_build_ai_map')) {
-    function compose_build_ai_map($conn, array $questions, int $exam_id): array {
+    /**
+     * Build an AI analysis map for a list of questions.
+     * Pass exam_subject_id for subject-scoped caching lookups.
+     */
+    function compose_build_ai_map($conn, array $questions, int $exam_id, int $exam_subject_id = 0): array {
         $ai_map = [];
         if (empty($questions)) return $ai_map;
 
-        // Load cached analysis from DB
+        // Load cached analysis from DB — prefer subject-scoped cache
         $cached = [];
-        $stmt = $conn->prepare("
-            SELECT question_id, feedback
-            FROM ai_analysis
-            WHERE exam_id = ?
-              AND analysis_type = 'question_compose'
-              AND status = 'completed'
-            ORDER BY analysis_id DESC
-        ");
-        if ($stmt) {
-            $stmt->bind_param('i', $exam_id);
-            $stmt->execute();
-            $res = $stmt->get_result();
-            while ($row = $res->fetch_assoc()) {
-                $qid = (int)$row['question_id'];
-                if (!isset($cached[$qid])) {
-                    $cached[$qid] = $row['feedback'];
+        if ($exam_subject_id > 0) {
+            $stmt = $conn->prepare("
+                SELECT aa.question_id, aa.feedback
+                FROM ai_analysis aa
+                JOIN questions q ON aa.question_id = q.question_id
+                WHERE q.exam_subject_id = ?
+                  AND aa.analysis_type = 'question_compose'
+                  AND aa.status = 'completed'
+                ORDER BY aa.analysis_id DESC
+            ");
+            if ($stmt) {
+                $stmt->bind_param('i', $exam_subject_id);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                while ($row = $res->fetch_assoc()) {
+                    $qid = (int)$row['question_id'];
+                    if (!isset($cached[$qid])) {
+                        $cached[$qid] = $row['feedback'];
+                    }
                 }
+                $stmt->close();
             }
-            $stmt->close();
+        } else {
+            $stmt = $conn->prepare("
+                SELECT question_id, feedback
+                FROM ai_analysis
+                WHERE exam_id = ?
+                  AND analysis_type = 'question_compose'
+                  AND status = 'completed'
+                ORDER BY analysis_id DESC
+            ");
+            if ($stmt) {
+                $stmt->bind_param('i', $exam_id);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                while ($row = $res->fetch_assoc()) {
+                    $qid = (int)$row['question_id'];
+                    if (!isset($cached[$qid])) {
+                        $cached[$qid] = $row['feedback'];
+                    }
+                }
+                $stmt->close();
+            }
         }
 
         foreach ($questions as $q) {
@@ -477,24 +537,46 @@ if (!function_exists('compose_build_ai_map')) {
 // ─────────────────────────────────────────────────────────────────────────────
 if (!function_exists('compose_save_question')) {
     function compose_save_question($conn, int $user_id, array $post, array $ai_data): array {
-        $exam_id       = (int)($post['exam_id']      ?? 0);
-        $question_id   = (int)($post['question_id']  ?? 0);
-        $question_text = trim($post['question_text'] ?? '');
-        $marks         = (int)($post['marks']        ?? 0);
-        $section_name  = trim($post['section_name']  ?? 'Section A');
-        $order         = (int)($post['order']        ?? 1);
-        $option_a      = trim($post['option_a']      ?? '');
-        $option_b      = trim($post['option_b']      ?? '');
-        $option_c      = trim($post['option_c']      ?? '');
-        $option_d      = trim($post['option_d']      ?? '');
-        $correct_opt   = trim($post['correct_option'] ?? '');
+        $exam_id          = (int)($post['exam_id']        ?? 0);
+        $subject_id       = (int)($post['subject_id']     ?? 0);
+        $exam_subject_id  = (int)($post['exam_subject_id'] ?? 0);
+        $question_id      = (int)($post['question_id']    ?? 0);
+        $question_text    = trim($post['question_text']   ?? '');
+        $marks            = (int)($post['marks']          ?? 0);
+        $section_name     = trim($post['section_name']    ?? 'Section A');
+        $order            = (int)($post['order']          ?? 1);
+        $option_a         = trim($post['option_a']        ?? '');
+        $option_b         = trim($post['option_b']        ?? '');
+        $option_c         = trim($post['option_c']        ?? '');
+        $option_d         = trim($post['option_d']        ?? '');
+        $correct_opt      = trim($post['correct_option']  ?? '');
 
         if (!$exam_id || !$question_text || $marks <= 0) {
-            return ['success' => false, 'error' => 'Invalid input — check all required fields.'];
+            return ['success' => false, 'error' => 'Invalid input — exam, question text, and marks are required.'];
         }
 
-        if (!compose_teacher_can_write_exam($conn, $exam_id, $user_id)) {
-            return ['success' => false, 'error' => 'Access denied. You are not assigned as item writer for this exam.'];
+        // Resolve exam_subject_id if not provided
+        if ($exam_subject_id <= 0 && $subject_id > 0) {
+            $esq = $conn->prepare("
+                SELECT id FROM exam_subjects WHERE exam_id = ? AND subject_id = ? LIMIT 1
+            ");
+            if ($esq) {
+                $esq->bind_param('ii', $exam_id, $subject_id);
+                $esq->execute();
+                $esr = $esq->get_result()->fetch_assoc();
+                $esq->close();
+                if ($esr) {
+                    $exam_subject_id = (int)$esr['id'];
+                }
+            }
+        }
+
+        if ($exam_subject_id <= 0) {
+            return ['success' => false, 'error' => 'Subject not selected. Please select a subject before saving a question.'];
+        }
+
+        if (!compose_teacher_can_write_exam($conn, $exam_id, $user_id, $subject_id)) {
+            return ['success' => false, 'error' => 'Access denied. You are not assigned as item writer for this subject.'];
         }
 
         ensure_question_ai_columns($conn);
@@ -502,8 +584,8 @@ if (!function_exists('compose_save_question')) {
         // Run AI if we don't have fresh data
         if (empty($ai_data) || !isset($ai_data['quality_score'])) {
             $existing = [];
-            $chk = $conn->prepare('SELECT question_text FROM questions WHERE exam_id = ? AND question_id != ?');
-            $chk->bind_param('ii', $exam_id, $question_id);
+            $chk = $conn->prepare('SELECT question_text FROM questions WHERE exam_subject_id = ? AND question_id != ?');
+            $chk->bind_param('ii', $exam_subject_id, $question_id);
             $chk->execute();
             $chkRes = $chk->get_result();
             while ($row = $chkRes->fetch_assoc()) $existing[] = $row['question_text'];
@@ -543,15 +625,18 @@ if (!function_exists('compose_save_question')) {
 
         // INSERT or UPDATE
         if ($question_id > 0) {
-            // Verify it belongs to this exam
-            $chk = $conn->prepare('SELECT question_id FROM questions WHERE question_id = ? AND exam_id = ?');
-            $chk->bind_param('ii', $question_id, $exam_id);
+            // Verify it belongs to this exam+subject and is not already approved (locked)
+            $chk = $conn->prepare('SELECT question_id, moderation_status FROM questions WHERE question_id = ? AND exam_subject_id = ?');
+            $chk->bind_param('ii', $question_id, $exam_subject_id);
             $chk->execute();
-            if ($chk->get_result()->num_rows === 0) {
-                $chk->close();
-                return ['success' => false, 'error' => 'Question not found for this exam.'];
-            }
+            $chkRow = $chk->get_result()->fetch_assoc();
             $chk->close();
+            if (!$chkRow) {
+                return ['success' => false, 'error' => 'Question not found for this subject.'];
+            }
+            if (($chkRow['moderation_status'] ?? '') === 'approved') {
+                return ['success' => false, 'error' => 'This question has been approved by the moderator and is locked. It cannot be edited.', 'locked' => true];
+            }
 
             $stmt = $conn->prepare("
                 UPDATE questions SET
@@ -562,7 +647,7 @@ if (!function_exists('compose_save_question')) {
                     ai_recommendations = ?, ai_topic = ?,
                     ai_quality_score = ?, ai_analysis_date = ?,
                     moderation_status = ?, moderator_comment = ?
-                WHERE question_id = ? AND exam_id = ?
+                WHERE question_id = ? AND exam_subject_id = ?
             ");
             $stmt->bind_param(
                 'isissssssdssssdsssii',
@@ -573,21 +658,21 @@ if (!function_exists('compose_save_question')) {
                 $ai_recs, $ai_topic,
                 $ai_quality, $ai_date,
                 $mod_status, $mod_comment,
-                $question_id, $exam_id
+                $question_id, $exam_subject_id
             );
         } else {
             $stmt = $conn->prepare("
                 INSERT INTO questions (
-                    exam_id, question_order, question_text, marks, created_by,
+                    exam_id, exam_subject_id, question_order, question_text, marks, created_by,
                     section_name, question_type, option_a, option_b, option_c, option_d,
                     correct_option, ai_score, ai_difficulty, ai_cognitive_level,
                     ai_recommendations, ai_topic, ai_quality_score, ai_analysis_date,
                     moderation_status, moderator_comment
-                ) VALUES (?, ?, ?, ?, ?, ?, 'structured', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'structured', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->bind_param(
-                'iisisssssssdssssdsss',
-                $exam_id, $order, $question_text, $marks, $user_id,
+                'iiiiisssssssdssssdsss',
+                $exam_id, $exam_subject_id, $order, $question_text, $marks, $user_id,
                 $section_name, $option_a, $option_b, $option_c, $option_d,
                 $correct_opt, $ai_score, $ai_diff, $ai_cognitive,
                 $ai_recs, $ai_topic, $ai_quality, $ai_date,

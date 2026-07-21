@@ -21,4 +21,6 @@ function get_db_connection() {
 
     return $conn;
 }
+
+require_once __DIR__ . '/audit_helper.php';
 ?>

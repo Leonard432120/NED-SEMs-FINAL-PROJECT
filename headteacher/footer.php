@@ -70,7 +70,7 @@
 
         const currentPage = window.location.pathname.split("/").pop();
 
-        document.querySelectorAll('.sidebar a[data-link]').forEach(link => {
+        document.querySelectorAll('.sidebar a').forEach(link => {
             const linkPage = link.getAttribute('href').split("/").pop();
             if (currentPage === linkPage) {
                 link.classList.add('active');

@@ -9,170 +9,218 @@ if (isset($landing_page) && $landing_page === true):
 
 <style>
 /* ==========================================
-   LANDING PAGE HEADER
+   NED-SEMS LANDING HEADER
+   Forest + Ochre Theme
 ========================================== */
 
 .header.landing-header {
-    background: linear-gradient(to right, #1f2937, #334155);
-    padding: 14px 30px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+
+    background: white;
+
+    border-bottom: 3px solid #3e2ce0;
+
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+
 }
 
-.header.landing-header .header-left,
-.header.landing-header .header-right {
-    display: flex;
-    align-items: center;
+
+.header.landing-header .header-inner {
+
+    width:100%;
+
+    padding:18px 35px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
 }
+
+
+
+/* LOGO */
 
 .logo-section {
-    display: flex;
-    align-items: center;
-    gap: 14px;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:15px;
+
 }
+
 
 .logo-section img {
-    height: 60px;
-    width: auto;
-    object-fit: contain;
+
+    height:55px;
+
+    width:auto;
+
 }
+
+
 
 .logo-text h1 {
-    margin: 0;
-    font-size: 1.6rem;
-    font-weight: 800;
-    color: #ffffff;
-    line-height: 1;
+
+    margin:0;
+
+    font-family:'Space Grotesk',sans-serif;
+
+    font-size:1.45rem;
+
+    font-weight:700;
+
+    color:black;
+
 }
+
+
 
 .logo-text p {
-    margin: 4px 0 0;
-    font-size: 0.78rem;
-    color: #cbd5e1;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 600;
+
+    margin-top:5px;
+
+    font-size:0.75rem;
+
+    color:#E0932C;
+
+    letter-spacing:1.5px;
+
+    text-transform:uppercase;
+
+    font-weight:600;
+
 }
+
+
+
+/* NAVIGATION */
+
 
 .landing-nav {
-    display: flex;
-    align-items: center;
-    gap: 28px;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:35px;
+
 }
+
+
 
 .landing-nav a {
-    color: #e2e8f0;
-    text-decoration: none;
-    font-size: 0.95rem;
-    font-weight: 600;
-    transition: all 0.25s ease;
-    position: relative;
+
+    color:#FAF7F2;
+
+    font-family:'Space Grotesk',sans-serif;
+
+    font-size:15px;
+
+    font-weight:500;
+
+    text-decoration:none;
+
+    transition:0.3s;
+
 }
 
-.landing-nav a:not(.quick-btn)::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    bottom: -6px;
-    width: 0;
-    height: 2px;
-    background: #60a5fa;
-    transition: width 0.25s ease;
-}
 
-.landing-nav a:not(.quick-btn):hover::after {
-    width: 100%;
-}
 
 .landing-nav a:hover {
-    color: #ffffff;
+
+    color:#E0932C;
+
 }
+
+
+
+
+/* LOGIN BUTTON */
+
 
 .landing-nav .quick-btn {
-    background: #3b82f6;
-    color: #fff;
-    padding: 10px 22px;
-    border-radius: 8px;
-    font-weight: 700;
-    box-shadow: 0 4px 12px rgba(59,130,246,0.25);
+
+    background:#E0932C;
+
+    color:#1B1B1B;
+
+    padding:12px 26px;
+
+    border-radius:6px;
+
+    font-weight:700;
+
 }
+
+
 
 .landing-nav .quick-btn:hover {
-    background: #2563eb;
-    transform: translateY(-2px);
+
+    background:#F2B84B;
+
+    color:#000;
+
+    transform:translateY(-2px);
+
 }
 
-@media (max-width: 992px) {
 
-    .header.landing-header {
-        flex-direction: column;
-        gap: 16px;
-    }
 
-    .landing-nav {
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 16px;
-    }
+/* MOBILE */
+
+@media(max-width:768px){
+
+.header-inner{
+
+    flex-direction:column;
+
 }
 
-@media (max-width: 768px) {
+.landing-nav{
 
-    .logo-section img {
-        height: 50px;
-    }
+    flex-wrap:wrap;
 
-    .logo-text h1 {
-        font-size: 1.25rem;
-    }
+    justify-content:center;
 
-    .logo-text p {
-        font-size: 0.68rem;
-    }
+}
 
-    .landing-nav a {
-        font-size: 0.85rem;
-    }
-
-    .landing-nav .quick-btn {
-        padding: 8px 16px;
-    }
 }
 </style>
 
 <header class="header landing-header">
-
-    <div class="header-left">
+    <div class="header-inner">
 
         <div class="logo-section">
 
             <img
-                src="/NED-SEMs FINAL YEAR PROJECT/assets/images/logo.png"
+                src="/NED-SEMs FINAL YEAR PROJECT/assets/images/logo1.png"
                 alt="NED-SEMS">
 
             <div class="logo-text">
                 <h1>NED-SEMS</h1>
-                <p>SMART EXAMINATION SYSTEM</p>
+                <p>Northern Education Division</p>
             </div>
 
         </div>
 
-    </div>
-
-    <div class="header-right">
-
         <nav class="landing-nav">
 
-            <a href="#features">Features</a>
+            <a href="#about">About</a>
+            <a href="#mock">Mock Exams</a>
+            <a href="#features">Who It's For</a>
 
             <a href="/NED-SEMs FINAL YEAR PROJECT/login.php"
                class="quick-btn">
-                Login
+                Login to Portal
             </a>
 
         </nav>
 
     </div>
-
 </header>
 
 <?php

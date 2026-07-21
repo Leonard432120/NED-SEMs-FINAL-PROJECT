@@ -60,60 +60,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $school_id > 0) {
                 $log->close();
             }
         }
-    }
-
+    }   
     /* Mark as received (per subject+exam batch) */
-    if ($act === 'receive') {
-        $eid = (int)$_POST['exam_id'];
-        $sid = (int)$_POST['subject_id'];
-        $now = date('Y-m-d H:i:s');
-        $u = $conn->prepare("
-            UPDATE marks m
-            JOIN students st ON st.student_id = m.student_id
-            SET m.submission_status = 'received', m.received_by = ?, m.received_at = ?
-            WHERE m.exam_id = ? AND m.subject_id = ? AND st.school_id = ?
-              AND m.status = 'submitted' AND m.submission_status = 'submitted'
-        ");
-        $u->bind_param("isiii", $eo_id, $now, $eid, $sid, $school_id);
-        $u->execute(); $u->close();
-        $message = 'Marks marked as received.'; $msg_type = 'success';
-        
-        // Audit log
-        $action_name = "receive_marks";
-        $details = "Received submitted marks for Exam ID {$eid}, Subject ID {$sid}";
-        $target_user = null;
-        $ip_address = $_SERVER['REMOTE_ADDR'] ?? '::1';
-        $log = $conn->prepare("INSERT INTO audit_logs (user_id, target_user_id, action, details, ip_address) VALUES (?, ?, ?, ?, ?)");
-        $log->bind_param("iisss", $eo_id, $target_user, $action_name, $details, $ip_address);
-        $log->execute();
-        $log->close();
-    }
+          if ($act === 'receive') {
+            $eid = (int)$_POST['exam_id'];
+            $sid = (int)$_POST['subject_id'];
+            $now = date('Y-m-d H:i:s');
+            
+            $u = $conn->prepare("
+                UPDATE marks m
+                JOIN students st ON st.student_id = m.student_id
+                SET m.submission_status = 'received', 
+                    m.status = 'approved',
+                    m.received_by = ?, 
+                    m.received_at = ?
+                WHERE m.exam_id = ? 
+                AND m.subject_id = ? 
+                AND st.school_id = ?
+                AND (
+                    m.status = 'submitted' 
+                    OR (m.status = 'draft' AND m.submission_status = 'submitted')
+                )
+            ");
+            $u->bind_param("isiii", $eo_id, $now, $eid, $sid, $school_id);
+            $u->execute(); 
+            $u->close();
+            
+            $message = 'Marks marked as Received and Approved successfully.'; 
+            $msg_type = 'success';
+            
+            // Audit log
+            $action_name = "receive_and_approve_marks";
+            $details = "Received and auto-approved marks for Exam ID {$eid}, Subject ID {$sid}";
+            $target_user = null;
+            $ip_address = $_SERVER['REMOTE_ADDR'] ?? '::1';
+            $log = $conn->prepare("INSERT INTO audit_logs (user_id, target_user_id, action, details, ip_address) VALUES (?, ?, ?, ?, ?)");
+            $log->bind_param("iisss", $eo_id, $target_user, $action_name, $details, $ip_address);
+            $log->execute();
+            $log->close();
+        }
 
     /* Forward to Headteacher */
-    if ($act === 'forward') {
-        $eid = (int)$_POST['exam_id'];
-        $sid = (int)$_POST['subject_id'];
-        $u = $conn->prepare("
-            UPDATE marks m
-            JOIN students st ON st.student_id = m.student_id
-            SET m.submission_status = 'forwarded_to_edm'
-            WHERE m.exam_id = ? AND m.subject_id = ? AND st.school_id = ?
-              AND m.status = 'submitted'
-        ");
-        $u->bind_param("iii", $eid, $sid, $school_id);
-        $u->execute(); $u->close();
-        $message = 'Marks forwarded to Headteacher for approval.'; $msg_type = 'success';
-        
-        // Audit log
-        $action_name = "forward_marks";
-        $details = "Forwarded marks for Exam ID {$eid}, Subject ID {$sid} to Headteacher";
-        $target_user = null;
-        $ip_address = $_SERVER['REMOTE_ADDR'] ?? '::1';
-        $log = $conn->prepare("INSERT INTO audit_logs (user_id, target_user_id, action, details, ip_address) VALUES (?, ?, ?, ?, ?)");
-        $log->bind_param("iisss", $eo_id, $target_user, $action_name, $details, $ip_address);
-        $log->execute();
-        $log->close();
-    }
+     
+        if ($act === 'forward') {
+            $eid = (int)$_POST['exam_id'];
+            $sid = (int)$_POST['subject_id'];
+            
+            $u = $conn->prepare("
+                UPDATE marks m
+                JOIN students st ON st.student_id = m.student_id
+                SET m.submission_status = 'forwarded_to_edm'
+                WHERE m.exam_id = ? 
+                AND m.subject_id = ? 
+                AND st.school_id = ?
+                AND m.submission_status = 'received'   -- Must be received first
+            ");
+            $u->bind_param("iii", $eid, $sid, $school_id);
+            $u->execute(); 
+            $affected = $u->affected_rows;
+            $u->close();
+            
+            if ($affected > 0) {
+                $message = 'Marks forwarded to Headteacher for approval.'; 
+                $msg_type = 'success';
+            } else {
+                $message = 'No marks were ready to forward. Make sure they are marked as Received first.';
+                $msg_type = 'error';
+            }
+            
+            // Audit log
+            $action_name = "forward_marks";
+            $details = "Forwarded marks for Exam ID {$eid}, Subject ID {$sid} to Headteacher";
+            $target_user = null;
+            $ip_address = $_SERVER['REMOTE_ADDR'] ?? '::1';
+            $log = $conn->prepare("INSERT INTO audit_logs (user_id, target_user_id, action, details, ip_address) VALUES (?, ?, ?, ?, ?)");
+            $log->bind_param("iisss", $eo_id, $target_user, $action_name, $details, $ip_address);
+            $log->execute();
+            $log->close();
+        }
 
     /* Unlock ALL marks for subject (revert to draft so teacher can re-enter) */
     if ($act === 'unlock_all') {
@@ -173,8 +197,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $school_id > 0) {
     }
 
     $redirect_tab = trim($_POST['tab'] ?? 'tracking');
-    header("Location: marks_management.php?tab={$redirect_tab}&exam_id={$exam_id}&subject_id={$subject_id}&msg=" . urlencode($message) . "&mtype={$msg_type}");
-    exit();
+
+        // Preserve exam_id and subject_id from POST if available
+        $redirect_exam_id    = (int)($_POST['exam_id'] ?? $exam_id ?? 0);
+        $redirect_subject_id = (int)($_POST['subject_id'] ?? $subject_id ?? 0);
+
+        header("Location: marks_management.php?tab={$redirect_tab}&exam_id={$redirect_exam_id}&subject_id={$redirect_subject_id}&msg=" . urlencode($message) . "&mtype={$msg_type}");
+        exit();
 }
 
 if (!empty($_GET['msg'])) { $message = htmlspecialchars($_GET['msg']); $msg_type = $_GET['mtype'] ?? 'success'; }
@@ -258,9 +287,9 @@ $exams_with_marks = $conn->query("
     FROM exams e
     JOIN marks m ON m.exam_id = e.exam_id
     JOIN students st ON st.student_id = m.student_id
-    WHERE st.school_id = {$school_id} AND m.status IN ('submitted','approved','rejected')
-    ORDER BY e.exam_name
-")->fetch_all(MYSQLI_ASSOC);
+    WHERE st.school_id = {$school_id} AND (m.status IN ('submitted','approved','rejected') 
+            OR (m.status = 'draft' AND m.submission_status = 'submitted')
+        )ORDER BY e.exam_name")->fetch_all(MYSQLI_ASSOC);
 
 /* ── SUBJECTS in selected exam with submitted marks ── */
 $subjects_with_marks = [];
@@ -278,7 +307,10 @@ if ($exam_id > 0) {
         JOIN subjects sub ON sub.subject_id = m.subject_id
         LEFT JOIN users u ON u.user_id = m.teacher_id
         WHERE m.exam_id = {$exam_id} AND st.school_id = {$school_id}
-          AND m.status IN ('submitted','approved','rejected')
+          AND (
+            m.status IN ('submitted','approved','rejected') 
+            OR (m.status = 'draft' AND m.submission_status = 'submitted')
+        )
         GROUP BY sub.subject_id, sub.subject_name, sub.subject_code, u.name
         ORDER BY sub.subject_name
     ")->fetch_all(MYSQLI_ASSOC);
@@ -296,8 +328,13 @@ if ($exam_id > 0 && $subject_id > 0) {
         JOIN students st ON st.student_id = m.student_id
         LEFT JOIN schools sc ON sc.school_id = st.school_id
         LEFT JOIN users u ON u.user_id = m.teacher_id
-        WHERE m.exam_id = {$exam_id} AND m.subject_id = {$subject_id}
+        WHERE m.exam_id = {$exam_id} 
+          AND m.subject_id = {$subject_id}
           AND st.school_id = {$school_id}
+          AND (
+              m.status IN ('submitted','approved','rejected') 
+              OR (m.status = 'draft' AND m.submission_status = 'submitted')
+          )
         ORDER BY st.name
     ")->fetch_all(MYSQLI_ASSOC);
 }
@@ -311,13 +348,16 @@ foreach ($all_exams as $ex) {
     }
 }
 $conn->close();
-
 /* ── KPIs ── */
-$kpi_submitted  = count(array_filter($marks_detail, fn($r) => $r['submission_status'] === 'submitted'));
+$kpi_submitted  = count(array_filter($marks_detail, fn($r) => 
+    $r['status'] === 'submitted' || 
+    ($r['status'] === 'draft' && $r['submission_status'] === 'submitted')
+));
 $kpi_received   = count(array_filter($marks_detail, fn($r) => $r['submission_status'] === 'received'));
+$kpi_approved   = count(array_filter($marks_detail, fn($r) => $r['status'] === 'approved'));
 $kpi_forwarded  = count(array_filter($marks_detail, fn($r) => $r['submission_status'] === 'forwarded_to_edm'));
 $can_receive    = $kpi_submitted > 0;
-$can_forward    = ($kpi_received + $kpi_forwarded) > 0 && $kpi_submitted === 0;
+$can_forward    = ($kpi_received > 0 || $kpi_approved > 0) && $kpi_submitted === 0;
 
 $module_css = 'exam_officer';
 include __DIR__ . '/../common/head_assets.php';
@@ -547,7 +587,7 @@ include __DIR__ . '/../common/head_assets.php';
                 </div>
             </div>
             
-            <!-- PANEL 2: REVIEW & APPROVALS -->
+                       <!-- PANEL 2: REVIEW & APPROVALS -->
             <div id="panel-approvals">
                 <div style="display:grid; grid-template-columns:280px 1fr; gap:20px; align-items:start;">
                     
@@ -591,13 +631,11 @@ include __DIR__ . '/../common/head_assets.php';
                             <div class="pipeline" style="margin-bottom: 20px;">
                                 <div class="pipe-step done">1. Teacher Submitted</div>
                                 <div class="pipe-step <?= $kpi_received > 0 ? 'done' : ($can_receive ? 'active' : '') ?>">2. EO Received</div>
-                                <div class="pipe-step <?= $kpi_forwarded > 0 ? 'done' : ($can_forward ? 'active' : '') ?>">3. Forwarded to HT</div>
-                                <div class="pipe-step">4. HT Approval</div>
-                                <div class="pipe-step">5. EDM Compilation</div>
+                                <div class="pipe-step <?= ($kpi_approved + $kpi_forwarded) > 0 ? 'done' : ($can_forward ? 'active' : '') ?>">3. Approved / Forwarded</div>
                             </div>
 
                             <!-- KPIs -->
-                            <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:20px; gap:16px;">
+                            <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr); margin-bottom:20px; gap:16px;">
                                 <div class="kpi-card kpi-card--warning" style="padding:16px; border-radius:10px; box-shadow:none; border:1px solid #e2e8f0;">
                                     <div class="kpi-card__body">
                                         <span class="kpi-card__label" style="font-size:0.8rem; text-transform:uppercase; color:var(--text-muted);">Pending Receipt</span>
@@ -608,6 +646,12 @@ include __DIR__ . '/../common/head_assets.php';
                                     <div class="kpi-card__body">
                                         <span class="kpi-card__label" style="font-size:0.8rem; text-transform:uppercase; color:var(--text-muted);">Received</span>
                                         <span class="kpi-card__value" style="font-size:1.6rem; font-weight:700; color:#2563eb; display:block; margin-top:4px;"><?= $kpi_received ?></span>
+                                    </div>
+                                </div>
+                                <div class="kpi-card kpi-card--success" style="padding:16px; border-radius:10px; box-shadow:none; border:1px solid #e2e8f0;">
+                                    <div class="kpi-card__body">
+                                        <span class="kpi-card__label" style="font-size:0.8rem; text-transform:uppercase; color:var(--text-muted);">Approved</span>
+                                        <span class="kpi-card__value" style="font-size:1.6rem; font-weight:700; color:#16a34a; display:block; margin-top:4px;"><?= $kpi_approved ?></span>
                                     </div>
                                 </div>
                                 <div class="kpi-card kpi-card--success" style="padding:16px; border-radius:10px; box-shadow:none; border:1px solid #e2e8f0;">
@@ -631,7 +675,7 @@ include __DIR__ . '/../common/head_assets.php';
                                         </button>
                                     </form>
                                 <?php endif; ?>
-                                <?php if ($can_forward || $kpi_received > 0): ?>
+                                <?php if ($can_forward): ?>
                                     <form method="POST" style="display:inline;">
                                         <input type="hidden" name="tab" value="approvals">
                                         <input type="hidden" name="action" value="forward">
@@ -642,7 +686,7 @@ include __DIR__ . '/../common/head_assets.php';
                                         </button>
                                     </form>
                                 <?php endif; ?>
-                                <?php if ($kpi_submitted > 0 || $kpi_received > 0): ?>
+                                <?php if ($kpi_submitted > 0 || $kpi_received > 0 || $kpi_approved > 0): ?>
                                     <form method="POST" style="display:inline;">
                                         <input type="hidden" name="tab" value="approvals">
                                         <input type="hidden" name="action" value="unlock_all">
@@ -655,19 +699,17 @@ include __DIR__ . '/../common/head_assets.php';
                                 <?php endif; ?>
                             </div>
 
-                            <!-- Detailed Marks Table -->
+                                                       <!-- Detailed Marks Table -->
                             <div class="card" style="border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; box-shadow: none; padding: 0;">
                                 <div class="table-container">
                                     <table>
                                         <thead>
                                             <tr>
                                                 <th>#</th>
-                                                <th>Student</th>
-                                                <th>Exam No.</th>
+                                                <th>Student</th>                                                
                                                 <th>Class</th>
                                                 <th>Score</th>
-                                                <th>Grade</th>
-                                                <th>Teacher</th>
+                                                <th>Grade</th>                                                
                                                 <th>Status</th>
                                                 <th>Action</th>
                                             </tr>
@@ -676,23 +718,36 @@ include __DIR__ . '/../common/head_assets.php';
                                             <?php $n=1; foreach ($marks_detail as $m): ?>
                                                 <tr>
                                                     <td><?= $n++ ?></td>
-                                                    <td><?= htmlspecialchars($m['student_name']) ?></td>
-                                                    <td><?= htmlspecialchars($m['exam_number']) ?></td>
+                                                    <td><?= htmlspecialchars($m['student_name']) ?></td>                                                    
                                                     <td><?= htmlspecialchars($m['class']) ?></td>
-                                                    <td><strong><?= $m['score'] ?></strong></td>
+                                                    <td><strong><?= number_format((float)$m['score'], 2) ?></strong></td>
                                                     <td>
                                                         <span class="badge badge-<?= gradeColor($m['grade'] ?? '9') ?>">
-                                                            Grade <?= $m['grade'] ?? '—' ?>
+                                                            Grade <?= htmlspecialchars($m['grade'] ?? '—') ?>
                                                         </span>
-                                                    </td>
-                                                    <td><?= htmlspecialchars($m['teacher_name'] ?? '—') ?></td>
+                                                    </td>                                                    
                                                     <td>
-                                                        <span class="badge badge-<?= $m['submission_status'] === 'forwarded_to_edm' ? 'success' : ($m['submission_status'] === 'received' ? 'info' : 'warning') ?>">
-                                                            <?= str_replace(['submitted','received','forwarded_to_edm'],['Submitted','Received','Forwarded'], $m['submission_status']) ?>
-                                                        </span>
-                                                    </td>
+                                                        <?php
+                                                            $status_text = $m['status'];
+                                                            $badge_class = 'warning';
+
+                                                            if ($m['status'] === 'approved') {
+                                                                $status_text = 'Approved';
+                                                                $badge_class = 'success';
+                                                            } elseif ($m['submission_status'] === 'received') {
+                                                                $status_text = 'Received';
+                                                                $badge_class = 'info';
+                                                            } elseif ($m['submission_status'] === 'forwarded_to_edm') {
+                                                                $status_text = 'Forwarded';
+                                                                $badge_class = 'success';
+                                                            } elseif ($m['status'] === 'draft' && $m['submission_status'] === 'submitted') {
+                                                                $status_text = 'Late Submitted';
+                                                                $badge_class = 'warning';     // Yellow/Orange to highlight late
+                                                            }
+                                                            ?>
+                                                            <span class="badge badge-<?= $badge_class ?>"><?= htmlspecialchars($status_text) ?></span> </td>
                                                     <td>
-                                                        <?php if ($m['status'] === 'submitted' && $m['submission_status'] === 'submitted'): ?>
+                                                        <?php if (in_array($m['status'], ['submitted', 'approved'])): ?>
                                                             <form method="POST" style="display:inline;">
                                                                 <input type="hidden" name="tab" value="approvals">
                                                                 <input type="hidden" name="action" value="unlock">
@@ -701,7 +756,9 @@ include __DIR__ . '/../common/head_assets.php';
                                                                 <input type="hidden" name="subject_id" value="<?= $subject_id ?>">
                                                                 <button class="btn btn-secondary btn-sm" onclick="return confirm('Unlock this mark for the teacher to re-enter?')">Unlock</button>
                                                             </form>
-                                                        <?php else: ?>&mdash;<?php endif; ?>
+                                                        <?php else: ?>
+                                                            &mdash;
+                                                        <?php endif; ?>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
@@ -717,11 +774,11 @@ include __DIR__ . '/../common/head_assets.php';
                         <?php endif; ?>
                     </div>
                 </div>
-            </div>
-            
-        </div>
-    </div>
-<?php endif; ?>
+            </div>   <!-- End of panel-approvals -->
+
+        </div>       <!-- End of padding: 24px div -->
+    </div>           <!-- End of main card -->
+<?php endif; ?>      <!-- End of if($exam_id === 0) else block -->
 
 </div><!-- content -->
 </div><!-- dashboard -->

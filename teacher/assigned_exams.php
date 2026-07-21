@@ -10,6 +10,7 @@ $query = "
     SELECT DISTINCT
         e.exam_id,
         e.exam_name,
+        es.id AS exam_subject_id,
         es.subject_id,
         e.status,
         e.year,
@@ -131,13 +132,15 @@ include __DIR__ . '/../common/head_assets.php';
                                     </span>
                                 </td>
                                 <td class="actions">
-
-                                    <a href="compose_exam.php?exam_id=<?= $exam['exam_id']; ?>"
-                                    class="btn btn-teal btn-small">
-                                        Compose
+                                    <?php
+                                    $is_locked = in_array($exam['status'], ['submitted', 'under_moderation', 'approved']);
+                                    ?>
+                                    <a href="compose_exam.php?exam_id=<?= $exam['exam_id']; ?>&subject_id=<?= $exam['subject_id']; ?>&exam_subject_id=<?= $exam['exam_subject_id']; ?>"
+                                    class="btn <?= $is_locked ? 'btn-dark' : 'btn-teal'; ?> btn-small">
+                                        <?= $is_locked ? 'View Questions' : 'Compose'; ?>
                                     </a>
 
-                                    <a href="<?= BASE_URL ?>/teacher/exam.php?id=<?= $exam['exam_id']; ?>&page=cover"
+                                    <a href="<?= BASE_URL ?>/teacher/exam.php?id=<?= $exam['exam_id']; ?>&subject_id=<?= $exam['subject_id']; ?>&page=cover"
                                     class="btn btn-dark btn-small">
                                         View
                                     </a>

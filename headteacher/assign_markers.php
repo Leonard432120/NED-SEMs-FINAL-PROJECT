@@ -5,9 +5,11 @@
    ════════════════════════════════════════════════════════════════ */
 session_start();
 require_once '../config/db.php';
+require_once '../common/email_service.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'headteacher') {
-    header("Location: ../login.php"); exit();
+    header("Location: ../login.php"); 
+    exit();
 }
 
 $conn      = get_db_connection();
@@ -18,7 +20,7 @@ $msg_type  = '';
 
 $exam_id = (int)($_GET['exam_id'] ?? 0);
 
-/* Helper function to check teacher eligibility for a subject */
+/* Helper function to check teacher eligibility */
 function get_teacher_eligibility_reason($teacher, $subject) {
     $major = strtolower(trim($teacher['major_subject'] ?? ''));
     $minor = strtolower(trim($teacher['minor_subject'] ?? ''));
@@ -29,30 +31,26 @@ function get_teacher_eligibility_reason($teacher, $subject) {
     
     $reasons = [];
     
-    if ($major === $sub_name) {
-        $reasons[] = "Major: " . htmlspecialchars($teacher['major_subject']);
-    }
-    if ($minor === $sub_name) {
-        $reasons[] = "Minor: " . htmlspecialchars($teacher['minor_subject']);
-    }
+    if ($major === $sub_name) $reasons[] = "Major: " . htmlspecialchars($teacher['major_subject']);
+    if ($minor === $sub_name) $reasons[] = "Minor: " . htmlspecialchars($teacher['minor_subject']);
     
-    // Check category matches
     if ($sub_cat !== '') {
-        if ($t_cat === $sub_cat) {
-            $reasons[] = "Category: " . ucfirst($sub_cat);
-        }
-        if ($major === $sub_cat) {
-            $reasons[] = "Major Category: " . htmlspecialchars($teacher['major_subject']);
-        }
-        if ($minor === $sub_cat) {
-            $reasons[] = "Minor Category: " . htmlspecialchars($teacher['minor_subject']);
-        }
+        if ($t_cat === $sub_cat) $reasons[] = "Category: " . ucfirst($sub_cat);
+        if ($major === $sub_cat) $reasons[] = "Major Category";
+        if ($minor === $sub_cat) $reasons[] = "Minor Category";
     }
     
-    if (!empty($reasons)) {
-        return implode(" & ", $reasons);
-    }
-    return null;
+    return !empty($reasons) ? implode(" & ", $reasons) : null;
+}
+/* Get effective deadline for teachers (earliest of both) */
+function get_effective_deadline($per_subject_deadline, $exam_marks_deadline) {
+    $d1 = !empty($per_subject_deadline) && $per_subject_deadline !== '0000-00-00' 
+          ? strtotime($per_subject_deadline) : PHP_INT_MAX;
+    $d2 = !empty($exam_marks_deadline) && $exam_marks_deadline !== '0000-00-00' 
+          ? strtotime($exam_marks_deadline) : PHP_INT_MAX;
+    
+    $effective_ts = min($d1, $d2);
+    return $effective_ts === PHP_INT_MAX ? null : date('Y-m-d', $effective_ts);
 }
 
 /* ── POST ACTIONS ── */
@@ -62,108 +60,122 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_assignments'])) 
     if ($post_exam_id > 0 && isset($_POST['assignments']) && is_array($_POST['assignments'])) {
         $conn->begin_transaction();
         try {
-            // First, fetch exam subjects to validate subject_ids
-            $valid_subjects_res = $conn->query("SELECT subject_id FROM exam_subjects WHERE exam_id = {$post_exam_id}");
+            // Get valid subjects for this exam
             $valid_subject_ids = [];
-            while ($row = $valid_subjects_res->fetch_assoc()) {
+            $res = $conn->query("SELECT subject_id FROM exam_subjects WHERE exam_id = $post_exam_id");
+            while ($row = $res->fetch_assoc()) {
                 $valid_subject_ids[] = (int)$row['subject_id'];
             }
-            
-            // Fetch school teachers to validate teacher_ids
-            $teachers_res = $conn->query("SELECT user_id, name, major_subject, minor_subject, teacher_category FROM users WHERE school_id = {$school_id} AND role = 'teacher' AND status = 'active'");
+
+            // Get active teachers
+            $teachers_res = $conn->query("SELECT user_id, name, email FROM users 
+                                          WHERE school_id = $school_id 
+                                            AND role = 'teacher' 
+                                            AND status = 'active'");
             $school_teachers = [];
             while ($row = $teachers_res->fetch_assoc()) {
                 $school_teachers[(int)$row['user_id']] = $row;
             }
-            
+
+            $success_count = 0;
+
             foreach ($_POST['assignments'] as $sub_id => $data) {
                 $sub_id = (int)$sub_id;
+                
+                // Skip if subject is not linked to this exam
                 if (!in_array($sub_id, $valid_subject_ids)) {
-                    continue; // Skip invalid subjects
+                    continue;
                 }
-                
-                $teacher_id = isset($data['teacher_id']) ? (int)$data['teacher_id'] : 0;
-                $deadline   = !empty($data['deadline']) ? trim($data['deadline']) : null;
-                
-                if ($teacher_id === 0) {
-                    // Delete assignment if unassigned
-                    $del = $conn->prepare("DELETE FROM marking_assignments WHERE exam_id = ? AND subject_id = ? AND school_id = ?");
-                    $del->bind_param("iii", $post_exam_id, $sub_id, $school_id);
-                    $del->execute();
-                    $del->close();
-                } else {
-                    // Validate teacher belongs to the school
+
+                $teacher_id     = isset($data['teacher_id']) ? (int)$data['teacher_id'] : 0;
+                $deadline_input = isset($data['deadline']) ? trim($data['deadline']) : '';
+
+                $deadline = null;
+                if (!empty($deadline_input)) {
+                    $ts = strtotime($deadline_input);
+                    if ($ts !== false && $ts > 0) {
+                        $deadline = date('Y-m-d', $ts);
+                    }
+                }
+
+                if ($teacher_id > 0) {
                     if (!isset($school_teachers[$teacher_id])) {
-                        throw new Exception("Selected teacher does not belong to this school.");
+                        throw new Exception("Teacher ID $teacher_id not found.");
                     }
-                    
-                    // Validate eligibility
-                    // Get subject info
-                    $sub_info_stmt = $conn->prepare("SELECT subject_name, category FROM subjects WHERE subject_id = ?");
-                    $sub_info_stmt->bind_param("i", $sub_id);
-                    $sub_info_stmt->execute();
-                    $subject = $sub_info_stmt->get_result()->fetch_assoc();
-                    $sub_info_stmt->close();
-                    
-                    $eligibility = get_teacher_eligibility_reason($school_teachers[$teacher_id], $subject);
-                    if ($eligibility === null) {
-                        throw new Exception("Teacher " . htmlspecialchars($school_teachers[$teacher_id]['name']) . " is not qualified for " . htmlspecialchars($subject['subject_name']) . ".");
-                    }
-                    
-                    // Save assignment
-                    $ins = $conn->prepare("
-                        INSERT INTO marking_assignments (school_id, exam_id, subject_id, teacher_id, deadline, assigned_by)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                        ON DUPLICATE KEY UPDATE teacher_id = VALUES(teacher_id), deadline = VALUES(deadline), assigned_by = VALUES(assigned_by)
+
+                    $sub_info = $conn->query("SELECT subject_name FROM subjects WHERE subject_id = $sub_id")
+                                   ->fetch_assoc();
+                    $subject_name = $sub_info['subject_name'] ?? 'Unknown Subject';
+
+                    $stmt = $conn->prepare("
+                        INSERT INTO marking_assignments 
+                        (school_id, exam_id, subject_id, teacher_id, deadline, assigned_by, assigned_at, status)
+                        VALUES (?, ?, ?, ?, ?, ?, NOW(), 'assigned')
+                        ON DUPLICATE KEY UPDATE 
+                            teacher_id = VALUES(teacher_id), 
+                            deadline = VALUES(deadline), 
+                            assigned_by = VALUES(assigned_by),
+                            assigned_at = NOW()
                     ");
-                    $ins->bind_param("iiiiis", $school_id, $post_exam_id, $sub_id, $teacher_id, $deadline, $ht_id);
-                    $ins->execute();
-                    $ins->close();
+
+                    $stmt->bind_param("iiiiss", $school_id, $post_exam_id, $sub_id, $teacher_id, $deadline, $ht_id);
+                    $stmt->execute();
+                    $stmt->close();
+
+                    $success_count++;
+
+                    // Send email notification
+                    $teacher = $school_teachers[$teacher_id];
+                    $exam_name = $conn->query("SELECT exam_name FROM exams WHERE exam_id = $post_exam_id LIMIT 1")
+                                    ->fetch_assoc()['exam_name'] ?? 'This Exam';
+
+                    $email_body = "Dear {$teacher['name']},\n\nYou have been assigned to mark {$subject_name} for {$exam_name}.\n\n" .
+                                  "Deadline: " . ($deadline ? date('d M Y', strtotime($deadline)) : "Not Set") . "\n\n" .
+                                  "Please login to the system to view the details.";
+
+                    send_email($teacher['email'], "Marking Assignment: $subject_name", $email_body);
                 }
             }
             
             $conn->commit();
-            $message = 'Marking assignments and deadlines saved successfully!';
+            $message = "$success_count assignment(s) saved successfully.";
             $msg_type = 'success';
+            
         } catch (Exception $e) {
             $conn->rollback();
-            $message = 'Error saving assignments: ' . $e->getMessage();
+            $message = 'Save failed: ' . $e->getMessage();
             $msg_type = 'error';
         }
         
-        // Redirect to keep query string and avoid form re-submission
         header("Location: assign_markers.php?exam_id={$post_exam_id}&msg=" . urlencode($message) . "&mtype={$msg_type}");
         exit();
     }
 }
 
+// Handle success/error message from redirect
 if (!empty($_GET['msg'])) {
     $message = htmlspecialchars($_GET['msg']);
     $msg_type = $_GET['mtype'] ?? 'success';
 }
 
-/* ── FETCH EXAMS ── */
-$exams_list = $conn->query("
-    SELECT exam_id, exam_name, class, status 
-    FROM exams 
-    WHERE status IN ('draft', 'active')
-    ORDER BY exam_name ASC
-")->fetch_all(MYSQLI_ASSOC);
+/* ── FETCH DATA FOR DISPLAY ── */
+$exams_list = $conn->query("SELECT exam_id, exam_name, class, status 
+                            FROM exams 
+                            WHERE status IN ('draft', 'active') 
+                            ORDER BY exam_name ASC")->fetch_all(MYSQLI_ASSOC);
 
-/* ── GET TEACHERS AT THIS SCHOOL ── */
-$teachers = $conn->query("
-    SELECT user_id, name, major_subject, minor_subject, teacher_category 
-    FROM users 
-    WHERE school_id = {$school_id} AND role = 'teacher' AND status = 'active'
-    ORDER BY name ASC
-")->fetch_all(MYSQLI_ASSOC);
+$teachers = $conn->query("SELECT user_id, name, major_subject, minor_subject, teacher_category 
+                          FROM users 
+                          WHERE school_id = $school_id 
+                            AND role = 'teacher' 
+                            AND status = 'active' 
+                          ORDER BY name ASC")->fetch_all(MYSQLI_ASSOC);
 
-/* ── GET SUBJECTS & CURRENT ASSIGNMENTS FOR CHOSEN EXAM ── */
 $exam_subjects = [];
 $exam_details = null;
+
 if ($exam_id > 0) {
-    // Get exam details
-    $exam_stmt = $conn->prepare("SELECT exam_name, class, status FROM exams WHERE exam_id = ?");
+    $exam_stmt = $conn->prepare("SELECT exam_name, class, status, marks_deadline FROM exams WHERE exam_id = ?");
     $exam_stmt->bind_param("i", $exam_id);
     $exam_stmt->execute();
     $exam_details = $exam_stmt->get_result()->fetch_assoc();
@@ -175,9 +187,12 @@ if ($exam_id > 0) {
                    ma.teacher_id, ma.deadline, ma.assigned_at, u.name AS marker_name
             FROM exam_subjects es
             JOIN subjects s ON es.subject_id = s.subject_id
-            LEFT JOIN marking_assignments ma ON ma.exam_id = es.exam_id AND ma.subject_id = es.subject_id AND ma.school_id = {$school_id}
+            LEFT JOIN marking_assignments ma 
+                ON ma.exam_id = es.exam_id 
+               AND ma.subject_id = es.subject_id 
+               AND ma.school_id = $school_id
             LEFT JOIN users u ON u.user_id = ma.teacher_id
-            WHERE es.exam_id = {$exam_id}
+            WHERE es.exam_id = $exam_id
             ORDER BY s.subject_name ASC
         ")->fetch_all(MYSQLI_ASSOC);
     }
@@ -335,11 +350,32 @@ include __DIR__ . '/../common/head_assets.php';
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <input type="date" name="assignments[<?= $sub['subject_id'] ?>][deadline]" 
-                                               value="<?= $sub['deadline'] ?: '' ?>" class="form-date">
-                                        <?php if ($sub['deadline'] && strtotime($sub['deadline']) < time()): ?>
-                                            <div style="color:var(--danger-color); font-size:0.75rem; margin-top:4px; font-weight:600;">
-                                                Deadline Passed (Late)
+                                        <input type="date" 
+                                            name="assignments[<?= $sub['subject_id'] ?>][deadline]" 
+                                            value="<?= !empty($sub['deadline']) && $sub['deadline'] !== '0000-00-00' 
+                                                    ? htmlspecialchars($sub['deadline']) : '' ?>" 
+                                            class="form-date">
+
+                                        <?php 
+                                        $exam_deadline = $exam_details['marks_deadline'] ?? null;
+                                        $effective = get_effective_deadline($sub['deadline'] ?? '', $exam_deadline);
+                                        
+                                        if ($effective): 
+                                        ?>
+                                            <div style="font-size:0.8rem; margin-top:6px; padding:5px 8px; background:#fef3c7; border:1px solid #fcd34d; border-radius:4px;">
+                                                <strong>Teachers will see:</strong> 
+                                                <span style="color:#dc2626; font-weight:600;">
+                                                    <?= date('d M Y', strtotime($effective)) ?>
+                                                </span>
+                                                <?php if ($exam_deadline && (!empty($sub['deadline']) && strtotime($exam_deadline) < strtotime($sub['deadline']))): ?>
+                                                    <br><small>(Tightened by EO overall deadline)</small>
+                                                <?php endif; ?>
+                                            </div>
+                                        <?php endif; ?>
+
+                                        <?php if (!empty($sub['deadline']) && $sub['deadline'] !== '0000-00-00'): ?>
+                                            <div style="font-size:0.75rem; margin-top:4px; color:#64748b;">
+                                                Per-subject: <?= date('d M Y', strtotime($sub['deadline'])) ?>
                                             </div>
                                         <?php endif; ?>
                                     </td>

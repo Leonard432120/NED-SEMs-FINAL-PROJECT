@@ -710,13 +710,7 @@ function page_url(int $p, string $search, string $category, string $coverage): s
                                     Reassign
                                 </button>
                                 <span class="link-sep">·</span>
-                                <a href="?resend=<?= $a['assignment_id'] ?>"
-                                   class="link-action"
-                                   onclick="return confirm('Resend email to <?= htmlspecialchars(addslashes($a['teacher_name'])) ?>?')">
-                                    Resend
-                                </a>
-                                <span class="link-sep">·</span>
-                                <a href="#"
+                                  <a href="#"
                                    class="link-action danger"
                                    onclick="openDeleteModal('manage_assignments.php?delete=<?= $a['assignment_id'] ?>')">
                                     Remove
@@ -737,7 +731,7 @@ function page_url(int $p, string $search, string $category, string $coverage): s
                             <td>—</td>
                             <td><span class="badge badge-warning">Pending</span></td>
                             <td>
-                                <a href="assign_teacher.php?subject_id=<?= $subj['subject_id'] ?>&role=<?= $role ?>"
+                                <a href="assign.php?subject_id=<?= $subj['subject_id'] ?>&role=<?= $role ?>"
                                    class="link-action assign">
                                     + Assign now
                                 </a>
@@ -753,7 +747,7 @@ function page_url(int $p, string $search, string $category, string $coverage): s
                             <span class="badge" style="background:#e2e8f0;color:#475569">Marker</span>
                         </td>
                         <td colspan="3">
-                            <span class="marker-note">&#128274; To be assigned by headteacher</span>
+                            <span class="marker-note">To be assigned by headteacher</span>
                         </td>
                         <td></td>
                     </tr>

@@ -1,5 +1,7 @@
 <?php
-session_start();
+session_start([
+    'read_and_close' => ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET',
+]);
 
 if (!defined('BASE_URL')) {
     define('BASE_URL', '/NED-SEMs FINAL YEAR PROJECT');
@@ -72,10 +74,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         ];
 
         $destination = $redirects[$user['role']] ?? BASE_URL . '/login.php';
+        log_audit_event('USER_LOGIN_SUCCESS', ['email' => $user['email'], 'role' => $user['role']], $user['user_id'], $conn);
         header("Location: " . $destination);
         exit();
 
     } else {
+        log_audit_event('USER_LOGIN_FAILED', ['attempted_username' => $loginValue], null, $conn);
         $login_error = true;
     }
 
@@ -106,6 +110,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .login-card {
             text-align: center;
         }
+
+        .password-wrapper {
+                position: relative;
+                display: flex;
+                align-items: center;
+            }
+
+            .password-wrapper input {
+                width: 100%;
+                padding-right: 40px;
+            }
+
+            .toggle-eye {
+                position: absolute;
+                right: 12px;
+                cursor: pointer;
+                color: #64748b;
+                display: flex;
+                align-items: center;
+            }
+
+            .toggle-eye:hover {
+                color: #2563eb;
+            }
     </style>
 </head>
 <body>
@@ -116,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         <!-- Logo Added Here -->
         <div class="login-logo">
-            <img src="<?= BASE_URL ?>/assets/images/logo.png" 
+            <img src="<?= BASE_URL ?>/assets/images/logo1.png" 
                  alt="NED-SEMS - Northern Education Division Smart Examination Management System" 
                  width="180">
         </div>
@@ -130,23 +158,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         <form method="POST" action="<?= BASE_URL ?>/login.php">
             <div class="form-group">
-                <label for="username">Enter your Email</label>
-                <input type="text" id="username" name="username" placeholder="Enter your email or name" required>
+               <input type="text" id="username" name="username" placeholder="Enter your email" required>
             </div>
 
             <div class="form-group">
-                <label for="password">Enter your Password</label>
-                <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                 <div class="password-wrapper">
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    <span id="togglePassword" class="toggle-eye">
+                        <svg id="eyeOpen" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg id="eyeClosed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                            <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.6 21.6 0 0 1 5.06-6.94"></path>
+                            <path d="M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 8 11 8a21.6 21.6 0 0 1-2.16 3.19"></path>
+                            <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path>
+                            <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                    </span>
+                </div>
             </div>
 
             <div class="form-actions">
                 <a href="<?= BASE_URL ?>/forget_password.php">Forgot Password?</a>
-            </div>
-
-            <div class="show-password">
-                <input type="checkbox" id="showPassword">
-                <label for="showPassword">Show Password</label>
-            </div>
+            </div>          
 
             <button type="submit" class="btn btn-create">Login</button>
         </form>
@@ -160,11 +195,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </div>
 
 <script>
-    const showPassword = document.getElementById('showPassword');
     const passwordInput = document.getElementById('password');
+    const toggleIcon = document.getElementById('togglePassword');
+    const eyeOpen = document.getElementById('eyeOpen');
+    const eyeClosed = document.getElementById('eyeClosed');
 
-    showPassword.addEventListener('change', function() {
-        passwordInput.type = this.checked ? 'text' : 'password';
+    toggleIcon.addEventListener('click', function() {
+        const isPassword = passwordInput.type === 'password';
+        passwordInput.type = isPassword ? 'text' : 'password';
+        eyeOpen.style.display = isPassword ? 'none' : 'block';
+        eyeClosed.style.display = isPassword ? 'block' : 'none';
     });
 </script>
 

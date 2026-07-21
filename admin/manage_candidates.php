@@ -117,13 +117,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Redirect to avoid resubmit, preserve filters
     $qs = http_build_query([
-        'exam_id' => $exam_id,
-        'search'  => $_GET['search']  ?? '',
-        'school'  => $_GET['school']  ?? '',
-        'status'  => $_GET['status']  ?? '',
-        'page'    => $_GET['page']    ?? 1,
-        'msg'     => $message,
-        'mt'      => $message_type,
+        'exam_id'    => $exam_id,
+        'search'     => $_GET['search']     ?? '',
+        'school'     => $_GET['school']     ?? '',
+        'status'     => $_GET['status']     ?? '',
+        'subject'    => $_GET['subject']    ?? '',
+        'page'       => $_GET['page']       ?? 1,
+        'other_page' => $_GET['other_page'] ?? 1,
+        'msg'        => $message,
+        'mt'         => $message_type,
     ]);
     header("Location: manage_candidates.php?{$qs}");
     exit();
@@ -138,16 +140,24 @@ if (isset($_GET['msg']) && $_GET['msg'] !== '') {
 /* ═══════════════════════════════════════
    FILTERS
 ═══════════════════════════════════════ */
-$search     = trim($_GET['search'] ?? '');
-$filter_school  = (int)($_GET['school'] ?? 0);
-$filter_status  = trim($_GET['status'] ?? '');
+$search        = trim($_GET['search'] ?? '');
+$filter_school = (int)($_GET['school'] ?? 0);
+$filter_status = trim($_GET['status'] ?? '');
+$filter_subject = (int)($_GET['subject'] ?? 0);
 
 /* ═══════════════════════════════════════
-   PAGINATION
+   PAGINATION — Registered Candidates
 ═══════════════════════════════════════ */
-$per_page = 15;
+$per_page = 10;
 $page     = max(1, (int)($_GET['page'] ?? 1));
 $offset   = ($page - 1) * $per_page;
+
+/* ═══════════════════════════════════════
+   PAGINATION — Other Students (Add Existing)
+═══════════════════════════════════════ */
+$other_per_page = 10;
+$other_page     = max(1, (int)($_GET['other_page'] ?? 1));
+$other_offset   = ($other_page - 1) * $other_per_page;
 
 /* ═══ COUNT for pagination ═══ */
 $count_sql  = "SELECT COUNT(*) AS cnt FROM students s WHERE s.class = ?";
@@ -169,6 +179,11 @@ if ($filter_status !== '') {
     $count_sql   .= " AND s.status = ?";
     $count_params[] = $filter_status;
     $count_types   .= "s";
+}
+if ($filter_subject > 0) {
+    $count_sql   .= " AND EXISTS (SELECT 1 FROM student_subjects ss WHERE ss.student_id = s.student_id AND ss.subject_id = ?)";
+    $count_params[] = $filter_subject;
+    $count_types   .= "i";
 }
 
 $cs = $conn->prepare($count_sql);
@@ -202,6 +217,11 @@ if ($filter_status !== '') {
     $params[] = $filter_status;
     $types   .= "s";
 }
+if ($filter_subject > 0) {
+    $sql    .= " AND EXISTS (SELECT 1 FROM student_subjects ss WHERE ss.student_id = s.student_id AND ss.subject_id = ?)";
+    $params[] = $filter_subject;
+    $types   .= "i";
+}
 $sql    .= " ORDER BY sc.school_name ASC, s.name ASC LIMIT ? OFFSET ?";
 $params[] = $per_page;
 $params[] = $offset;
@@ -212,6 +232,19 @@ $stmt->bind_param($types, ...$params);
 $stmt->execute();
 $candidates = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
+
+// Fetch subject counts in one query
+$student_subject_counts = [];
+$candidate_ids = array_column($candidates, 'student_id');
+if (!empty($candidate_ids)) {
+    $id_list = implode(',', array_map('intval', $candidate_ids));
+    $cnt_res = $conn->query("SELECT student_id, COUNT(*) as cnt FROM student_subjects WHERE student_id IN ($id_list) GROUP BY student_id");
+    if ($cnt_res) {
+        while ($row = $cnt_res->fetch_assoc()) {
+            $student_subject_counts[(int)$row['student_id']] = (int)$row['cnt'];
+        }
+    }
+}
 
 /* ═══ KPI totals (full, no filter) ═══ */
 $kpi = $conn->prepare("
@@ -227,39 +260,93 @@ $kpi_data = $kpi->get_result()->fetch_assoc();
 $kpi->close();
 
 /* ═══ Schools for filter dropdown ═══ */
-$schools = $conn->query("
+$schools_stmt = $conn->prepare("
     SELECT sc.school_id, sc.school_name
     FROM schools sc
     INNER JOIN students s ON s.school_id = sc.school_id
-    WHERE s.class = '{$exam_class}'
+    WHERE s.class = ?
     GROUP BY sc.school_id, sc.school_name
     ORDER BY sc.school_name ASC
-")->fetch_all(MYSQLI_ASSOC);
+");
+$schools_stmt->bind_param("s", $exam_class);
+$schools_stmt->execute();
+$schools = $schools_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$schools_stmt->close();
 
 /* ═══ Schools for registration form ═══ */
 $all_schools = $conn->query("SELECT school_id, school_name FROM schools WHERE status='active' ORDER BY school_name ASC")->fetch_all(MYSQLI_ASSOC);
 
-/* ═══ Other students (not in this class) ═══ */
-$other_students = $conn->query("
+/* ═══ Active subjects for filter ═══ */
+$all_subjects = $conn->query("SELECT subject_id, subject_name FROM subjects WHERE status='active' ORDER BY subject_name ASC")->fetch_all(MYSQLI_ASSOC);
+
+/* ═══ Other students (not in this class) — COUNT ═══ */
+$oc = $conn->prepare("
+    SELECT COUNT(*) AS cnt
+    FROM students s
+    WHERE (s.class IS NULL OR s.class != ?) AND s.status = 'active'
+");
+$oc->bind_param("s", $exam_class);
+$oc->execute();
+$other_total_rows  = (int)$oc->get_result()->fetch_assoc()['cnt'];
+$oc->close();
+$other_total_pages = max(1, (int)ceil($other_total_rows / $other_per_page));
+
+/* Clamp other_page in case it's beyond the last page */
+if ($other_page > $other_total_pages) {
+    $other_page   = $other_total_pages;
+    $other_offset = ($other_page - 1) * $other_per_page;
+}
+
+/* ═══ Other students (not in this class) — LIST ═══ */
+$os_stmt = $conn->prepare("
     SELECT s.student_id, s.name, s.exam_number, s.class, sc.school_name
     FROM students s
     LEFT JOIN schools sc ON s.school_id = sc.school_id
-    WHERE (s.class IS NULL OR s.class != '{$exam_class}') AND s.status = 'active'
+    WHERE (s.class IS NULL OR s.class != ?) AND s.status = 'active'
     ORDER BY s.name ASC
-    LIMIT 200
-")->fetch_all(MYSQLI_ASSOC);
+    LIMIT ? OFFSET ?
+");
+$os_stmt->bind_param("sii", $exam_class, $other_per_page, $other_offset);
+$os_stmt->execute();
+$other_students = $os_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$os_stmt->close();
+
+/* ═══ Full list of other students (for the "From System" dropdown) ═══ */
+$dd_stmt = $conn->prepare("
+    SELECT s.student_id, s.name, s.exam_number, s.class, sc.school_name
+    FROM students s
+    LEFT JOIN schools sc ON s.school_id = sc.school_id
+    WHERE (s.class IS NULL OR s.class != ?) AND s.status = 'active'
+    ORDER BY s.name ASC
+    LIMIT 500
+");
+$dd_stmt->bind_param("s", $exam_class);
+$dd_stmt->execute();
+$dropdown_students = $dd_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$dd_stmt->close();
 
 $conn->close();
 
-/* ═══ URL builder for pagination ═══ */
-function page_url(int $p, int $exam_id, string $search, int $school, string $status): string {
+/* ═══ URL builder for Registered Candidates pagination ═══ */
+function page_url(int $p, int $exam_id, string $search, int $school, string $status, int $otherPage = 1, int $subject = 0): string {
     return 'manage_candidates.php?' . http_build_query(array_filter([
-        'exam_id' => $exam_id,
-        'page'    => $p,
-        'search'  => $search,
-        'school'  => $school ?: null,
-        'status'  => $status,
+        'exam_id'    => $exam_id,
+        'page'       => $p,
+        'search'     => $search,
+        'school'     => $school ?: null,
+        'status'     => $status,
+        'other_page' => $otherPage > 1 ? $otherPage : null,
+        'subject'    => $subject ?: null,
     ], fn($v) => $v !== null && $v !== '' && $v !== 0));
+}
+
+/* ═══ URL builder for Add Existing Student pagination ═══ */
+function other_page_url(int $p, int $exam_id, int $mainPage): string {
+    return 'manage_candidates.php?' . http_build_query(array_filter([
+        'exam_id'    => $exam_id,
+        'page'       => $mainPage > 1 ? $mainPage : null,
+        'other_page' => $p,
+    ], fn($v) => $v !== null && $v !== ''));
 }
 ?>
 <!DOCTYPE html>
@@ -403,7 +490,7 @@ function page_url(int $p, int $exam_id, string $search, int $school, string $sta
 
             <!-- FROM SYSTEM -->
             <div id="adm-panel-existing">
-                <?php if (!empty($other_students)): ?>
+                <?php if (!empty($dropdown_students)): ?>
                 <form method="POST">
                     <input type="hidden" name="action" value="register_existing">
                     <div class="form-grid">
@@ -411,7 +498,7 @@ function page_url(int $p, int $exam_id, string $search, int $school, string $sta
                             <label>Select Student <span style="color:var(--danger-color)">*</span></label>
                             <select name="student_id" required onchange="admFillStudent(this)">
                                 <option value="">— Search and select student —</option>
-                                <?php foreach ($other_students as $os): ?>
+                                <?php foreach ($dropdown_students as $os): ?>
                                     <option value="<?= $os['student_id'] ?>"
                                             data-name="<?= htmlspecialchars($os['name']) ?>"
                                             data-exam="<?= htmlspecialchars($os['exam_number']) ?>"
@@ -496,6 +583,14 @@ function page_url(int $p, int $exam_id, string $search, int $school, string $sta
                 <option value="active"   <?= $filter_status === 'active'   ? 'selected' : '' ?>>Active</option>
                 <option value="inactive" <?= $filter_status === 'inactive' ? 'selected' : '' ?>>Withdrawn</option>
             </select>
+            <select name="subject">
+                <option value="">All Subjects</option>
+                <?php foreach ($all_subjects as $subj): ?>
+                    <option value="<?= $subj['subject_id'] ?>" <?= $filter_subject === (int)$subj['subject_id'] ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($subj['subject_name']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
             <button type="submit" class="btn btn-dark">Filter</button>
             <a href="manage_candidates.php?exam_id=<?= $exam_id ?>" class="btn btn-secondary">Reset</a>
         </form>
@@ -505,7 +600,7 @@ function page_url(int $p, int $exam_id, string $search, int $school, string $sta
             <div class="section-header">
                 <h3>Registered Candidates</h3>
                 <span class="muted-text" style="font-size:.85rem;">
-                    Showing <?= $offset + 1 ?>–<?= min($offset + $per_page, $total_rows) ?> of <?= $total_rows ?>
+                    Showing <?= $total_rows > 0 ? $offset + 1 : 0 ?>–<?= min($offset + $per_page, $total_rows) ?> of <?= $total_rows ?>
                 </span>
             </div>
 
@@ -518,6 +613,7 @@ function page_url(int $p, int $exam_id, string $search, int $school, string $sta
                             <th>Exam Number</th>
                             <th>School</th>
                             <th>Class</th>
+                            <th>Subjects</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -525,15 +621,17 @@ function page_url(int $p, int $exam_id, string $search, int $school, string $sta
                     <tbody>
                         <?php if (empty($candidates)): ?>
                             <tr>
-                                <td colspan="7" class="empty-state">
+                                <td colspan="8" class="empty-state">
                                     No candidates found.
-                                    <?php if ($search || $filter_school || $filter_status): ?>
+                                    <?php if ($search || $filter_school || $filter_status || $filter_subject): ?>
                                         <a href="manage_candidates.php?exam_id=<?= $exam_id ?>">Reset filters</a>
                                     <?php endif; ?>
                                 </td>
                             </tr>
                         <?php else: ?>
-                            <?php $i = $offset + 1; foreach ($candidates as $c): ?>
+                            <?php $i = $offset + 1; foreach ($candidates as $c):
+                                $subj_count = $student_subject_counts[(int)$c['student_id']] ?? 0;
+                            ?>
                             <tr>
                                 <td><?= $i++ ?></td>
                                 <td><strong><?= htmlspecialchars($c['name']) ?></strong></td>
@@ -541,11 +639,20 @@ function page_url(int $p, int $exam_id, string $search, int $school, string $sta
                                 <td><?= htmlspecialchars($c['school_name'] ?? '—') ?></td>
                                 <td><?= htmlspecialchars($c['class'] ?? '—') ?></td>
                                 <td>
+                                    <span class="subject-count-badge <?= $subj_count === 0 ? 'none' : '' ?>">
+                                        <?= $subj_count ?>
+                                    </span>
+                                </td>
+                                <td>
                                     <span class="badge badge-<?= $c['status'] === 'active' ? 'active' : 'inactive' ?>">
                                         <?= $c['status'] === 'active' ? 'Active' : 'Withdrawn' ?>
                                     </span>
                                 </td>
                                 <td class="actions">
+                                    <button type="button" class="btn btn-view-details btn-small"
+                                            onclick="openDetailsModal(<?= (int)$c['student_id'] ?>, <?= htmlspecialchars(json_encode($c['name'])) ?>)">
+                                        Details
+                                    </button>
                                     <?php if ($c['status'] === 'active'): ?>
                                         <form method="POST" style="display:inline;"
                                               onsubmit="return confirm('Withdraw this candidate?');">
@@ -568,82 +675,32 @@ function page_url(int $p, int $exam_id, string $search, int $school, string $sta
                 </table>
             </div>
 
-            <!-- PAGINATION -->
+            <!-- PAGINATION: Registered Candidates -->
             <?php if ($total_pages > 1): ?>
             <div class="pagination-bar">
                 <div class="pagination-info">
                     Page <?= $page ?> of <?= $total_pages ?>
                 </div>
                 <div class="pagination-links">
-                    <a href="<?= page_url(1, $exam_id, $search, $filter_school, $filter_status) ?>"
+                    <a href="<?= page_url(1, $exam_id, $search, $filter_school, $filter_status, $other_page, $filter_subject) ?>"
                        class="page-btn <?= $page === 1 ? 'disabled' : '' ?>">First</a>
-                    <a href="<?= page_url(max(1, $page - 1), $exam_id, $search, $filter_school, $filter_status) ?>"
+                    <a href="<?= page_url(max(1, $page - 1), $exam_id, $search, $filter_school, $filter_status, $other_page, $filter_subject) ?>"
                        class="page-btn <?= $page === 1 ? 'disabled' : '' ?>">Prev</a>
 
                     <?php for ($p = max(1, $page - 2); $p <= min($total_pages, $page + 2); $p++): ?>
-                        <a href="<?= page_url($p, $exam_id, $search, $filter_school, $filter_status) ?>"
+                        <a href="<?= page_url($p, $exam_id, $search, $filter_school, $filter_status, $other_page, $filter_subject) ?>"
                            class="page-btn <?= $p === $page ? 'active' : '' ?>"><?= $p ?></a>
                     <?php endfor; ?>
 
-                    <a href="<?= page_url(min($total_pages, $page + 1), $exam_id, $search, $filter_school, $filter_status) ?>"
+                    <a href="<?= page_url(min($total_pages, $page + 1), $exam_id, $search, $filter_school, $filter_status, $other_page) ?>"
                        class="page-btn <?= $page === $total_pages ? 'disabled' : '' ?>">Next</a>
-                    <a href="<?= page_url($total_pages, $exam_id, $search, $filter_school, $filter_status) ?>"
+                    <a href="<?= page_url($total_pages, $exam_id, $search, $filter_school, $filter_status, $other_page) ?>"
                        class="page-btn <?= $page === $total_pages ? 'disabled' : '' ?>">Last</a>
                 </div>
             </div>
             <?php endif; ?>
-        </div>
-
-        <!-- ADD EXISTING STUDENT -->
-        <?php if (!empty($other_students)): ?>
-        <div class="card">
-            <div class="section-header">
-                <h3>Add Existing Student</h3>
-            </div>
-            <p class="muted-text" style="margin-bottom:14px;">
-                These students exist in the system but are not in <?= htmlspecialchars($exam_class) ?>.
-                Registering them will update their class to <?= htmlspecialchars($exam_class) ?>.
-            </p>
-            <input type="text" id="existingSearch" placeholder="Search by name or exam number…"
-                   onkeyup="filterExisting(this.value)"
-                   style="width:100%; padding:10px 14px; border:1px solid var(--border-color);
-                          border-radius:var(--border-radius-lg); font-size:.875rem; margin-bottom:14px;">
-            <div class="table-container">
-                <table id="existingTable">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Name</th>
-                            <th>Exam Number</th>
-                            <th>Current Class</th>
-                            <th>School</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php $i = 1; foreach ($other_students as $os): ?>
-                        <tr class="existing-row">
-                            <td><?= $i++ ?></td>
-                            <td><strong><?= htmlspecialchars($os['name']) ?></strong></td>
-                            <td><?= htmlspecialchars($os['exam_number']) ?></td>
-                            <td><?= htmlspecialchars($os['class'] ?? '—') ?></td>
-                            <td><?= htmlspecialchars($os['school_name'] ?? '—') ?></td>
-                            <td>
-                                <form method="POST" style="display:inline;"
-                                      onsubmit="return confirm('Register as <?= htmlspecialchars($exam_class) ?> candidate?');">
-                                    <input type="hidden" name="action" value="register_existing">
-                                    <input type="hidden" name="student_id" value="<?= $os['student_id'] ?>">
-                                    <button type="submit" class="btn btn-dark btn-small">Register</button>
-                                </form>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <?php endif; ?>
-
+        </div>     
+        </div>      
     </div>
 </div>
 
@@ -682,7 +739,48 @@ function admFillStudent(sel) {
         ' &nbsp;|&nbsp; <strong>School:</strong> ' + opt.dataset.school +
         (opt.dataset.class ? ' &nbsp;|&nbsp; <strong>Current Class:</strong> ' + opt.dataset.class : '');
 }
+
+/* Details modal */
+function openDetailsModal(studentId, studentName) {
+    document.getElementById('details_heading').textContent = studentName;
+    document.getElementById('details_body').innerHTML = '<div class="empty-state">Loading student details...</div>';
+    document.getElementById('detailsModal').classList.add('show');
+
+    fetch('../common/get_student_details.php?student_id=' + studentId + '&show_print=false')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('details_body').innerHTML = html;
+        })
+        .catch(err => {
+            document.getElementById('details_body').innerHTML = '<div class="alert alert-error">Error loading details.</div>';
+        });
+}
+
+function closeDetailsModal() {
+    document.getElementById('detailsModal').classList.remove('show');
+}
+
+// Add event listener to close modal on clicking outside
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('detailsModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) closeDetailsModal();
+        });
+    }
+});
 </script>
+
+<!-- STUDENT DETAILS MODAL -->
+<div id="detailsModal" class="modal">
+    <div class="modal-content modal-content--wide">
+        <h3 id="details_heading">Student Details</h3>
+        <div id="details_body"></div>
+        <div class="modal-actions" style="margin-top:20px;">
+            <button type="button" onclick="closeDetailsModal()" class="btn btn-secondary">Close</button>
+        </div>
+    </div>
+</div>
 
 <?php include '../common/footer.php'; ?>
 </body>

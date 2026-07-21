@@ -22,7 +22,25 @@ function calcGrade(float $score, string $class = ''): string {
     return '9';
 }
 
-function gradeLabel(string $grade): string {
+/**
+ * Normalize a raw grade value into the clean '1'–'9' scale.
+ * Handles legacy/inconsistent data such as "P7", " 7", "p7", "F9".
+ * Returns an empty string if the value cannot be normalized.
+ */
+function normalizeGrade(?string $grade): string {
+    if ($grade === null) return '';
+    $grade = trim($grade);
+    if ($grade === '') return '';
+
+    // Strip any leading letters (e.g. "P7" -> "7", "F9" -> "9")
+    $grade = preg_replace('/^[A-Za-z]+/', '', $grade);
+
+    return in_array($grade, ['1','2','3','4','5','6','7','8','9'], true) ? $grade : '';
+}
+
+function gradeLabel(?string $grade): string {
+    $grade = normalizeGrade($grade);
+
     $labels = [
         '1' => 'Distinction',
         '2' => 'Distinction',
@@ -34,16 +52,22 @@ function gradeLabel(string $grade): string {
         '8' => 'Fail',
         '9' => 'Fail',
     ];
+
     return $labels[$grade] ?? '—';
 }
 
-function gradeColor(string $grade): string {
-    if (in_array($grade, ['1','2','3'])) return 'success';
-    if (in_array($grade, ['4','5'])) return 'info';
-    if (in_array($grade, ['6','7'])) return 'warning';
-    return 'danger';
+function gradeColor(?string $grade): string {
+    $grade = normalizeGrade($grade);
+
+    if (in_array($grade, ['1','2','3'], true)) return 'success';
+    if (in_array($grade, ['4','5'], true))     return 'info';
+    if (in_array($grade, ['6','7'], true))     return 'warning';
+    if (in_array($grade, ['8','9'], true))     return 'danger';
+
+    return 'secondary';
 }
 
-function isPassing(string $grade): bool {
-    return in_array($grade, ['1','2','3','4','5','6','7']);
+function isPassing(?string $grade): bool {
+    $grade = normalizeGrade($grade);
+    return in_array($grade, ['1','2','3','4','5','6','7'], true);
 }

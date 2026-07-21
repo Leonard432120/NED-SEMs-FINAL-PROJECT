@@ -113,3 +113,54 @@ if (!function_exists('render_pagination')) {
         return $html;
     }
 }
+
+/**
+ * ==========================================
+ * RENDER PAGINATION — MULTI-TAB SAFE
+ * ==========================================
+ * Same as render_pagination() but uses a custom
+ * $page_key so multiple paginators can coexist on
+ * one page without overwriting each other's `page`
+ * query string parameter.
+ *
+ * Example:
+ *   render_pagination_keyed($pag, 'reports.php', 'page_c')
+ */
+if (!function_exists('render_pagination_keyed')) {
+
+    function render_pagination_keyed($pagination, $base_url = '', $page_key = 'page')
+    {
+        $html = '<div class="pagination">';
+
+        if ($pagination['has_prev']) {
+            $query = build_query([$page_key => $pagination['prev_page']]);
+            $html .= "<a class='page-btn' href='{$base_url}?{$query}'>‹ Prev</a>";
+        }
+
+        if ($pagination['start'] > 1) {
+            $query = build_query([$page_key => 1]);
+            $html .= "<a class='page-btn' href='{$base_url}?{$query}'>1</a>";
+            $html .= "<span class='dots'>...</span>";
+        }
+
+        for ($i = $pagination['start']; $i <= $pagination['end']; $i++) {
+            $active = ($i == $pagination['page']) ? 'active' : '';
+            $query  = build_query([$page_key => $i]);
+            $html  .= "<a class='page-btn {$active}' href='{$base_url}?{$query}'>{$i}</a>";
+        }
+
+        if ($pagination['end'] < $pagination['total_pages']) {
+            $query = build_query([$page_key => $pagination['total_pages']]);
+            $html .= "<span class='dots'>...</span>";
+            $html .= "<a class='page-btn' href='{$base_url}?{$query}'>{$pagination['total_pages']}</a>";
+        }
+
+        if ($pagination['has_next']) {
+            $query = build_query([$page_key => $pagination['next_page']]);
+            $html .= "<a class='page-btn' href='{$base_url}?{$query}'>Next ›</a>";
+        }
+
+        $html .= '</div>';
+        return $html;
+    }
+}

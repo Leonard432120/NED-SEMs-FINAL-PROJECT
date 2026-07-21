@@ -7,6 +7,10 @@ header('Content-Type: application/json');
 @set_time_limit(300);
 @ini_set('max_execution_time', '300');
 
+if (session_status() === PHP_SESSION_ACTIVE) {
+    session_write_close();
+}
+
 $conn = get_db_connection();
 $user_id = $_SESSION['user_id'] ?? 0;
 

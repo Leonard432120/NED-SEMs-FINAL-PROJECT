@@ -165,7 +165,7 @@ include __DIR__ . '/../common/head_assets.php';
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Employment Number</div>
-                    <div class="detail-value"><?= htmlspecialchars($teacher['employment_number'] ?: '—') ?></div>
+                    <div class="detail-value">CLOSED</div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Qualification</div>

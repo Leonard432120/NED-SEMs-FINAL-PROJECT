@@ -4,7 +4,9 @@ require_once __DIR__ . '/../services/ai/compose_bridge.php';
 
 @set_time_limit(600);
 
-$exam_id = isset($_GET['exam_id']) ? (int)$_GET['exam_id'] : (int)($_POST['exam_id'] ?? 0);
+$exam_id         = isset($_GET['exam_id'])         ? (int)$_GET['exam_id']         : (int)($_POST['exam_id']         ?? 0);
+$subject_id      = isset($_GET['subject_id'])      ? (int)$_GET['subject_id']      : (int)($_POST['subject_id']      ?? 0);
+$exam_subject_id = isset($_GET['exam_subject_id']) ? (int)$_GET['exam_subject_id'] : (int)($_POST['exam_subject_id'] ?? 0);
 
 if ($exam_id <= 0) {
     header('Location: assigned_exams.php');
@@ -18,9 +20,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json; charset=utf-8');
     $action = trim($_POST['action'] ?? '');
 
+    // Check if the exam is locked for composing
+    $lock_stmt = $conn->prepare("SELECT status FROM exams WHERE exam_id = ? LIMIT 1");
+    $lock_stmt->bind_param('i', $exam_id);
+    $lock_stmt->execute();
+    $lock_exam = $lock_stmt->get_result()->fetch_assoc();
+    $lock_stmt->close();
+    $exam_status = $lock_exam['status'] ?? 'draft';
+    $is_exam_locked = in_array($exam_status, ['submitted', 'under_moderation', 'approved']);
+
+    if ($is_exam_locked && in_array($action, ['save', 'delete'])) {
+        echo json_encode(['success' => false, 'error' => 'This exam is currently locked (submitted or approved) and cannot be modified.']);
+        $conn->close(); exit;
+    }
+
+    if ($action === 'submit_exam') {
+        $stmt = $conn->prepare("UPDATE exams SET status = 'submitted' WHERE exam_id = ?");
+        $stmt->bind_param('i', $exam_id);
+        $stmt->execute();
+        $success = $stmt->affected_rows > 0;
+        $stmt->close();
+        
+        if ($success) {
+            log_audit_event('EXAM_SUBMITTED_FOR_MODERATION', ['exam_id' => $exam_id], null, $conn);
+        }
+        echo json_encode(['success' => $success]);
+        $conn->close(); exit;
+    }
+
     if ($action === 'preview') {
-        $question_text = trim($_POST['question_text'] ?? '');
-        $marks         = (int)($_POST['marks'] ?? 0);
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+
+        $question_text   = trim($_POST['question_text'] ?? '');
+        $marks           = (int)($_POST['marks'] ?? 0);
+        $esi_preview     = (int)($_POST['exam_subject_id'] ?? $exam_subject_id);
 
         if (!$question_text || $marks <= 0) {
             echo json_encode(['success' => false, 'error' => 'Question text and marks are required.']);
@@ -28,8 +63,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $existing = [];
-        $stmt = $conn->prepare('SELECT question_text FROM questions WHERE exam_id = ?');
-        $stmt->bind_param('i', $exam_id);
+        if ($esi_preview > 0) {
+            $stmt = $conn->prepare('SELECT question_text FROM questions WHERE exam_subject_id = ?');
+            $stmt->bind_param('i', $esi_preview);
+        } else {
+            $stmt = $conn->prepare('SELECT question_text FROM questions WHERE exam_id = ?');
+            $stmt->bind_param('i', $exam_id);
+        }
         $stmt->execute();
         $res = $stmt->get_result();
         while ($row = $res->fetch_assoc()) $existing[] = $row['question_text'];
@@ -44,16 +84,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ai_data = json_decode($_POST['ai_data'] ?? '{}', true);
         if (!is_array($ai_data)) $ai_data = [];
         $result = compose_save_question($conn, $user_id, $_POST, $ai_data);
+        if ($result['success'] ?? false) {
+            log_audit_event('QUESTION_SAVED', ['exam_id' => $exam_id, 'question_id' => $result['question_id'] ?? 0], null, $conn);
+        }
         echo json_encode($result, JSON_UNESCAPED_UNICODE);
         $conn->close(); exit;
     }
 
     if ($action === 'delete') {
         $qid = (int)($_POST['question_id'] ?? 0);
-        if ($qid > 0 && compose_teacher_can_write_exam($conn, $exam_id, $user_id)) {
-            $stmt = $conn->prepare('DELETE FROM questions WHERE question_id = ? AND exam_id = ?');
-            $stmt->bind_param('ii', $qid, $exam_id);
+        $esi_del = (int)($_POST['exam_subject_id'] ?? $exam_subject_id);
+        if ($qid > 0 && compose_teacher_can_write_exam($conn, $exam_id, $user_id, $subject_id)) {
+            if ($esi_del > 0) {
+                $stmt = $conn->prepare('DELETE FROM questions WHERE question_id = ? AND exam_subject_id = ?');
+                $stmt->bind_param('ii', $qid, $esi_del);
+            } else {
+                $stmt = $conn->prepare('DELETE FROM questions WHERE question_id = ? AND exam_id = ?');
+                $stmt->bind_param('ii', $qid, $exam_id);
+            }
             $stmt->execute();
+            if ($stmt->affected_rows > 0) {
+                log_audit_event('QUESTION_DELETED', ['exam_id' => $exam_id, 'subject_id' => $subject_id, 'question_id' => $qid], null, $conn);
+            }
             echo json_encode(['success' => $stmt->affected_rows > 0]);
             $stmt->close();
         } else {
@@ -78,21 +130,33 @@ if ($user_row && in_array($user_row['role'], ['admin', 'headteacher', 'examinati
     $is_admin = true;
 }
 
-// Load exam details
+// Load exam details — scope to subject if subject_id is given
 if ($is_admin) {
-    $stmt = $conn->prepare("SELECT e.*, s.subject_name FROM exams e LEFT JOIN exam_subjects es ON e.exam_id = es.exam_id LEFT JOIN subjects s ON es.subject_id = s.subject_id WHERE e.exam_id = ? LIMIT 1");
-    $stmt->bind_param('i', $exam_id);
+    if ($subject_id > 0) {
+        $stmt = $conn->prepare("
+            SELECT e.*, es.id AS exam_subject_id, es.subject_id, s.subject_name
+            FROM exams e
+            INNER JOIN exam_subjects es ON e.exam_id = es.exam_id AND es.subject_id = ?
+            INNER JOIN subjects s ON es.subject_id = s.subject_id
+            WHERE e.exam_id = ? LIMIT 1
+        ");
+        $stmt->bind_param('ii', $subject_id, $exam_id);
+    } else {
+        $stmt = $conn->prepare("SELECT e.*, es.id AS exam_subject_id, es.subject_id, s.subject_name FROM exams e LEFT JOIN exam_subjects es ON e.exam_id = es.exam_id LEFT JOIN subjects s ON es.subject_id = s.subject_id WHERE e.exam_id = ? LIMIT 1");
+        $stmt->bind_param('i', $exam_id);
+    }
 } else {
     $stmt = $conn->prepare("
-        SELECT e.*, s.subject_name
+        SELECT e.*, es.id AS exam_subject_id, es.subject_id, s.subject_name
         FROM subject_assignments sa
         INNER JOIN exam_subjects es ON sa.subject_id = es.subject_id
         INNER JOIN exams e ON es.exam_id = e.exam_id
         INNER JOIN subjects s ON es.subject_id = s.subject_id
         WHERE e.exam_id = ? AND sa.teacher_id = ? AND sa.role = 'item_writer'
+          AND (? = 0 OR es.subject_id = ?)
         LIMIT 1
     ");
-    $stmt->bind_param('ii', $exam_id, $user_id);
+    $stmt->bind_param('iiii', $exam_id, $user_id, $subject_id, $subject_id);
 }
 $stmt->execute();
 $exam = $stmt->get_result()->fetch_assoc();
@@ -105,7 +169,6 @@ if (!$exam) {
     include __DIR__ . '/../common/head_assets.php';
     echo '<div style="display:flex;align-items:center;justify-content:center;min-height:80vh;font-family:sans-serif;">
         <div style="text-align:center;padding:40px;">
-            <div style="font-size:60px;">🔒</div>
             <h2>Access Denied</h2>
             <p style="color:#64748b;">You are not assigned as an item writer for this exam,<br>or the exam does not exist.</p>
             <a href="assigned_exams.php" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;">View My Exams</a>
@@ -114,15 +177,31 @@ if (!$exam) {
     exit();
 }
 
-// Load questions
-$stmt = $conn->prepare('SELECT * FROM questions WHERE exam_id = ? ORDER BY section_name ASC, question_order ASC, question_id ASC');
-$stmt->bind_param('i', $exam_id);
+// Resolve exam_subject_id from the loaded exam if still 0
+if ($exam_subject_id <= 0 && isset($exam['exam_subject_id'])) {
+    $exam_subject_id = (int)$exam['exam_subject_id'];
+}
+if ($subject_id <= 0 && isset($exam['subject_id'])) {
+    $subject_id = (int)$exam['subject_id'];
+}
+
+// Load questions — scope to exam_subject_id for subject-based filtering
+if ($exam_subject_id > 0) {
+    $stmt = $conn->prepare('SELECT * FROM questions WHERE exam_subject_id = ? ORDER BY section_name ASC, question_order ASC, question_id ASC');
+    $stmt->bind_param('i', $exam_subject_id);
+} else {
+    $stmt = $conn->prepare('SELECT * FROM questions WHERE exam_id = ? ORDER BY section_name ASC, question_order ASC, question_id ASC');
+    $stmt->bind_param('i', $exam_id);
+}
 $stmt->execute();
 $questions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
-$ai_map = compose_build_ai_map($conn, $questions, $exam_id);
+$ai_map = compose_build_ai_map($conn, $questions, $exam_id, $exam_subject_id);
 $conn->close();
+
+$exam_status = $exam['status'] ?? 'draft';
+$is_exam_locked = in_array($exam_status, ['submitted', 'under_moderation', 'approved']);
 
 // Group questions by section
 $sections = [];
@@ -146,8 +225,7 @@ $portal_title = 'NED-SEMS | Compose Exam';
 $module_css = 'teacher';
 include __DIR__ . '/../common/head_assets.php';
 ?>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
 <style>
 /* ══════════════════════════════════════════════════════════
    COMPOSE EXAM — Premium UI
@@ -613,77 +691,61 @@ include __DIR__ . '/../common/head_assets.php';
 .ai-empty {
     text-align: center;
     padding: 40px 20px;
-    color: var(--muted);
 }
-.ai-empty .ai-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
-.ai-empty p { font-size: 13px; line-height: 1.6; }
-
-/* Loading spinner */
-.spinner {
-    width: 20px; height: 20px;
-    border: 2px solid rgba(255,255,255,0.2);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-    display: none;
+.ai-empty .ai-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 16px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%233b82f6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M13 10V3L4 14h7v7l9-11h-7z'/%3E%3C/svg%3E") no-repeat center;
+    background-size: contain;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* Badges */
-.badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 700;
-}
-.badge-approved { background: rgba(34,197,94,0.12); color: #16a34a; }
-.badge-revise   { background: rgba(245,158,11,0.12);  color: #b45309; }
-.badge-rejected { background: rgba(239,68,68,0.12);   color: #dc2626; }
-.badge-pending  { background: var(--surface2);         color: var(--muted); }
-
-/* Toast notifications */
-#toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.toast-msg {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 20px;
+.ai-empty p {
     font-size: 13px;
-    font-weight: 500;
-    box-shadow: var(--card-shadow);
-    animation: slideIn 0.3s ease, fadeOut 0.3s ease 3.7s forwards;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--text);
-}
-.toast-msg.success { border-color: var(--success); color: #16a34a; }
-.toast-msg.error   { border-color: var(--danger);  color: #dc2626; }
-.toast-msg.info    { border-color: var(--accent);  color: #2563eb; }
-
-@keyframes slideIn  { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
-@keyframes fadeOut  { from { opacity: 1; } to { opacity: 0; } }
-
-/* Responsive */
-@media (max-width: 1100px) {
-    .compose-layout { grid-template-columns: 240px 1fr; }
-    .ai-panel { display: none; }
+    color: var(--muted);
+    line-height: 1.5;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 1024px) {
     .compose-layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
     .q-panel { max-height: 200px; border-right: none; border-bottom: 1px solid var(--border); }
+}
+
+/* ── Approved Lock Banner ── */
+.approved-lock-banner {
+    display: none;
+    align-items: center;
+    gap: 14px;
+    background: rgba(34, 197, 94, 0.08);
+    border: 1px solid rgba(34, 197, 94, 0.35);
+    border-left: 4px solid #22c55e;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 18px;
+}
+.approved-lock-banner.visible { display: flex; }
+.approved-lock-banner .lock-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(34, 197, 94, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    font-weight: 800;
+    color: #15803d;
+    flex-shrink: 0;
+}
+.approved-lock-banner .lock-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #15803d;
+}
+.approved-lock-banner .lock-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
 }
 </style>
 </head>
@@ -710,22 +772,24 @@ include __DIR__ . '/../common/head_assets.php';
 
     <div class="header-stats">
         <?php if ($approved_count > 0): ?>
-        <span class="stat-pill success">✓ <?= $approved_count; ?> Approved</span>
+        <span class="stat-pill success"><?= $approved_count; ?> Approved</span>
         <?php endif; ?>
-        <?php if ($revise_count > 0): ?>
-        <span class="stat-pill warning"> <?= $revise_count; ?> Needs Revision</span>
-        <?php endif; ?>
-        <span class="stat-pill"><?= count($questions) - $approved_count - $revise_count; ?> Pending</span>
+       
     </div>
 
     <div class="header-actions">
-        <a href="exam.php?id=<?= $exam_id ?>&page=cover" target="_blank" class="btn btn-outline" style="font-size:12px; padding:8px 14px;">
+        <a href="exam.php?id=<?= $exam_id ?>&subject_id=<?= $subject_id ?>&page=cover" target="_blank" class="btn btn-outline" style="font-size:12px; padding:8px 14px;">
             Preview
         </a>
         <?php if (count($questions) > 0): ?>
-        <a href="exam.php?action=download&id=<?= $exam_id ?>" class="btn btn-success" style="font-size:12px; padding:8px 14px;">
-            Download PDF
-        </a>
+            <a href="exam.php?action=download&id=<?= $exam_id ?>&subject_id=<?= $subject_id ?>" class="btn btn-success" style="font-size:12px; padding:8px 14px;">
+                Download PDF
+            </a>
+            <?php if (in_array($exam['status'], ['draft', 'assigned'])): ?>
+                <button type="button" class="btn btn-primary" onclick="submitExamForModeration()" style="font-size:12px; padding:8px 14px;">
+                    Submit for Moderation
+                </button>
+            <?php endif; ?>
         <?php endif; ?>
     </div>
 </div>
@@ -791,14 +855,25 @@ include __DIR__ . '/../common/head_assets.php';
                     </div>
                 </div>
 
+                <!-- Approved Lock Banner -->
+                <div class="approved-lock-banner" id="approvedLockBanner">
+                    <div class="lock-badge">&#10003;</div>
+                    <div>
+                        <div class="lock-title">Approved &amp; Locked</div>
+                        <div class="lock-sub">This question has been approved by the moderator and cannot be edited.</div>
+                    </div>
+                </div>
+
                 <!-- Moderator Alert -->
                 <div class="mod-alert" id="modAlert">
-                    <strong id="modAlertTitle">⚠ Moderator Comment</strong>
+                    <strong id="modAlertTitle">Moderator Comment</strong>
                     <div id="modAlertBody" style="margin-top:4px;"></div>
                 </div>
 
                 <form id="questionForm">
                     <input type="hidden" name="exam_id" id="exam_id" value="<?= $exam_id; ?>">
+                    <input type="hidden" name="subject_id" id="subject_id" value="<?= $subject_id; ?>">
+                    <input type="hidden" name="exam_subject_id" id="exam_subject_id" value="<?= $exam_subject_id; ?>">
                     <input type="hidden" name="question_id" id="question_id" value="">
 
                     <div class="field-grid">
@@ -812,7 +887,7 @@ include __DIR__ . '/../common/head_assets.php';
                             </select>
                         </div>
                         <div class="field-group">
-                            <label>Order #</label>
+                            <label>Question #</label>
                             <input type="number" name="order" id="order" min="1" value="<?= count($questions) + 1; ?>">
                         </div>
                         <div class="field-group">
@@ -917,26 +992,26 @@ include __DIR__ . '/../common/head_assets.php';
                 <!-- Metrics Grid -->
                 <div class="ai-metrics">
                     <div class="ai-metric">
-                        <div class="lbl">Bloom Level</div>
-                        <div class="val" id="aiBloom">—</div>
+                        <div class="lbl" style="color: black" >Bloom Level</div>
+                        <div class="val" id="aiBloom" style="color: black">—</div>
                     </div>
                     <div class="ai-metric">
-                        <div class="lbl">Difficulty</div>
-                        <div class="val" id="aiDifficulty">—</div>
+                        <div class="lbl" style="color: black">Difficulty</div>
+                        <div class="val" id="aiDifficulty" style="color: black">—</div>
                     </div>
                     <div class="ai-metric">
-                        <div class="lbl">Cognitive</div>
-                        <div class="val" id="aiCognitive">—</div>
+                        <div class="lbl" style="color: black">Cognitive</div>
+                        <div class="val" id="aiCognitive" style="color: black">—</div>
                     </div>
                     <div class="ai-metric">
-                        <div class="lbl">Topic</div>
-                        <div class="val" id="aiTopic" style="font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">—</div>
+                        <div class="lbl" style="color: black">Topic</div>
+                        <div class="val" id="aiTopic" style="font-size:11px; overflow:hidden;color: black; text-overflow:ellipsis; white-space:nowrap;">—</div>
                     </div>
                 </div>
 
                 <!-- Suggested Version -->
                 <div class="ai-suggestion-box" id="aiSuggestionBox">
-                    <div class="sug-label">✨ AI Suggested Version</div>
+                    <div class="sug-label">AI Suggested Version</div>
                     <p id="aiSuggestionText"></p>
                     <button class="btn btn-ghost" style="font-size:11px; padding:5px 10px;" onclick="applySuggestion()">Apply Suggestion</button>
                 </div>
@@ -974,7 +1049,8 @@ include __DIR__ . '/../common/head_assets.php';
 // ── Data from PHP ──────────────────────────────────────────
 const examQuestions = <?= json_encode($questions, JSON_UNESCAPED_UNICODE); ?>;
 const aiMap = <?= json_encode($ai_map, JSON_UNESCAPED_UNICODE); ?>;
-const composeUrl = 'compose_exam.php?exam_id=<?= $exam_id; ?>';
+const composeUrl = 'compose_exam.php?exam_id=<?= $exam_id; ?>&subject_id=<?= $subject_id; ?>&exam_subject_id=<?= $exam_subject_id; ?>';
+const isExamLocked = <?= $is_exam_locked ? 'true' : 'false'; ?>;
 
 let lastAI = null;
 let analyzing = false;
@@ -985,8 +1061,7 @@ let activeQId = 0;
 function toast(msg, type = 'info', duration = 4000) {
     const el = document.createElement('div');
     el.className = 'toast-msg ' + type;
-    const icons = { success: '✓', error: '✕', info: 'ℹ' };
-    el.innerHTML = `<span>${icons[type] || 'ℹ'}</span> ${msg}`;
+    el.innerHTML = msg;
     document.getElementById('toast').appendChild(el);
     setTimeout(() => el.remove(), duration);
 }
@@ -997,6 +1072,23 @@ function toggleMCQ() {
     document.getElementById('mcqBox').style.display = sec === 'Section A' ? 'block' : 'none';
 }
 
+// ── Submit Exam for Moderation ─────────────────────────────
+function submitExamForModeration() {
+    if (!confirm("Are you sure you want to submit this exam for moderation? Once submitted, you will not be able to edit it until it is reviewed.")) {
+        return;
+    }
+    postCompose('submit_exam')
+        .then(res => {
+            if (res.success) {
+                alert('Exam submitted successfully for moderation!');
+                window.location.href = 'assigned_exams.php';
+            } else {
+                alert(res.error || 'Submission failed.');
+            }
+        })
+        .catch(err => alert('Submission failed: ' + err.message));
+}
+
 // ── Load New ───────────────────────────────────────────────
 function loadNew() {
     activeQId = 0;
@@ -1004,6 +1096,8 @@ function loadNew() {
 
     document.getElementById('questionForm').reset();
     document.getElementById('exam_id').value = <?= $exam_id; ?>;
+    document.getElementById('subject_id').value = <?= $subject_id; ?>;
+    document.getElementById('exam_subject_id').value = <?= $exam_subject_id; ?>;
     document.getElementById('order').value = examQuestions.length + 1;
     document.getElementById('question_id').value = '';
     document.getElementById('editorTitle').textContent = 'Add Question';
@@ -1012,6 +1106,25 @@ function loadNew() {
     document.getElementById('modAlert').style.display = 'none';
     document.getElementById('mcqBox').style.display = 'none';
 
+    // Reset lock state
+    const lockBanner = document.getElementById('approvedLockBanner');
+    const formEl = document.getElementById('questionForm');
+    const allInputs = formEl.querySelectorAll('input, textarea, select');
+
+    if (isExamLocked) {
+        lockBanner.classList.add('visible');
+        document.getElementById('lockBannerTitle').textContent = 'Exam Locked';
+        document.getElementById('lockBannerSub').textContent = 'This exam has been submitted or approved and cannot be edited.';
+        allInputs.forEach(el => { el.disabled = true; });
+        document.getElementById('btnSave').style.display    = 'none';
+        document.getElementById('btnAnalyze').style.display = 'none';
+    } else {
+        lockBanner.classList.remove('visible');
+        allInputs.forEach(el => { el.disabled = false; });
+        document.getElementById('btnSave').style.display    = 'inline-flex';
+        document.getElementById('btnAnalyze').style.display = 'inline-flex';
+    }
+
     // AI Panel
     document.getElementById('aiEmpty').style.display = 'block';
     document.getElementById('aiContent').style.display = 'none';
@@ -1019,7 +1132,9 @@ function loadNew() {
 
     // Active state
     document.querySelectorAll('.q-item').forEach(el => el.classList.remove('active'));
-    document.getElementById('addNewBtn').classList.add('active');
+    if (document.getElementById('addNewBtn')) {
+        document.getElementById('addNewBtn').classList.add('active');
+    }
 }
 
 // ── Load Existing Question ─────────────────────────────────
@@ -1030,7 +1145,10 @@ function loadQuestion(id) {
     activeQId = id;
     lastAI = aiMap[id] || null;
 
-    document.getElementById('editorTitle').textContent = 'Edit Question';
+    const isApproved = (q.moderation_status || '') === 'approved';
+    const shouldLock = isApproved || isExamLocked;
+
+    document.getElementById('editorTitle').textContent = shouldLock ? 'Question (Locked)' : 'Edit Question';
     document.getElementById('question_id').value = q.question_id;
     document.getElementById('section_name').value = q.section_name || '';
     document.getElementById('order').value = q.question_order || '';
@@ -1044,6 +1162,28 @@ function loadQuestion(id) {
 
     toggleMCQ();
 
+    // Lock or unlock form fields
+    const formEl = document.getElementById('questionForm');
+    const allInputs = formEl.querySelectorAll('input, textarea, select');
+    allInputs.forEach(el => { el.disabled = shouldLock; });
+
+    // Lock banner
+    const lockBanner = document.getElementById('approvedLockBanner');
+    lockBanner.classList.toggle('visible', shouldLock);
+
+    if (isExamLocked) {
+        document.getElementById('lockBannerTitle').textContent = 'Exam Locked';
+        document.getElementById('lockBannerSub').textContent = 'This exam has been submitted or approved and cannot be edited.';
+    } else {
+        document.getElementById('lockBannerTitle').textContent = 'Approved & Locked';
+        document.getElementById('lockBannerSub').textContent = 'This question has been approved by the moderator and cannot be edited.';
+    }
+
+    // Hide action buttons when locked
+    document.getElementById('btnSave').style.display    = shouldLock ? 'none' : 'inline-flex';
+    document.getElementById('btnAnalyze').style.display = shouldLock ? 'none' : 'inline-flex';
+    document.getElementById('btnDelete').style.display  = shouldLock ? 'none' : 'inline-flex';
+
     // Status badge
     const badge = document.getElementById('editorBadge');
     if (q.moderation_status) {
@@ -1054,17 +1194,14 @@ function loadQuestion(id) {
         badge.style.display = 'none';
     }
 
-    // Delete button
-    document.getElementById('btnDelete').style.display = 'inline-flex';
-
     // Moderator alert
     const alert = document.getElementById('modAlert');
     if (q.moderator_comment && q.moderator_comment.trim()) {
         alert.className = 'mod-alert ' + (q.moderation_status || 'pending');
         document.getElementById('modAlertTitle').textContent =
-            q.moderation_status === 'approved' ? '✓ AI Approved' :
-            q.moderation_status === 'revise'   ? '⚠ Revision Needed' :
-            q.moderation_status === 'rejected' ? '✕ Rejected' : 'ℹ Comment';
+            q.moderation_status === 'approved' ? 'AI Approved' :
+            q.moderation_status === 'revise'   ? 'Revision Needed' :
+            q.moderation_status === 'rejected' ? 'Rejected' : 'Comment';
         document.getElementById('modAlertBody').textContent = q.moderator_comment;
         alert.style.display = 'block';
     } else {
@@ -1132,7 +1269,7 @@ function populateAIPane(ai) {
     (ai.warnings || []).forEach(w => {
         const d = document.createElement('div');
         d.className = 'ai-warning-tag';
-        d.textContent = '⚠ ' + w;
+        d.textContent = w;
         warningsWrap.appendChild(d);
     });
 
@@ -1148,7 +1285,7 @@ function populateAIPane(ai) {
         modDiv.style.background = isApproved ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)';
         modDiv.style.border = '1px solid ' + (isApproved ? 'rgba(34,197,94,0.2)' : 'rgba(245,158,11,0.2)');
         modDiv.style.color = isApproved ? '#15803d' : '#a16207';
-        modDiv.innerHTML = `<strong>${isApproved ? '✓ Auto-Approval Eligible' : '⚠ Revision Recommended'}</strong><br><span style="opacity:0.8;">${ai.moderation_reason || ''}</span>`;
+        modDiv.innerHTML = `<strong>${isApproved ? 'Auto-Approval Eligible' : 'Revision Recommended'}</strong><br><span style="opacity:0.8;">${ai.moderation_reason || ''}</span>`;
     } else {
         modDiv.style.display = 'none';
     }
@@ -1215,7 +1352,7 @@ function runAIAnalysis() {
         .then(res => {
             analyzing = false;
             document.getElementById('aiSpinner').style.display = 'none';
-            document.getElementById('btnAnalyzeText').textContent = '🤖 Analyze with AI';
+            document.getElementById('btnAnalyzeText').textContent = 'Analyze with AI';
             document.getElementById('btnAnalyze').disabled = false;
 
             if (!res || !res.ai) {
@@ -1235,7 +1372,7 @@ function runAIAnalysis() {
         .catch(err => {
             analyzing = false;
             document.getElementById('aiSpinner').style.display = 'none';
-            document.getElementById('btnAnalyzeText').textContent = '🤖 Analyze with AI';
+            document.getElementById('btnAnalyzeText').textContent = 'Analyze with AI';
             document.getElementById('btnAnalyze').disabled = false;
             toast('AI request failed: ' + (err.message || 'Unknown error'), 'error');
         });
@@ -1264,7 +1401,7 @@ function directSave() {
         .then(res => {
             saving = false;
             document.getElementById('saveSpinner').style.display = 'none';
-            document.getElementById('btnSaveText').textContent = '💾 Save Question';
+            document.getElementById('btnSaveText').textContent = 'Save Question';
             document.getElementById('btnSave').disabled = false;
 
             if (res.success) {
@@ -1277,7 +1414,7 @@ function directSave() {
         .catch(err => {
             saving = false;
             document.getElementById('saveSpinner').style.display = 'none';
-            document.getElementById('btnSaveText').textContent = '💾 Save Question';
+            document.getElementById('btnSaveText').textContent = 'Save Question';
             document.getElementById('btnSave').disabled = false;
             toast('Save failed: ' + (err.message || 'Unknown error'), 'error');
         });

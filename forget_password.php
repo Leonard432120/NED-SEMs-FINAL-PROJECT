@@ -198,6 +198,29 @@ $conn->close();
             color: #475569;
             margin-bottom: 26px;
         }
+        .password-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-wrapper input {
+            width: 100%;
+            padding-right: 40px;
+        }
+
+        .toggle-eye {
+            position: absolute;
+            right: 12px;
+            cursor: pointer;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+        }
+
+        .toggle-eye:hover {
+            color: #2563eb;
+        }
     </style>
 </head>
 <body>
@@ -207,7 +230,7 @@ $conn->close();
 
         <!-- Logo Added Here -->
         <div class="login-logo">
-            <img src="<?= BASE_URL ?>/assets/images/logo.png" 
+            <img src="<?= BASE_URL ?>/assets/images/logo1.png" 
                  alt="NED-SEMS - Northern Education Division Smart Examination Management System" 
                  width="180">
         </div>
@@ -226,9 +249,8 @@ $conn->close();
         <?php if ($step === 'request'): ?>
             <form method="POST" action="<?= BASE_URL ?>/forget_password.php">
                 <input type="hidden" name="action" value="send_otp">
-                <div class="form-group">
-                    <label for="login_value">Name or Email</label>
-                    <input type="text" id="login_value" name="login_value" placeholder="Enter your name or email" required>
+                <div class="form-group">                    
+                    <input type="text" id="login_value" name="login_value" placeholder="Enter your email" required>
                 </div>
                 <div class="form-actions">
                     <a href="<?= BASE_URL ?>/login.php">Back to login</a>
@@ -243,17 +265,26 @@ $conn->close();
             </p>
             <form method="POST" action="<?= BASE_URL ?>/forget_password.php">
                 <input type="hidden" name="action" value="verify_otp">
-                <div class="form-group">
-                    <label for="otp">OTP Code</label>
-                    <input type="password" id="otp" name="otp" placeholder="Enter the 6-digit OTP" maxlength="6" required>
+                <div class="form-group">                  
+                    <div class="password-wrapper">
+                        <input type="password" id="otp" name="otp" placeholder="Enter the 6-digit OTP" maxlength="6" required>
+                        <span class="toggle-eye" data-target="otp">
+                            <svg class="eyeOpen" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg class="eyeClosed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                                <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.6 21.6 0 0 1 5.06-6.94"></path>
+                                <path d="M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 8 11 8a21.6 21.6 0 0 1-2.16 3.19"></path>
+                                <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        </span>
+                    </div>
                 </div>
                 <div class="form-actions">
                     <a href="<?= BASE_URL ?>/login.php">Cancel</a>
-                </div>
-                <div class="show-password">
-                    <input type="checkbox" id="showPassword">
-                    <label for="showPassword">Show OTP</label>
-                </div>
+                </div>                
                 <button type="submit" class="btn btn-create">Verify OTP</button>
             </form>
 
@@ -261,20 +292,41 @@ $conn->close();
             <p class="form-note">Enter a new password for your account.</p>
             <form method="POST" action="<?= BASE_URL ?>/forget_password.php">
                 <input type="hidden" name="action" value="new_password">
-                <div class="form-group">
-                    <label for="password">New Password</label>
-                    <input type="password" id="password" name="password" placeholder="New password" required>
+                <div class="form-group">                    
+                    <div class="password-wrapper">
+                        <input type="password" id="password" name="password" placeholder="New password" required>
+                        <span class="toggle-eye" data-target="password">
+                            <svg class="eyeOpen" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg class="eyeClosed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                                <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.6 21.6 0 0 1 5.06-6.94"></path>
+                                <path d="M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 8 11 8a21.6 21.6 0 0 1-2.16 3.19"></path>
+                                <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        </span>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="confirm_password">Confirm New Password</label>
-                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Repeat new password" required>
-                </div>
-
-                <div class="show-password">
-                    <input type="checkbox" id="showPassword">
-                    <label for="showPassword">Show Password</label>
-                </div>
+                <div class="form-group">                    
+                    <div class="password-wrapper">
+                        <input type="password" id="confirm_password" name="confirm_password" placeholder="Repeat new password" required>
+                        <span class="toggle-eye" data-target="confirm_password">
+                            <svg class="eyeOpen" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg class="eyeClosed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                                <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.6 21.6 0 0 1 5.06-6.94"></path>
+                                <path d="M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 8 11 8a21.6 21.6 0 0 1-2.16 3.19"></path>
+                                <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        </span>
+                    </div>
+                </div>                
                 <div class="form-actions">
                     <a href="<?= BASE_URL ?>/login.php">Cancel</a>
                 </div>
@@ -299,18 +351,23 @@ $conn->close();
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    const showPassword = document.getElementById("showPassword");
-    if (showPassword) {
-        showPassword.addEventListener("change", function () {
-            const passwordInput = document.getElementById("password");
-            const confirmPasswordInput = document.getElementById("confirm_password");
-            const otpInput = document.getElementById("otp");
+    const toggles = document.querySelectorAll(".toggle-eye");
 
-            if (passwordInput) passwordInput.type = this.checked ? "text" : "password";
-            if (confirmPasswordInput) confirmPasswordInput.type = this.checked ? "text" : "password";
-            if (otpInput) otpInput.type = this.checked ? "text" : "password";
+    toggles.forEach(function (toggle) {
+        toggle.addEventListener("click", function () {
+            const targetId = this.getAttribute("data-target");
+            const input = document.getElementById(targetId);
+            const eyeOpen = this.querySelector(".eyeOpen");
+            const eyeClosed = this.querySelector(".eyeClosed");
+
+            if (!input) return;
+
+            const isPassword = input.type === "password";
+            input.type = isPassword ? "text" : "password";
+            eyeOpen.style.display = isPassword ? "none" : "block";
+            eyeClosed.style.display = isPassword ? "block" : "none";
         });
-    }
+    });
 });
 </script>
 

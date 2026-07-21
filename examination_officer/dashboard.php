@@ -102,28 +102,60 @@ $conn->close();
     <?php $module_css = 'examination_officer'; include '../common/head_assets.php'; ?>
     
     <style>
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
-            margin: 25px 0;
-        }
-        .stat-box {
-            background: white;
-            border-radius: 12px;
-            padding: 18px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.07);
-            text-align: center;
-            transition: all 0.3s;
-        }
-        .stat-box:hover {
-            transform: translateY(-5px);
-        }
-        .stat-number {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin: 8px 0 4px;
-        }
+       .stats {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+                gap: 15px;
+                margin: 25px 0;
+            }
+
+            .stat-box {
+                background: white;
+                border-radius: 12px;
+                padding: 20px 14px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+                text-align: center;
+                transition: all 0.3s ease;
+                border: 1px solid var(--border-color);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                min-height: 172px;
+            }
+
+            .stat-box:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 12px 25px rgba(0,0,0,0.1);
+            }
+
+            .stat-badge img {
+                width:40px;
+                height:40px;
+                object-fit:contain;
+                margin-bottom:10px;
+            }
+
+            .stat-number {
+                font-size:1.50rem;
+                font-weight:700;
+                margin:6px 0 4px;
+                color:#1e2937;
+            }
+
+            .stat-box h4 {
+                margin:0 0 6px;
+                font-size:0.85rem;
+                color:#334155;
+                font-weight:600;
+            }
+
+            .stat-box small {
+                color:#64748b;
+                font-size:0.82rem;
+                line-height:1.4;
+            }
     </style>
 </head>
 <body>
@@ -142,29 +174,34 @@ $conn->close();
             </div>
         </div>
 
-        <!-- STATISTICS -->
-        <div class="stats">
-            <div class="stat-box">
-                <h4>Students</h4>
-                <p class="stat-number"><?= number_format($total_students) ?></p>
-            </div>
-            <div class="stat-box">
-                <h4>Received Marks</h4>
-                <p class="stat-number"><?= number_format($received_marks) ?></p>
-            </div>
-            <div class="stat-box">
-                <h4>Pending Marks</h4>
-                <p class="stat-number"><?= number_format($pending_marks) ?></p>
-            </div>
-            <div class="stat-box">
-                <h4>Forwarded to EDM</h4>
-                <p class="stat-number"><?= number_format($forwarded_marks) ?></p>
-            </div>
-            <div class="stat-box">
-                <h4>Compiled Results</h4>
-                <p class="stat-number"><?= number_format($compiled_results) ?></p>
-            </div>
-        </div>
+        <!-- ================= WELL ALIGNED STAT CARDS ================= -->
+                <div class="stats">
+                    <div class="stat-box">                        
+                        <h4>Registered Students</h4>
+                        <p class="stat-number"><?= number_format($total_students) ?></p>
+                        <small>Students registered in this school</small>
+                        <a href="candidate_register.php" class="btn btn-small btn-view">View Students</a>
+                    </div>
+                    <div class="stat-box">                        
+                        <h4>Marks Received</h4>
+                        <p class="stat-number"><?= number_format($received_marks) ?></p>
+                        <small>Marks successfully received from teachers</small>
+                        <a href="receive_marks.php" class="btn btn-small btn-view">View Marks</a>
+                    </div>
+                    <div class="stat-box">                        
+                        <h4>Pending Submissions</h4>
+                        <p class="stat-number"><?= number_format($pending_marks) ?></p>
+                        <small>Marks awaiting submission verification</small>
+                        <a href="marks_verification.php" class="btn btn-small btn-view">Verify</a>
+                    </div>               
+                    <div class="stat-box">                        
+                        <h4>Compiled Results</h4>
+                        <p class="stat-number"><?= number_format($compiled_results) ?></p>
+                        <small>Results prepared and available</small>
+                        <a href="reports.php" class="btn btn-small btn-view">Reports</a>
+                    </div>
+
+                </div>
 
         <!-- ANNOUNCEMENTS -->
         <div class="card" style="margin-bottom: 25px;">
@@ -196,12 +233,9 @@ $conn->close();
         <div class="card">
             <h3>Quick Actions</h3>
             <div class="quick-links">
-                <a href="receive_marks.php">Receive Marks</a>
-                <a href="marks_verification.php">Verify Marks</a>
+                <a href="receive_marks.php">Receive Marks</a>                
                 <a href="results_review.php">Review Results</a>
-                <a href="candidate_register.php">Candidate Register</a>
-                <a href="exam_schedule.php">Exam Timetable</a>
-                <a href="reports.php">Reports</a>
+                <a href="candidate_register.php">Candidate Register</a>                
             </div>
         </div>
 

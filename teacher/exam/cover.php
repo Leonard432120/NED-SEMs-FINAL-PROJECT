@@ -34,7 +34,9 @@ SECTION: _____________
 <!-- ================= HEADER ================= -->
 <div class="header">
 
-    <img src="<?= BASE_URL ?>/static/images/NED.jpg" class="logo">
+    <div class="logo-wrap">
+        <img src="<?= (!empty($pdf_mode) && !empty($pdf_img_path)) ? $pdf_img_path : BASE_URL . '/static/images/NED.jpg' ?>" class="logo">
+    </div>
 
     <div class="header-text">
         <h2>NORTHERN EDUCATION DIVISION EXAMINATIONS</h2>

@@ -7,20 +7,20 @@
 <link rel="stylesheet" href="<?= BASE_URL ?>/static/css/exam.css">
 
 <style>
-.paper-flex { display:flex; gap:20px; }
-.col { flex:1; }
-.divider { width:2px; background:black; }
-.q { margin-bottom:18px; }
+.paper-flex { display:block; width:100%; }
+.col { width:100%; }
+.divider { width:100%; height:1px; background:black; margin:10px 0; }
+.q { margin-bottom:18px; page-break-inside:avoid; }
 .option { margin-left:15px; margin-top:3px; }
 </style>
 </head>
 <body>
 <?php else: ?>
 <style>
-.paper-flex { display:flex; gap:20px; }
-.col { flex:1; }
-.divider { width:2px; background:black; }
-.q { margin-bottom:18px; }
+.paper-flex { display:block; width:100%; }
+.col { width:100%; }
+.divider { width:100%; height:1px; background:black; margin:10px 0; }
+.q { margin-bottom:18px; page-break-inside:avoid; }
 .option { margin-left:15px; margin-top:3px; }
 </style>
 <?php endif; ?>

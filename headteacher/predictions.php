@@ -61,8 +61,8 @@ $conn->close();
     <?php $module_css = 'headteacher'; include __DIR__ . '/../common/head_assets.php'; ?>
     <style>
         .predict-header {
-            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-            color: #ffffff;
+            background: white;
+            color: black;
             border-radius: 12px;
             padding: 30px;
             margin-bottom: 30px;
@@ -84,9 +84,10 @@ $conn->close();
             font-size: 15px;
         }
         .filter-section {
-            background: rgba(255, 255, 255, 0.1);
+            background: white;
+            color: black;
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid #e2e8f0;
             padding: 15px 20px;
             border-radius: 10px;
             display: flex;
@@ -94,7 +95,7 @@ $conn->close();
             gap: 15px;
         }
         .filter-section label {
-            color: white;
+            color: #1e293b; 
             font-weight: 600;
         }
         .filter-section select {

@@ -23,13 +23,24 @@ $action  = $_GET['action'] ?? '';
 /* ===============================
    3. FETCH EXAM DETAILS
 ================================ */
+$subject_id_clause = "";
+$params = [$exam_id];
+$types = "i";
+if (isset($_GET['subject_id']) && is_numeric($_GET['subject_id'])) {
+    $subject_id_clause = " AND es.subject_id = ? ";
+    $params[] = (int)$_GET['subject_id'];
+    $types .= "i";
+}
+
 $stmt = $conn->prepare("
-    SELECT e.*, s.subject_name
+    SELECT e.*, s.subject_name, es.duration_minutes, es.total_marks
     FROM exams e
-    JOIN subjects s ON e.subject_id = s.subject_id
-    WHERE e.exam_id = ?
+    LEFT JOIN exam_subjects es ON e.exam_id = es.exam_id
+    LEFT JOIN subjects s ON es.subject_id = s.subject_id
+    WHERE e.exam_id = ? {$subject_id_clause}
+    LIMIT 1
 ");
-$stmt->bind_param("i", $exam_id);
+$stmt->bind_param($types, ...$params);
 $stmt->execute();
 $exam = $stmt->get_result()->fetch_assoc();
 
@@ -44,15 +55,45 @@ $exam['total_marks']      = $exam['total_marks'] ?? 100;
 $exam['subject_code']     = strtoupper(substr($exam['subject_name'],0,3)) . "-MSCE";
 
 /* ===============================
-   4. FETCH QUESTIONS
+   4. FETCH QUESTIONS — scoped to subject if subject_id is given
 ================================ */
-$qstmt = $conn->prepare("
-    SELECT *
-    FROM questions
-    WHERE exam_id = ?
-    ORDER BY question_order ASC
-");
-$qstmt->bind_param("i", $exam_id);
+$subject_id_get = isset($_GET['subject_id']) && is_numeric($_GET['subject_id']) ? (int)$_GET['subject_id'] : 0;
+
+if ($subject_id_get > 0) {
+    // Resolve exam_subject_id from subject_id
+    $es_stmt = $conn->prepare("SELECT id FROM exam_subjects WHERE exam_id = ? AND subject_id = ? LIMIT 1");
+    $es_stmt->bind_param("ii", $exam_id, $subject_id_get);
+    $es_stmt->execute();
+    $es_row = $es_stmt->get_result()->fetch_assoc();
+    $es_stmt->close();
+    $esi = $es_row ? (int)$es_row['id'] : 0;
+
+    if ($esi > 0) {
+        $qstmt = $conn->prepare("
+            SELECT *
+            FROM questions
+            WHERE exam_subject_id = ?
+            ORDER BY question_order ASC
+        ");
+        $qstmt->bind_param("i", $esi);
+    } else {
+        $qstmt = $conn->prepare("
+            SELECT *
+            FROM questions
+            WHERE exam_id = ?
+            ORDER BY question_order ASC
+        ");
+        $qstmt->bind_param("i", $exam_id);
+    }
+} else {
+    $qstmt = $conn->prepare("
+        SELECT *
+        FROM questions
+        WHERE exam_id = ?
+        ORDER BY question_order ASC
+    ");
+    $qstmt->bind_param("i", $exam_id);
+}
 $qstmt->execute();
 $qres = $qstmt->get_result();
 
@@ -62,27 +103,44 @@ while ($row = $qres->fetch_assoc()) {
 }
 
 /* ===============================
-   5. SPLIT QUESTIONS INTO PAGES
+   5. SPLIT QUESTIONS BY SECTION_NAME
 ================================ */
+$sectionA = [];
+$sectionB = [];
+$sectionC = [];
 
-/* Section A → 10 questions */
-$sectionA = array_slice($questions, 0, 10);
-
-/* Section B → next 5 */
-$sectionB = array_slice($questions, 10, 5);
-
-/* Section C → remaining */
-$sectionC = array_slice($questions, 15);
+foreach ($questions as $q) {
+    $sec = trim($q['section_name'] ?? '');
+    if (stripos($sec, 'Section A') !== false) {
+        $sectionA[] = $q;
+    } elseif (stripos($sec, 'Section B') !== false) {
+        $sectionB[] = $q;
+    } elseif (stripos($sec, 'Section C') !== false) {
+        $sectionC[] = $q;
+    } else {
+        // Default fallback based on question type
+        if (($q['question_type'] ?? '') === 'mcq') {
+            $sectionA[] = $q;
+        } elseif (($q['question_type'] ?? '') === 'essay') {
+            $sectionC[] = $q;
+        } else {
+            $sectionB[] = $q;
+        }
+    }
+}
 
 /* Split for pages */
-$page1_questions = array_slice($sectionA, 0, 5);
-$page2_questions = array_slice($sectionA, 5, 5);
+$halfA = count($sectionA) > 0 ? (int)ceil(count($sectionA) / 2) : 0;
+$page1_questions = array_slice($sectionA, 0, $halfA);
+$page2_questions = array_slice($sectionA, $halfA);
 
-$page3_questions = array_slice($sectionB, 0, ceil(count($sectionB) / 2));
-$page4_questions = array_slice($sectionB, ceil(count($sectionB) / 2));
+$halfB = count($sectionB) > 0 ? (int)ceil(count($sectionB) / 2) : 0;
+$page3_questions = array_slice($sectionB, 0, $halfB);
+$page4_questions = array_slice($sectionB, $halfB);
 
-$page5_questions = array_slice($sectionC, 0, ceil(count($sectionC) / 2));
-$page6_questions = array_slice($sectionC, ceil(count($sectionC) / 2));
+$halfC = count($sectionC) > 0 ? (int)ceil(count($sectionC) / 2) : 0;
+$page5_questions = array_slice($sectionC, 0, $halfC);
+$page6_questions = array_slice($sectionC, $halfC);
 
 /* page6 may contain section C continuation or extra writing space */
 
@@ -115,8 +173,13 @@ if ($action === 'download') {
         die("Please add questions before downloading the exam paper.");
     }
 
+    log_audit_event('EXAM_PAPER_DOWNLOADED', ['exam_id' => $exam_id, 'exam_name' => $exam['exam_name'] ?? ''], null, $conn);
+
     require_once __DIR__ . '/../vendor/autoload.php';
-    $dompdf = new Dompdf\Dompdf();
+    $options = new Dompdf\Options();
+    $options->set('isRemoteEnabled', true);
+    $options->set('isHtml5ParserEnabled', true);
+    $dompdf = new Dompdf\Dompdf($options);
 
     ob_start();
     include __DIR__ . "/exam/pdf_full.php";

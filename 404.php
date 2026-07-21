@@ -27,8 +27,7 @@ $show_back  = $referrer !== '' && parse_url($referrer, PHP_URL_HOST) === ($_SERV
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>404 – Page Not Found | NED-SEMS</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -47,7 +46,7 @@ $show_back  = $referrer !== '' && parse_url($referrer, PHP_URL_HOST) === ($_SERV
 
         html, body {
             height: 100%;
-            font-family: 'Inter', system-ui, sans-serif;
+            font-family: "Segoe UI", system-ui, Tahoma, Verdana, sans-serif;
             background: var(--light);
             color: var(--dark);
         }

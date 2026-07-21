@@ -106,3 +106,45 @@
 2026-06-29 10:28:21 | AI | Question saved | {"question_id":105,"exam_id":27,"ai_quality":37,"mod_status":"revise"}
 2026-06-29 10:33:00 | AI | AI microservice success | {"quality":47,"bloom":"Apply"}
 2026-06-29 10:33:00 | AI | Question saved | {"question_id":106,"exam_id":27,"ai_quality":47,"mod_status":"revise"}
+2026-07-04 09:48:10 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-04 14:44:34 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-04 14:46:31 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-06 10:49:48 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-07 12:14:46 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-07 12:20:14 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-07 12:21:26 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-07 12:28:56 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-07 15:39:00 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-12 19:01:49 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-12 21:51:32 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-12 21:54:08 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-12 21:58:42 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-12 21:59:14 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-12 21:59:32 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-12 22:00:21 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-12 22:01:42 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-12 22:02:27 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-12 22:05:42 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-12 22:06:51 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-13 09:31:17 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-13 10:45:44 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-13 10:52:20 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-13 11:06:14 | AI | Spawned AI microservice server in background.
+2026-07-13 11:07:55 | AI | Spawned AI microservice server in background.
+2026-07-13 11:09:39 | AI | Spawned AI microservice server in background.
+2026-07-13 11:09:43 | AI | Spawned AI microservice server in background.
+2026-07-13 11:09:49 | AI | Spawned AI microservice server in background.
+2026-07-13 11:11:10 | AI | Spawned AI microservice server in background.
+2026-07-13 13:13:58 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-13 13:14:39 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-13 13:56:10 | AI | Spawned AI microservice server in background.
+2026-07-13 13:56:42 | AI | Question saved | {"question_id":103,"exam_id":27,"ai_quality":85,"mod_status":"approved"}
+2026-07-13 13:57:38 | AI | Spawned AI microservice server in background.
+2026-07-13 13:57:38 | AI | Question saved | {"question_id":107,"exam_id":27,"ai_quality":40,"mod_status":"revise"}
+2026-07-14 10:34:31 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-21 14:11:41 | AI | Spawned AI microservice server in background.
+2026-07-21 14:12:17 | AI | Question saved | {"question_id":108,"exam_id":27,"ai_quality":40,"mod_status":"revise"}
+2026-07-21 22:08:15 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-21 22:12:28 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-21 22:15:42 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}
+2026-07-21 22:17:55 | Python resolved | {"path":"C:\\Users\\DOBA\\AppData\\Local\\Programs\\Python\\Python314\\python.exe","version":"Python 3.14.5"}

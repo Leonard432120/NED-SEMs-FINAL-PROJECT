@@ -3,7 +3,7 @@
 
     <!-- Logo -->
     <div class="sidebar-logo">
-        <img src="<?= BASE_URL ?>/assets/images/logo.png" 
+        <img src="<?= BASE_URL ?>/assets/images/logo1.png" 
              alt="NED-SEMS Logo" 
              width="160">
     </div>
@@ -51,18 +51,6 @@
             <a href="<?= BASE_URL ?>/admin/manage_assignments.php" class="sidebar-link">Teacher Assignments</a>
         </div>
     </div>
-
-    <!-- Marks Management -->
-    <div class="sidebar-group">
-        <span class="sidebar-menu-header" data-menu="marksMenu" role="button" aria-expanded="false" tabindex="0">
-            Marks Management
-        </span>
-        <div class="sidebar-sub" id="marksMenu">
-            <a href="<?= BASE_URL ?>/admin/marks_overview.php" class="sidebar-link">Subject Marks</a>
-            <a href="<?= BASE_URL ?>/admin/missing_marks.php" class="sidebar-link">Missing Submissions</a>
-        </div>
-    </div>
-
     <!-- Results Management -->
     <div class="sidebar-group">
         <span class="sidebar-menu-header" data-menu="resultsMenu" role="button" aria-expanded="false" tabindex="0">
@@ -82,13 +70,18 @@
             Analytics & Reports
         </span>
         <div class="sidebar-sub" id="reportMenu">
-            <a href="<?= BASE_URL ?>/admin/reports/performance.php" class="sidebar-link">Performance Analysis</a>
-            <a href="<?= BASE_URL ?>/admin/reports/ranking.php" class="sidebar-link">Student Rankings</a>
+            <a href="<?= BASE_URL ?>/admin/reports/index.php" class="sidebar-link">Analytics Hub</a>
+            <a href="<?= BASE_URL ?>/admin/reports/candidates.php" class="sidebar-link">Candidates Reports</a>
             <a href="<?= BASE_URL ?>/admin/reports/school_report.php" class="sidebar-link">School Performance</a>
-            <a href="<?= BASE_URL ?>/admin/reports/district_report.php" class="sidebar-link">Division Performance</a>
+            <a href="<?= BASE_URL ?>/admin/reports/district_report.php" class="sidebar-link">District Analysis</a>
+            <a href="<?= BASE_URL ?>/admin/reports/division_report.php" class="sidebar-link">Division Overview</a>
+            <a href="<?= BASE_URL ?>/admin/reports/div_findings_history.php" class="sidebar-link">Division Findings History</a>
+            <a href="<?= BASE_URL ?>/admin/reports/examination_report.php" class="sidebar-link">Examination Reports</a>
+            <a href="<?= BASE_URL ?>/admin/reports/subject_report.php" class="sidebar-link">Subject Analysis</a>
+            <a href="<?= BASE_URL ?>/admin/reports/ranking.php" class="sidebar-link">Rankings Leaderboard</a>            
+            <a href="<?= BASE_URL ?>/admin/reports/predictions.php" class="sidebar-link">AI Performance Projections</a>
             <a href="<?= BASE_URL ?>/admin/reports/anomalies.php" class="sidebar-link">AI Anomalies</a>
-            <a href="<?= BASE_URL ?>/admin/predictions.php" class="sidebar-link">AI Performance Predictor</a>
-            <a href="<?= BASE_URL ?>/admin/reports/export_pdf.php" class="sidebar-link">Export Reports</a>
+            <a href="<?= BASE_URL ?>/admin/reports/compliance_report.php" class="sidebar-link">Compliance Monitoring</a>
         </div>
     </div>
 

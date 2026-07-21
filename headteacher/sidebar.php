@@ -21,6 +21,21 @@
         </div>
     </div>
 
+    <!-- TEACHER PERFORMANCE MANAGEMENT -->
+    <div class="sidebar-group">
+        <span data-menu="tpmMenu">
+            Teacher Performance ▼
+        </span>
+        <div class="sidebar-sub" id="tpmMenu">
+            <a href="<?= BASE_URL ?>/headteacher/teacher_rankings.php" data-link>
+                Teacher Rankings
+            </a>
+            <a href="<?= BASE_URL ?>/headteacher/performance_review.php" data-link>
+                Performance Reviews
+            </a>
+        </div>
+    </div>
+
     <!-- STUDENT MANAGEMENT -->
     <a href="<?= BASE_URL ?>/headteacher/manage_students.php" data-link>
         Student Management
@@ -76,6 +91,12 @@
             </a>
             <a href="<?= BASE_URL ?>/headteacher/reports.php" data-link>
                 School Reports
+            </a>
+            <a href="<?= BASE_URL ?>/headteacher/findings.php" data-link>
+                Findings History
+            </a>
+            <a href="<?= BASE_URL ?>/headteacher/teacher_compliance.php" data-link>
+                Teacher Submission Report
             </a>
         </div>
     </div>

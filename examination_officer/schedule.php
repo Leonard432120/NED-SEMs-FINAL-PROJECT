@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->execute()) {
             $message = 'Exam settings updated successfully.';
             $edit_id = $exam_id;
-            // No marks_deadline column in exam_subjects; skip updating subjects
+            log_audit_event('EXAM_SCHEDULE_UPDATED', ['exam_id' => $exam_id, 'class' => $exam_class, 'marks_deadline' => $deadline_val], null, $conn);
         } else {
             $error = 'Failed to update exam settings: ' . $conn->error;
         }
@@ -117,9 +117,14 @@ $conn->close();
                         </select>
                     </div>
                     <div class="form-group" style="background:#f8fafc;padding:15px;border-radius:8px;border:1px solid #e2e8f0;margin-top:20px;">
-                        <label for="marks_deadline" style="color:#0f172a;font-weight:600;">Submissions Deadline (Marks)</label>
-                        <p style="font-size:0.8rem;color:#64748b;margin-bottom:10px;">Set the final date when teachers will be automatically locked out of submitting their marks.</p>
-                        <input type="date" name="marks_deadline" id="marks_deadline" value="<?php echo htmlspecialchars(isset($edit_exam['marks_deadline']) ? date('Y-m-d', strtotime($edit_exam['marks_deadline'])) : ''); ?>">
+                        <label for="marks_deadline" style="color:#0f172a;font-weight:600;">
+                            Overall Marks Submission Deadline <span style="color:#dc2626;">(Final Cutoff)</span>
+                        </label>
+                        <p style="font-size:0.8rem;color:#64748b;margin-bottom:10px;">
+                            This is the <strong>hard deadline</strong>. Teachers will see the <strong>earliest</strong> date between this and the per-subject deadline set by the Headteacher.
+                        </p>
+                        <input type="date" name="marks_deadline" id="marks_deadline" 
+                            value="<?php echo htmlspecialchars(isset($edit_exam['marks_deadline']) ? date('Y-m-d', strtotime($edit_exam['marks_deadline'])) : ''); ?>">
                     </div>
                     <button type="submit" class="btn btn-primary" style="margin-top:15px;">Save Settings</button>
                 </form>

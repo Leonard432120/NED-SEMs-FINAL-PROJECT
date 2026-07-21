@@ -215,11 +215,33 @@ $conn->close();
             background: rgba(0,0,0,0.5); z-index: 9999;
         }
         .modal.show { display: block; }
-        .modal-content {
-            background: #fff; max-width: 480px;
-            margin: 6% auto; padding: 24px;
-            border-radius: var(--border-radius);
-        }
+       .modal-content {
+        background: #fff; max-width: 480px;
+        margin: 4% auto; padding: 24px;
+        border-radius: var(--border-radius);
+        max-height: 88vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+    .modal-content form {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+    .modal-actions {
+        position: sticky;
+        bottom: -24px;
+        background: #fff;
+        padding: 14px 0 4px;
+        margin: 0 -24px -24px;
+        padding-left: 24px;
+        padding-right: 24px;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
         /* Bulk row */
         .bulk-row {
             display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px;

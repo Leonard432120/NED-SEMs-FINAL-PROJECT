@@ -10,7 +10,13 @@ if ($question_id <= 0) {
 
 $conn = get_db_connection();
 
-$stmt = $conn->prepare("SELECT * FROM questions WHERE question_id=?");
+$stmt = $conn->prepare("
+    SELECT q.*, es.subject_id, es.id AS exam_subject_id, s.subject_name
+    FROM questions q
+    LEFT JOIN exam_subjects es ON q.exam_subject_id = es.id
+    LEFT JOIN subjects s ON es.subject_id = s.subject_id
+    WHERE q.question_id = ?
+");
 $stmt->bind_param("i", $question_id);
 $stmt->execute();
 $question = $stmt->get_result()->fetch_assoc();
@@ -40,7 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $conn->commit();
     $conn->close();
 
-    header("Location: moderate_exam.php?exam_id=" . $question['exam_id']);
+    $redirect_subject = (int)($question['subject_id'] ?? 0);
+    header("Location: moderate_exam.php?exam_id=" . $question['exam_id'] . "&subject_id=" . $redirect_subject);
     exit();
 }
 
@@ -125,7 +132,7 @@ include __DIR__ . '/../common/head_assets.php';
                 <p class="muted">Update question details and re-submit for moderation</p>
             </div>
             <div class="header-actions">
-                <a href="moderate_exam.php?exam_id=<?= $question['exam_id']; ?>" class="btn-small btn-dark">
+                <a href="moderate_exam.php?exam_id=<?= $question['exam_id']; ?>&subject_id=<?= $question['subject_id'] ?? 0; ?>" class="btn-small btn-dark">
                     ← Back to Moderation
                 </a>
             </div>
@@ -213,7 +220,7 @@ include __DIR__ . '/../common/head_assets.php';
                     <button type="submit" class="btn-small btn-teal">
                         ✔ Save Changes
                     </button>
-                    <a href="moderate_exam.php?exam_id=<?= $question['exam_id']; ?>" class="btn-small btn-danger">
+                    <a href="moderate_exam.php?exam_id=<?= $question['exam_id']; ?>&subject_id=<?= $question['subject_id'] ?? 0; ?>" class="btn-small btn-danger">
                         Cancel
                     </a>
                 </div>

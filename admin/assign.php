@@ -19,7 +19,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     exit();
 }
 
-$conn = get_db_connection();
+$conn     = get_db_connection();
 $admin_id = $_SESSION['user_id'];
 
 $message      = '';
@@ -31,6 +31,21 @@ if (!empty($_GET['err'])) {
     $message_type = 'error';
 }
 
+/* ══════════════════════════════════════════
+   PRE-FILL FROM "ASSIGN NOW" LINK
+   (manage_assignments.php -> assign.php?subject_id=..&role=..)
+   Presence of BOTH params also tells us the admin
+   arrived from Manage Assignments, so on success we
+   send them back there instead of resetting this form.
+══════════════════════════════════════════ */
+$allowed_roles       = ['item_writer', 'moderator'];
+$prefill_subject_id  = isset($_GET['subject_id']) ? (int)$_GET['subject_id'] : 0;
+$prefill_role        = trim($_GET['role'] ?? '');
+if (!in_array($prefill_role, $allowed_roles, true)) {
+    $prefill_role = '';
+}
+$came_from_manage = ($prefill_subject_id > 0 && $prefill_role !== '');
+
 /* ================= FETCH DATA ================= */
 $teachers = $conn->query("SELECT user_id, name, email, COALESCE(teacher_category, '') AS teacher_category 
                          FROM users WHERE role='teacher' ORDER BY name");
@@ -38,13 +53,20 @@ $teachers = $conn->query("SELECT user_id, name, email, COALESCE(teacher_category
 $subjects = $conn->query("SELECT subject_id, subject_name, subject_code, category 
                          FROM subjects WHERE status='active' ORDER BY subject_name");
 
-/* ================= HANDLE POST (unchanged) ================= */
+/* ================= HANDLE POST ================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $teacher_id = (int)($_POST['teacher_id'] ?? 0);
     $subject_id = (int)($_POST['subject_id'] ?? 0);
     $role       = trim($_POST['role'] ?? '');
 
-    if ($teacher_id && $subject_id && $role) {
+    /* Server-side guard: markers are assigned by headteachers, never here */
+    if ($role === 'marker') {
+        $message      = "Markers are assigned by headteachers, not through this page.";
+        $message_type = "error";
+    } elseif (!in_array($role, $allowed_roles, true)) {
+        $message      = "Please select a valid role.";
+        $message_type = "error";
+    } elseif ($teacher_id && $subject_id && $role) {
         $tq = $conn->prepare("SELECT name, email, COALESCE(teacher_category,'') AS teacher_category FROM users WHERE user_id=?");
         $tq->bind_param("i", $teacher_id);
         $tq->execute();
@@ -63,6 +85,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($teacher_category && $subject_category && $teacher_category !== $subject_category) {
             $message = "Category Mismatch! Teacher is from <strong>" . ucfirst($teacher_category) . "</strong> but subject is <strong>" . ucfirst($subject_category) . "</strong>.";
             $message_type = "error";
+            // Preserve selection so the admin can correct it without losing context
+            $prefill_subject_id = $subject_id;
+            $prefill_role        = $role;
+            $came_from_manage    = ($prefill_subject_id > 0 && $prefill_role !== '');
         } else {
             // Unique key is (subject_id, role) — check if this role is already taken for this subject
             $check = $conn->prepare("SELECT assignment_id, u.name AS assigned_to
@@ -77,6 +103,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($taken) {
                 $message = "This role (<strong>" . ucwords(str_replace('_', ' ', $role)) . "</strong>) is already assigned to <strong>" . htmlspecialchars($taken['assigned_to']) . "</strong> for this subject. Reassign from Manage Assignments instead.";
                 $message_type = "error";
+                $prefill_subject_id = $subject_id;
+                $prefill_role        = $role;
+                $came_from_manage    = ($prefill_subject_id > 0 && $prefill_role !== '');
             } else {
                 try {
                     /* Temporarily allow errors as warnings so our catch works in PHP 8.1+ */
@@ -95,8 +124,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             send_email($teacher['email'], 'Subject Assignment Notification',
                                 "Hello {$teacher['name']},\n\nYou have been assigned:\n\nSubject: {$subject['subject_name']}\nCategory: {$subject['category']}\nRole: {$role}");
                         }
+
+                        /* If we arrived here via the "+ Assign now" link on Manage
+                           Assignments, return the admin there instead of staying
+                           on this form. */
+                        if ($came_from_manage) {
+                            $conn->close();
+                            header("Location: manage_assignments.php?assigned=1");
+                            exit();
+                        }
+
                         $message      = 'Teacher assigned successfully.';
                         $message_type = 'success';
+                        // Clear prefill after a successful assignment — start fresh
+                        $prefill_subject_id = 0;
+                        $prefill_role        = '';
                     } else {
                         $stmt->close();
                         mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
@@ -107,14 +149,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $message = 'Database error (' . $conn->errno . '): ' . htmlspecialchars($conn->error);
                         }
                         $message_type = 'error';
+                        $prefill_subject_id = $subject_id;
+                        $prefill_role        = $role;
+                        $came_from_manage    = ($prefill_subject_id > 0 && $prefill_role !== '');
                     }
                 } catch (Throwable $e) {
                     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
                     $message      = 'Could not save assignment: ' . htmlspecialchars($e->getMessage());
                     $message_type = 'error';
+                    $prefill_subject_id = $subject_id;
+                    $prefill_role        = $role;
+                    $came_from_manage    = ($prefill_subject_id > 0 && $prefill_role !== '');
                 }
             }
         }
+    } else {
+        $message      = "Please select a subject, teacher, and role.";
+        $message_type = "error";
     }
 }
 $conn->close();
@@ -150,6 +201,15 @@ $conn->close();
             border-radius: 8px;
             color: #92400e;
         }
+        .prefill-note {
+            background: #eff6ff;
+            border-left: 5px solid #3b82f6;
+            padding: 12px 15px;
+            border-radius: 8px;
+            color: #1e3a8a;
+            font-size: 0.875rem;
+            grid-column: 1 / -1;
+        }
     </style>
 </head>
 <body>
@@ -166,6 +226,9 @@ $conn->close();
                 <h2 class="page-title">Subject Assignment</h2>
                 <p class="page-subtitle">Smart filtering by category</p>
             </div>
+            <div class="header-actions">
+                <a href="manage_assignments.php" class="btn btn-secondary btn-small">Manage Assignments</a>
+            </div>
         </div>
 
         <?php if ($message): ?>
@@ -177,12 +240,21 @@ $conn->close();
         <div class="card">
             <form method="POST" class="form-grid" id="assignForm">
 
+                <?php if ($came_from_manage): ?>
+                    <div class="prefill-note">
+                        Subject and role pre-filled from Manage Assignments — just pick a teacher below.
+                        You'll be returned there once this assignment is saved.
+                    </div>
+                <?php endif; ?>
+
                 <div class="form-group">
                     <label>Subject <span style="color:red;">*</span></label>
                     <select name="subject_id" id="subjectSelect" required onchange="filterTeachers()">
                         <option value="">Select Subject</option>
                         <?php $subjects->data_seek(0); while($s = $subjects->fetch_assoc()): ?>
-                            <option value="<?= $s['subject_id'] ?>" data-category="<?= strtolower($s['category'] ?? '') ?>">
+                            <option value="<?= $s['subject_id'] ?>"
+                                    data-category="<?= strtolower($s['category'] ?? '') ?>"
+                                    <?= $prefill_subject_id === (int)$s['subject_id'] ? 'selected' : '' ?>>
                                 <?= htmlspecialchars($s['subject_name']) ?> (<?= htmlspecialchars($s['subject_code'] ?? '') ?>)
                             </option>
                         <?php endwhile; ?>
@@ -205,15 +277,22 @@ $conn->close();
                 <div class="form-group">
                     <label>Role <span style="color:red;">*</span></label>
                     <select name="role" required>
-                        <option value="item_writer">Item Writer</option>
-                        <option value="moderator">Moderator</option>
-                        <option value="marker">Marker</option>
+                        <option value="item_writer" <?= $prefill_role === 'item_writer' ? 'selected' : '' ?>>Item Writer</option>
+                        <option value="moderator"   <?= $prefill_role === 'moderator'   ? 'selected' : '' ?>>Moderator</option>
                     </select>
+                    <span style="font-size:.8rem;color:var(--text-muted);">
+                        Markers are assigned separately by headteachers.
+                    </span>
                 </div>
 
                 <div id="validationWarning" class="warning-box" style="display: none; grid-column: 1 / -1;"></div>
 
-                <div style="grid-column: 1 / -1; text-align: right; margin-top: 20px;">
+                <div style="grid-column: 1 / -1; display:flex; justify-content:space-between; align-items:center; margin-top: 20px;">
+                    <?php if ($came_from_manage): ?>
+                        <a href="manage_assignments.php" class="btn btn-secondary">Cancel &amp; go back</a>
+                    <?php else: ?>
+                        <span></span>
+                    <?php endif; ?>
                     <button type="submit" class="btn btn-dark" id="submitBtn">Assign Teacher</button>
                 </div>
 
@@ -231,6 +310,11 @@ let allSubjects = [];
 document.addEventListener('DOMContentLoaded', () => {
     allTeachers = Array.from(document.getElementById('teacherSelect').options);
     allSubjects = Array.from(document.getElementById('subjectSelect').options);
+
+    // If a subject was pre-selected via URL (from "Assign now"), filter teachers immediately
+    if (document.getElementById('subjectSelect').value) {
+        filterTeachers();
+    }
 });
 
 function filterTeachers() {

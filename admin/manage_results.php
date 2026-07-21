@@ -1,6 +1,7 @@
 <?php
 session_start();
 include '../config/db.php';
+require_once '../common/pagination_helper.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     header("Location: ../login.php");
@@ -14,6 +15,12 @@ $conn = get_db_connection();
 ========================================================= */
 $exam_id = isset($_GET['exam_id']) ? (int)$_GET['exam_id'] : 0;
 $class   = $_GET['class'] ?? '';
+
+/* =========================================================
+   PAGINATION SETUP
+========================================================= */
+$page     = max(1, (int)($_GET['page'] ?? 1));
+$per_page = 10;
 
 /* =========================================================
    DASHBOARD STATS
@@ -68,7 +75,41 @@ $classes = $conn->query("
 ");
 
 /* =========================================================
-   RESULTS QUERY
+   BUILD SHARED WHERE CLAUSE (used for both COUNT and SELECT)
+========================================================= */
+
+$where_sql = " WHERE 1=1 ";
+
+if ($exam_id > 0) {
+    $where_sql .= " AND r.exam_id = $exam_id";
+}
+
+if (!empty($class)) {
+    $safe_class = $conn->real_escape_string($class);
+    $where_sql .= " AND s.class = '$safe_class'";
+}
+
+/* =========================================================
+   COUNT QUERY (for pagination)
+========================================================= */
+
+$count_sql = "
+SELECT COUNT(*) total
+FROM results r
+INNER JOIN students s
+    ON r.student_id = s.student_id
+INNER JOIN exams e
+    ON r.exam_id = e.exam_id
+$where_sql
+";
+
+$total_filtered = $conn->query($count_sql)->fetch_assoc()['total'] ?? 0;
+
+$pagination = paginate($total_filtered, $page, $per_page);
+$offset = ($page - 1) * $per_page;
+
+/* =========================================================
+   RESULTS QUERY (with LIMIT / OFFSET)
 ========================================================= */
 
 $sql = "
@@ -83,19 +124,10 @@ INNER JOIN students s
     ON r.student_id = s.student_id
 INNER JOIN exams e
     ON r.exam_id = e.exam_id
-WHERE 1=1
+$where_sql
+ORDER BY r.total_score DESC
+LIMIT $per_page OFFSET $offset
 ";
-
-if ($exam_id > 0) {
-    $sql .= " AND r.exam_id = $exam_id";
-}
-
-if (!empty($class)) {
-    $safe_class = $conn->real_escape_string($class);
-    $sql .= " AND s.class = '$safe_class'";
-}
-
-$sql .= " ORDER BY r.total_score DESC";
 
 $results = $conn->query($sql);
 ?>
@@ -249,6 +281,12 @@ $results = $conn->query($sql);
 
     </div>
 
+    <!-- RESULTS TABLE META -->
+    <div class="table-meta">
+        Showing <?= $total_filtered > 0 ? (($page - 1) * $per_page) + 1 : 0 ?> –
+        <?= min($page * $per_page, $total_filtered) ?> of <?= $total_filtered ?> results
+    </div>
+
     <!-- RESULTS TABLE -->
 <div class="card">
 
@@ -274,7 +312,7 @@ $results = $conn->query($sql);
 
             <?php if ($results && $results->num_rows > 0): ?>
 
-                <?php $count = 1; ?>
+                <?php $count = $offset + 1; ?>
                 <?php while($row = $results->fetch_assoc()): ?>
 
                     <?php $status = strtolower($row['status'] ?? 'draft'); ?>
@@ -337,6 +375,10 @@ $results = $conn->query($sql);
 
     </div>
 </div>
+
+    <!-- PAGINATION -->
+    <?php echo render_pagination($pagination, 'results.php'); ?>
+
     <!-- WORKFLOW CARD -->
 
     <div class="card">
@@ -377,19 +419,3 @@ $results = $conn->query($sql);
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -3,7 +3,7 @@
 
     <!-- Logo -->
     <div class="sidebar-logo">
-        <img src="<?= BASE_URL ?>/assets/images/logo.png" 
+        <img src="<?= BASE_URL ?>/assets/images/logo1.png" 
              alt="NED-SEMS Logo" 
              width="160">
     </div>
