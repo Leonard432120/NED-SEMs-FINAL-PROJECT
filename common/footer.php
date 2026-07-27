@@ -210,30 +210,33 @@ endif;
 
 <!-- ================= GLOBAL DELETE MODAL ================= -->
 <div id="globalDeleteModal" class="modal">
+    <div class="gdm-box">
 
-    <div class="modal-content">
+        <!-- Icon -->
+        <div class="gdm-icon-wrap">
+            <svg class="gdm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+            </svg>
+        </div>
 
-        <h3>Confirm Delete</h3>
+        <!-- Heading -->
+        <h3 class="gdm-title">Delete Confirmation</h3>
+        <p class="gdm-msg">Are you sure you want to permanently delete this item?<br>This action <strong>cannot be undone</strong>.</p>
 
-        <p>
-            Are you sure you want to delete this item?<br>
-            This action cannot be undone.
-        </p>
-
-        <div class="modal-actions">
-
-            <button type="button" onclick="closeDeleteModal()">Cancel</button>
-
-            <a id="globalDeleteConfirmBtn"
-               href="#"
-               class="btn btn-delete">
-               Yes, Delete
+        <!-- Actions -->
+        <div class="gdm-actions">
+            <button type="button" class="gdm-btn gdm-btn-cancel" onclick="closeDeleteModal()">
+                Cancel
+            </button>
+            <a id="globalDeleteConfirmBtn" href="#" class="gdm-btn gdm-btn-delete">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                </svg>
+                Yes, Delete
             </a>
-
         </div>
 
     </div>
-
 </div>
 
 

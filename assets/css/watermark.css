@@ -1,0 +1,115 @@
+/* ════════════════════════════════════════════════════════════════
+   NED-SEMS DYNAMIC FORENSIC WATERMARK & ANTI-LEAK SECURITY CSS
+   ────────────────────────────────────────────────────────────────
+   Applies semi-transparent, repeating diagonal forensic watermarks
+   containing user identity, IP address, and timestamp over item
+   writing and moderation screens to prevent camera / photo leaks.
+   ════════════════════════════════════════════════════════════════ */
+
+/* Fixed Fullscreen Watermark Canvas Overlay */
+.forensic-watermark-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 99999;
+    overflow: hidden;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: space-around;
+    justify-content: space-around;
+    opacity: 0.18;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* Individual Diagonal Watermark Repeater Unit */
+.forensic-watermark-unit {
+    transform: rotate(-25deg);
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: 1px;
+    white-space: nowrap;
+    margin: 45px 35px;
+    text-transform: uppercase;
+    text-shadow: 0 0 1px rgba(0,0,0,0.2);
+}
+
+/* Content Protection Shielding */
+.secure-exam-container {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    transition: filter 0.2s ease, opacity 0.2s ease;
+}
+
+/* Auto-blur effect when browser loses focus */
+body.screen-unfocused .secure-exam-container,
+body.screen-unfocused .content {
+    filter: blur(25px) grayscale(100%) !important;
+    opacity: 0.15 !important;
+    pointer-events: none !important;
+}
+
+/* Unfocus Security Notice Overlay */
+#security-unfocus-shield {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    background: rgba(15, 23, 42, 0.92);
+    backdrop-filter: blur(20px);
+    color: #ffffff;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-family: 'Inter', sans-serif;
+    padding: 30px;
+}
+
+body.screen-unfocused #security-unfocus-shield {
+    display: flex !important;
+}
+
+#security-unfocus-shield h3 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #f87171;
+    margin-bottom: 10px;
+}
+
+#security-unfocus-shield p {
+    font-size: 0.95rem;
+    color: #cbd5e1;
+    max-width: 480px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Anti-Print CSS Shield */
+@media print {
+    .forensic-watermark-overlay {
+        opacity: 0.8 !important;
+        display: flex !important;
+    }
+    body.protected-exam-page * {
+        display: none !important;
+    }
+    body.protected-exam-page::after {
+        content: "CONFIDENTIAL EXAMINATION MATERIAL — UNAUTHORIZED PRINTING IS STRICTLY PROHIBITED.";
+        display: block !important;
+        font-size: 20pt;
+        font-weight: bold;
+        color: #b91c1c;
+        text-align: center;
+        margin-top: 200pt;
+    }
+}

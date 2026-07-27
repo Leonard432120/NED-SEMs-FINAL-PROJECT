@@ -375,41 +375,57 @@ $conn->close();
 </div>
 </div>
 
-<!-- MODAL -->
+<!-- CONFIRM ACTION MODAL -->
 <div id="confirmModal" class="modal">
-<div class="modal-content">
+    <div class="gdm-box">
 
-<h3 id="modalTitle"></h3>
-<p id="modalText"></p>
+        <div class="gdm-icon-wrap" id="modalIconWrap">
+            <!-- icon set by JS -->
+        </div>
 
-<form method="POST">
-<input type="hidden" name="user_id" id="modalUserId">
-<input type="hidden" name="action" id="modalAction">
+        <h3 class="gdm-title" id="modalTitle"></h3>
+        <p class="gdm-msg" id="modalText"></p>
 
-<div class="modal-actions">
-<button type="button" onclick="closeModal()">Cancel</button>
-<button type="submit" class="btn btn-confirm">Confirm</button>
-</div>
+        <form method="POST" id="confirmModalForm">
+            <input type="hidden" name="user_id" id="modalUserId">
+            <input type="hidden" name="action" id="modalAction">
 
-</form>
+            <div class="gdm-actions">
+                <button type="button" class="gdm-btn gdm-btn-cancel" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="gdm-btn" id="modalConfirmBtn">Confirm</button>
+            </div>
+        </form>
 
-</div>
+    </div>
 </div>
 
 <script>
+var _activateSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><path d="M20 6L9 17l-5-5"/></svg>';
+var _deactivateSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>';
+
 function openModal(id, action){
-    const modal = document.getElementById('confirmModal');
+    var modal = document.getElementById('confirmModal');
     modal.classList.add('show');
-    document.getElementById('modalUserId').value=id;
-    document.getElementById('modalAction').value=action;
+    document.getElementById('modalUserId').value = id;
+    document.getElementById('modalAction').value = action;
 
-document.getElementById('modalTitle').innerText =
-action==='activate' ? 'Activate User' : 'Deactivate User';
+    var isActivate = action === 'activate';
+    var iconWrap = document.getElementById('modalIconWrap');
+    var confirmBtn = document.getElementById('modalConfirmBtn');
 
-document.getElementById('modalText').innerText =
-action==='activate'
-? 'This user will regain access to the system and assigned resources. Confirm to activate this account.'
-: 'This user will lose access until reactivated. Confirm to deactivate this account.';
+    document.getElementById('modalTitle').innerText = isActivate ? 'Activate User' : 'Deactivate User';
+    document.getElementById('modalText').innerText = isActivate
+        ? 'This user will regain access to the system and all assigned resources.'
+        : 'This user will lose access until reactivated by an administrator.';
+
+    iconWrap.style.background = isActivate ? '#f0fdf4' : '#fff7ed';
+    iconWrap.style.borderColor = isActivate ? '#86efac' : '#fed7aa';
+    iconWrap.style.color = isActivate ? '#16a34a' : '#ea580c';
+    iconWrap.innerHTML = isActivate ? _activateSVG : _deactivateSVG;
+
+    confirmBtn.style.background = isActivate ? '#16a34a' : '#ea580c';
+    confirmBtn.style.color = '#fff';
+    confirmBtn.innerText = isActivate ? 'Yes, Activate' : 'Yes, Deactivate';
 }
 
 function closeModal(){
@@ -417,9 +433,9 @@ function closeModal(){
 }
 
 function toggleAll(source){
-document.querySelectorAll('input[name="selected_users[]"]').forEach(cb=>{
-cb.checked = source.checked;
-});
+    document.querySelectorAll('input[name="selected_users[]"]').forEach(cb => {
+        cb.checked = source.checked;
+    });
 }
 </script>
 

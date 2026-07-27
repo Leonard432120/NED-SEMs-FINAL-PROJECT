@@ -227,26 +227,19 @@ $conn->close();
     <input type="hidden" name="exam_id" value="<?= $exam_id ?>">
 </form>
 
-<!-- DELETE MODAL -->
-<div id="deleteModal" class="modal">
-    <div class="modal-content">
-        <h3>Delete Exam</h3>
-        <p>Are you sure you want to delete
-            <strong><?= htmlspecialchars($exam['exam_name']) ?></strong>?
-            <br>This action cannot be undone.
-        </p>
-        <div class="modal-actions">
-            <button type="button" onclick="closeDeleteModal()" class="btn btn-secondary">Cancel</button>
-            <button onclick="document.getElementById('deleteForm').submit()" class="btn btn-delete">
-                Yes, Delete
-            </button>
-        </div>
-    </div>
-</div>
-
 <script>
-function openDeleteModal()  { document.getElementById('deleteModal').classList.add('show'); }
-function closeDeleteModal() { document.getElementById('deleteModal').classList.remove('show'); }
+function openDeleteModal() {
+    var modal = document.getElementById('globalDeleteModal');
+    var confirmBtn = document.getElementById('globalDeleteConfirmBtn');
+    if (!modal || !confirmBtn) return;
+
+    confirmBtn.removeAttribute('href');
+    confirmBtn.onclick = function(e) {
+        e.preventDefault();
+        document.getElementById('deleteForm').submit();
+    };
+    modal.classList.add('show');
+}
 </script>
 
 <?php include '../common/footer.php'; ?>

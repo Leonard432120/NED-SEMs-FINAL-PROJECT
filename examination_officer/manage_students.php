@@ -190,7 +190,7 @@ if (isset($_GET['msg']) && $_GET['msg'] !== '') {
 $search         = trim($_GET['search'] ?? '');
 $filter_class   = trim($_GET['class'] ?? '');
 $filter_subject = (int)($_GET['subject'] ?? 0);
-$per_page       = 15;
+$per_page       = 5;
 $page           = max(1, (int)($_GET['page'] ?? 1));
 $offset         = ($page - 1) * $per_page;
 
@@ -332,6 +332,28 @@ function page_url_st(int $p, string $search, string $class, int $subject): strin
         @media(max-width:600px){ .kpi-bar{grid-template-columns:1fr 1fr;} }
         @media(max-width:400px){ .kpi-bar{grid-template-columns:1fr;} }
         .subjects-scroll { max-height:320px; overflow-y:auto; }
+        /* Compulsory subjects get a warm amber highlight */
+        .subj-compulsory {
+            background: #fefce8 !important;
+            border-color: #fcd34d !important;
+            color: #92400e !important;
+        }
+        .subj-compulsory .subj-compulsory-badge {
+            display: inline-block;
+            font-size: .65rem;
+            font-weight: 700;
+            background: #f59e0b;
+            color: #fff;
+            border-radius: 4px;
+            padding: 1px 5px;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+        /* Default (compulsory only) count badge — amber */
+        .subject-count-badge.default {
+            background: #f59e0b;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -539,6 +561,7 @@ function page_url_st(int $p, string $search, string $class, int $subject): strin
                             <?php $i = $offset + 1; foreach ($students as $s):
                                 $s_subjects = $student_subject_map[$s['student_id']] ?? [];
                                 $subj_count = count($s_subjects);
+                                $display_count = $subj_count > 0 ? $subj_count : 5;
                             ?>
                             <tr>
                                 <td><?= $i++ ?></td>
@@ -546,9 +569,9 @@ function page_url_st(int $p, string $search, string $class, int $subject): strin
                                 <td><?= htmlspecialchars($s['exam_number']) ?></td>
                                 <td><?= htmlspecialchars($s['class'] ?? '—') ?></td>
                                 <td>
-                                    <span class="subject-count-badge <?= $subj_count === 0 ? 'none' : '' ?>">
-                                        <?= $subj_count ?>
-                                    </span>                                    
+                                    <span class="subject-count-badge <?= $subj_count === 0 ? 'default' : '' ?>" title="<?= $subj_count === 0 ? '5 default compulsory subjects' : $display_count . ' registered subjects' ?>">
+                                        <?= $display_count ?>
+                                    </span>
                                 </td>
                                 <td>
                                     <span class="badge badge-<?= $s['status'] === 'active' ? 'active' : 'inactive' ?>">
@@ -577,16 +600,78 @@ function page_url_st(int $p, string $search, string $class, int $subject): strin
 
             <!-- PAGINATION -->
             <?php if ($total_pages > 1): ?>
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:20px;">
-                <span style="font-size:.8rem;color:var(--text-muted);">Page <?= $page ?> of <?= $total_pages ?></span>
-                <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                    <a href="<?= page_url_st(1,$search,$filter_class,$filter_subject) ?>" class="page-btn <?= $page===1?'disabled':'' ?>">First</a>
-                    <a href="<?= page_url_st(max(1,$page-1),$search,$filter_class,$filter_subject) ?>" class="page-btn <?= $page===1?'disabled':'' ?>">Prev</a>
-                    <?php for($p=max(1,$page-2);$p<=min($total_pages,$page+2);$p++): ?>
-                        <a href="<?= page_url_st($p,$search,$filter_class,$filter_subject) ?>" class="page-btn <?= $p===$page?'active':'' ?>"><?= $p ?></a>
+            <div style="
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 12px;
+                margin-top: 24px;
+                padding-top: 16px;
+                border-top: 1px solid var(--border-color);
+            ">
+                <!-- Info text -->
+                <div style="font-size: .82rem; color: var(--text-muted); line-height: 1.4;">
+                    Showing
+                    <strong style="color: var(--text-color);"><?= $offset + 1 ?></strong>
+                    &ndash;
+                    <strong style="color: var(--text-color);"><?= min($offset + $per_page, $total_rows) ?></strong>
+                    of
+                    <strong style="color: var(--text-color);"><?= $total_rows ?></strong>
+                    students
+                </div>
+
+                <!-- Page buttons -->
+                <div style="display: flex; gap: 4px; align-items: center;">
+
+                    <!-- First + Prev -->
+                    <a href="<?= page_url_st(1, $search, $filter_class, $filter_subject) ?>"
+                       class="page-btn <?= $page === 1 ? 'disabled' : '' ?>"
+                       title="First page"
+                       style="font-size: .8rem;">&laquo;</a>
+
+                    <a href="<?= page_url_st(max(1, $page - 1), $search, $filter_class, $filter_subject) ?>"
+                       class="page-btn <?= $page === 1 ? 'disabled' : '' ?>"
+                       title="Previous page"
+                       style="font-size: .8rem;">&lsaquo; Prev</a>
+
+                    <!-- Numbered pages (window of 5) -->
+                    <?php
+                    $window_start = max(1, $page - 2);
+                    $window_end   = min($total_pages, $page + 2);
+                    if ($window_start > 1): ?>
+                        <a href="<?= page_url_st(1, $search, $filter_class, $filter_subject) ?>" class="page-btn">1</a>
+                        <?php if ($window_start > 2): ?>
+                            <span style="padding: 0 4px; color: var(--text-muted); font-size: .8rem;">&hellip;</span>
+                        <?php endif; ?>
+                    <?php endif; ?>
+
+                    <?php for ($p = $window_start; $p <= $window_end; $p++): ?>
+                        <a href="<?= page_url_st($p, $search, $filter_class, $filter_subject) ?>"
+                           class="page-btn <?= $p === $page ? 'active' : '' ?>"
+                           style="min-width: 36px; font-size: .82rem;">
+                            <?= $p ?>
+                        </a>
                     <?php endfor; ?>
-                    <a href="<?= page_url_st(min($total_pages,$page+1),$search,$filter_class,$filter_subject) ?>" class="page-btn <?= $page===$total_pages?'disabled':'' ?>">Next</a>
-                    <a href="<?= page_url_st($total_pages,$search,$filter_class,$filter_subject) ?>" class="page-btn <?= $page===$total_pages?'disabled':'' ?>">Last</a>
+
+                    <?php if ($window_end < $total_pages): ?>
+                        <?php if ($window_end < $total_pages - 1): ?>
+                            <span style="padding: 0 4px; color: var(--text-muted); font-size: .8rem;">&hellip;</span>
+                        <?php endif; ?>
+                        <a href="<?= page_url_st($total_pages, $search, $filter_class, $filter_subject) ?>" class="page-btn"><?= $total_pages ?></a>
+                    <?php endif; ?>
+
+                    <!-- Next + Last -->
+                    <a href="<?= page_url_st(min($total_pages, $page + 1), $search, $filter_class, $filter_subject) ?>"
+                       class="page-btn <?= $page === $total_pages ? 'disabled' : '' ?>"
+                       title="Next page"
+                       style="font-size: .8rem;">Next &rsaquo;</a>
+
+                    <a href="<?= page_url_st($total_pages, $search, $filter_class, $filter_subject) ?>"
+                       class="page-btn <?= $page === $total_pages ? 'disabled' : '' ?>"
+                       title="Last page"
+                       style="font-size: .8rem;">&raquo;</a>
+
                 </div>
             </div>
             <?php endif; ?>
@@ -778,8 +863,6 @@ function openSubjectsModal(studentId, studentName, currentSubjectIds) {
     allSubjects.forEach(function(subj) {
         const isCompulsory = compulsoryNames.includes(subj.subject_name);
         const checked      = isCompulsory || currentSubjectIds.includes(parseInt(subj.subject_id));
-        const catKey       = (subj.category || '').toLowerCase();
-        const chipCss      = categoryChipMap[catKey] || 'subject-chip--default';
 
         const label = document.createElement('label');
         label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;cursor:' + (isCompulsory ? 'not-allowed' : 'pointer') + ';font-size:.85rem;';

@@ -40,6 +40,19 @@ $sq->close();
 
 $count = count($panel_subjects);
 
+if ($count === 0) {
+    $comp_sq = $panel_conn->query("
+        SELECT subject_id, subject_name, subject_code, category
+        FROM subjects
+        WHERE subject_name IN ('Mathematics', 'Chichewa', 'English', 'Biology', 'Agriculture') AND status='active'
+        ORDER BY subject_name ASC
+    ");
+    if ($comp_sq) {
+        $panel_subjects = $comp_sq->fetch_all(MYSQLI_ASSOC);
+        $count = count($panel_subjects);
+    }
+}
+
 $category_css_map = [
     'science'    => 'subject-chip--science',
     'language'   => 'subject-chip--language',

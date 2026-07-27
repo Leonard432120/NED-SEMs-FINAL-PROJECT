@@ -227,34 +227,24 @@ function page_url(int $p, string $search, string $status): string {
 </form>
 
 <!-- DELETE MODAL -->
-<div id="deleteModal" class="modal">
-    <div class="modal-content">
-        <h3>Delete Exam</h3>
-        <p>Are you sure you want to delete this exam? <strong>This action cannot be undone.</strong></p>
-        <div class="modal-actions">
-            <button type="button" onclick="closeDeleteModal()" class="btn btn-secondary">Cancel</button>
-            <button onclick="performDelete()" class="btn btn-delete">Delete</button>
-        </div>
-    </div>
-</div>
-
 <script>
 let currentDeleteId = null;
 
 function openDeleteModal(id) {
     currentDeleteId = id;
-    document.getElementById('deleteModal').classList.add('show');
-}
 
-function closeDeleteModal() {
-    document.getElementById('deleteModal').classList.remove('show');
-}
+    var modal = document.getElementById('globalDeleteModal');
+    var confirmBtn = document.getElementById('globalDeleteConfirmBtn');
+    if (!modal || !confirmBtn) return;
 
-function performDelete() {
-    if (!currentDeleteId) return;
-    document.getElementById('hidden_exam_id').value = currentDeleteId;
-    document.getElementById('hiddenDeleteForm').submit();
-    closeDeleteModal();
+    confirmBtn.removeAttribute('href');
+    confirmBtn.onclick = function(e) {
+        e.preventDefault();
+        document.getElementById('hidden_exam_id').value = currentDeleteId;
+        document.getElementById('hiddenDeleteForm').submit();
+        modal.classList.remove('show');
+    };
+    modal.classList.add('show');
 }
 </script>
 

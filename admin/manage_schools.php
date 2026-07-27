@@ -270,37 +270,56 @@ $conn->close();
     </div>
 </div>
 
-<!-- CONFIRM MODAL -->
+<!-- CONFIRM ACTION MODAL -->
 <div id="confirmModal" class="modal">
-    <div class="modal-content">
-        <h3 id="modalTitle"></h3>
-        <p id="modalText"></p>
+    <div class="gdm-box">
+
+        <div class="gdm-icon-wrap" id="modalIconWrap">
+            <!-- icon set by JS -->
+        </div>
+
+        <h3 class="gdm-title" id="modalTitle"></h3>
+        <p class="gdm-msg" id="modalText"></p>
 
         <form method="POST">
             <input type="hidden" name="school_id" id="modalSchoolId">
             <input type="hidden" name="action" id="modalAction">
 
-            <div class="modal-actions">
-                <button type="button" onclick="closeModal()">Cancel</button>
-                <button type="submit" class="btn btn-confirm">Confirm</button>
+            <div class="gdm-actions">
+                <button type="button" class="gdm-btn gdm-btn-cancel" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="gdm-btn" id="modalConfirmBtn">Confirm</button>
             </div>
         </form>
+
     </div>
 </div>
 
 <script>
+var _activateSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><path d="M20 6L9 17l-5-5"/></svg>';
+var _deactivateSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>';
+
 function openModal(id, action) {
     document.getElementById('confirmModal').classList.add('show');
     document.getElementById('modalSchoolId').value = id;
     document.getElementById('modalAction').value = action;
 
-    document.getElementById('modalTitle').innerText = 
-        action === 'activate' ? 'Activate School' : 'Deactivate School';
-    
-    document.getElementById('modalText').innerText = 
-        action === 'activate' 
-        ? 'This school and its users will regain access.' 
-        : 'This school will be deactivated. Users will lose access.';
+    var isActivate = action === 'activate';
+    var iconWrap = document.getElementById('modalIconWrap');
+    var confirmBtn = document.getElementById('modalConfirmBtn');
+
+    document.getElementById('modalTitle').innerText = isActivate ? 'Activate School' : 'Deactivate School';
+    document.getElementById('modalText').innerText = isActivate
+        ? 'This school and its users will regain full access to the system.'
+        : 'This school will be deactivated. All associated users will lose access.';
+
+    iconWrap.style.background = isActivate ? '#f0fdf4' : '#fff7ed';
+    iconWrap.style.borderColor = isActivate ? '#86efac' : '#fed7aa';
+    iconWrap.style.color = isActivate ? '#16a34a' : '#ea580c';
+    iconWrap.innerHTML = isActivate ? _activateSVG : _deactivateSVG;
+
+    confirmBtn.style.background = isActivate ? '#16a34a' : '#ea580c';
+    confirmBtn.style.color = '#fff';
+    confirmBtn.innerText = isActivate ? 'Yes, Activate' : 'Yes, Deactivate';
 }
 
 function closeModal() {

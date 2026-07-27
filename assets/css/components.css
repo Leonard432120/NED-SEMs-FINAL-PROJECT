@@ -701,6 +701,106 @@ td.actions {
     margin-top: 22px;
 }
 
+/* ── Global Delete Modal (gdm) ─────────────────────── */
+.gdm-box {
+    background: #fff;
+    max-width: 420px;
+    margin: 6% auto 40px;
+    border-radius: 16px;
+    padding: 36px 32px 28px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.10);
+    position: relative;
+}
+
+.gdm-icon-wrap {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #fff0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 18px;
+    border: 2px solid #fecaca;
+}
+
+.gdm-icon {
+    width: 30px;
+    height: 30px;
+    stroke: #dc2626;
+}
+
+.gdm-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 10px;
+}
+
+.gdm-msg {
+    font-size: 0.92rem;
+    color: #64748b;
+    line-height: 1.6;
+    margin: 0 0 24px;
+}
+
+.gdm-msg strong {
+    color: #dc2626;
+}
+
+.gdm-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.gdm-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    border: none;
+    transition: background 0.18s, transform 0.12s, box-shadow 0.18s;
+    min-width: 110px;
+    justify-content: center;
+    line-height: 1;
+}
+
+.gdm-btn-cancel {
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+}
+
+.gdm-btn-cancel:hover {
+    background: #e2e8f0;
+    border-color: #94a3b8;
+    transform: translateY(-1px);
+}
+
+.gdm-btn-delete {
+    background: #dc2626;
+    color: #ffffff;
+}
+
+.gdm-btn-delete:hover {
+    background: #b91c1c;
+    box-shadow: 0 4px 14px rgba(220,38,38,0.4);
+    transform: translateY(-1px);
+    color: #ffffff;
+}
+
+.gdm-btn-delete:active {
+    transform: translateY(0);
+}
+
 /* --- Pagination --- */
 .pagination {
     display: flex;

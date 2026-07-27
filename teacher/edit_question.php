@@ -122,6 +122,7 @@ include __DIR__ . '/../common/head_assets.php';
 </head>
 <body>
 <?php include __DIR__ . '/../common/header.php'; ?>
+<?php include __DIR__ . '/../common/watermark_helper.php'; ?>
 <div class="dashboard">
     <?php include __DIR__ . '/../common/sidebar.php'; ?>
     <div class="content">

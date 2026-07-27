@@ -218,4 +218,57 @@ if (!file_exists($page_file)) {
     die("Page file missing: $page");
 }
 
-include $page_file;
+/* ── FORENSIC WATERMARK & SECURITY SHIELD ──
+   Inject watermark on every non-PDF screen view so any
+   smartphone camera photo is permanently attributed to the user. */
+$wm_user_id   = (int)($_SESSION['user_id'] ?? 0);
+$wm_user_name = htmlspecialchars($_SESSION['name'] ?? 'User');
+$wm_ip        = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+if ($wm_ip === '::1') { $wm_ip = '127.0.0.1'; }
+$wm_timestamp = date('Y-m-d H:i:s');
+$wm_text      = "CONFIDENTIAL — {$wm_user_name} (ID: {$wm_user_id}) — IP: {$wm_ip} — {$wm_timestamp}";
+$wm_base = defined('BASE_URL') ? BASE_URL : '';
+echo '<!-- Forensic Watermark CSS -->' . "\n";
+echo '<link rel="stylesheet" href="' . $wm_base . '/assets/css/watermark.css">' . "\n";
+echo '<!-- Screen Unfocus Security Shield -->' . "\n";
+echo '<div id="security-unfocus-shield"><h3>SECURITY SHIELD ACTIVE</h3><p>Content hidden while browser is out of focus. Return to this window to continue reviewing the exam paper.</p></div>' . "\n";
+echo '<div class="forensic-watermark-overlay" id="forensicWatermarkOverlay">' . "\n";
+for ($i = 0; $i < 18; $i++) {
+    echo '<div class="forensic-watermark-unit">' . $wm_text . '</div>' . "\n";
+}
+echo '</div>' . "\n";
+
+echo <<<'JSSEC'
+<!-- Security Shielding JS -->
+<script>
+(function(){
+    'use strict';
+    document.body.classList.add('protected-exam-page');
+
+    // Auto-blur on window unfocus (tab switch, Snipping Tool, etc.)
+    window.addEventListener('blur', function(){ document.body.classList.add('screen-unfocused'); });
+    window.addEventListener('focus', function(){ document.body.classList.remove('screen-unfocused'); });
+
+    // Disable right-click
+    document.addEventListener('contextmenu', function(e){ e.preventDefault(); return false; });
+
+    // Block print, screenshot, devtools shortcuts
+    document.addEventListener('keydown', function(e){
+        if (e.key === 'PrintScreen' || e.keyCode === 44) {
+            e.preventDefault();
+            alert('Screen capture is restricted on examination drafting screens.');
+            return false;
+        }
+        if ((e.ctrlKey||e.metaKey) && (e.key==='p'||e.key==='P')) {
+            e.preventDefault();
+            alert('Printing is disabled during exam paper authoring/review.');
+            return false;
+        }
+        if ((e.ctrlKey||e.metaKey) && (e.key==='s'||e.key==='S')) { e.preventDefault(); return false; }
+        if (e.key==='F12'||((e.ctrlKey||e.metaKey)&&e.shiftKey&&(e.key==='I'||e.key==='i'))) { e.preventDefault(); return false; }
+    });
+})();
+</script>
+JSSEC;
+
+include $page_file;

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/teacher_init.php';
 require_once __DIR__ . '/../services/ai/compose_bridge.php';
+require_once __DIR__ . '/../common/assignment_access_guard.php';
 
 $exam_id    = isset($_GET['exam_id'])    ? (int)$_GET['exam_id']    : 0;
 $subject_id = isset($_GET['subject_id']) ? (int)$_GET['subject_id'] : 0;
@@ -11,6 +12,9 @@ if ($exam_id <= 0) {
 }
 
 $conn = get_db_connection();
+
+/* ── ACCESS WINDOW ENFORCEMENT ── */
+enforce_assignment_access($conn, $exam_id, $subject_id, 'moderator');
 
 // Fetch Exam Details — scoped to subject if subject_id given
 if ($subject_id > 0) {
@@ -854,6 +858,7 @@ include __DIR__ . '/../common/head_assets.php';
 </head>
 <body>
 <?php include __DIR__ . '/../common/header.php'; ?>
+<?php include __DIR__ . '/../common/watermark_helper.php'; ?>
 <div class="dashboard">
     <?php include __DIR__ . '/../common/sidebar.php'; ?>
     <div class="content" style="padding:0;">

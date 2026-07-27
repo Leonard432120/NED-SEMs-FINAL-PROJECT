@@ -122,9 +122,71 @@ if (isset($_POST['create_school'])) {
     $message_type = $res['status'];
 }
 
-// Import logic remains the same (you can enhance it later)
+// ================= IMPORT SCHOOLS =================
 if (isset($_POST['import_schools'])) {
-    // ... your existing import code ...
+    if (!empty($_FILES['xlsx_file']['tmp_name'])) {
+        try {
+            $spreadsheet = IOFactory::load($_FILES['xlsx_file']['tmp_name']);
+            $sheet = $spreadsheet->getActiveSheet()->toArray();
+
+            $success = 0;
+            $failed = 0;
+            $duplicates = 0;
+
+            foreach ($sheet as $i => $row) {
+                // Skip header row
+                if ($i === 0) continue;
+
+                // Skip empty rows
+                if (empty($row[0]) && empty($row[1])) continue;
+
+                $schoolData = [
+                    'school_name'   => trim($row[0] ?? ''),
+                    'district'      => trim($row[1] ?? ''),
+                    'cluster_name'  => trim($row[2] ?? ''),
+                    'school_number' => trim($row[3] ?? ''),
+                    'school_type'   => trim($row[4] ?? ''),
+                    'phone'         => trim($row[5] ?? ''),
+                    'email'         => trim($row[6] ?? ''),
+                    'address'       => trim($row[7] ?? '')
+                ];
+
+                // Validate mandatory fields
+                if (empty($schoolData['school_name']) || empty($schoolData['district'])) {
+                    $failed++;
+                    continue;
+                }
+
+                $res = createSchool($conn, $schoolData, $_SESSION['user_id']);
+
+                if ($res['status'] === 'success') {
+                    $success++;
+                } else {
+                    if (strpos($res['message'], 'already exists') !== false) {
+                        $duplicates++;
+                    } else {
+                        $failed++;
+                    }
+                }
+            }
+
+            $message = "$success school(s) imported successfully.";
+            if ($duplicates > 0) {
+                $message .= " $duplicates school(s) already exist.";
+            }
+            if ($failed > 0) {
+                $message .= " $failed school record(s) failed.";
+            }
+            $message_type = ($failed > 0) ? 'warning' : 'success';
+
+        } catch (Exception $e) {
+            $message = "Import Error: " . $e->getMessage();
+            $message_type = 'error';
+        }
+    } else {
+        $message = "Please select a valid Excel or CSV file.";
+        $message_type = 'error';
+    }
 }
 
 $conn->close();
@@ -239,18 +301,18 @@ $conn->close();
             <div class="card import-card">
                 <h3>Import Schools</h3>
                 <p class="page-subtitle">
-                    Upload Excel file with school data
+                    Upload Excel or CSV file with school data
                 </p>
 
                 <form method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="import_schools" value="1">
 
-                    <input type="file" name="xlsx_file" accept=".xlsx" 
+                    <input type="file" name="xlsx_file" accept=".xlsx,.csv" 
                            id="fileInput" style="display:none;" 
                            onchange="this.form.submit();">
 
                     <label for="fileInput" class="import-btn">
-                        📁 Choose Excel File
+                        📁 Choose Excel / CSV File
                     </label>
                 </form>
             </div>

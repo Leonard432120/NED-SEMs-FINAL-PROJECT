@@ -83,11 +83,55 @@ if (isset($_POST['reassign'])) {
         send_email(
             $info['new_email'],
             "Subject Assignment Notification",
-            "Hello {$info['new_name']},\n\nYou have been assigned to:\nSubject: {$info['subject_name']}\nRole: {$info['role']}\n\nPlease log in to your dashboard."
+            "Hello {$info['new_name']},\n\nYou have been reassigned:\nSubject: {$info['subject_name']}\nRole: {$info['role']}\n\nPlease log in to your dashboard."
         );
     }
     header("Location: manage_assignments.php?reassigned=1");
     exit();
+}
+
+/* ══════════════════════════════════════════
+   UPDATE ACCESS WINDOW
+══════════════════════════════════════════ */
+if (isset($_POST['update_window'])) {
+    $assignment_id  = (int)$_POST['assignment_id'];
+    $new_from       = trim($_POST['new_access_from']  ?? '');
+    $new_until      = trim($_POST['new_access_until'] ?? '');
+
+    if ($new_from && $new_until && strtotime($new_until) > strtotime($new_from)) {
+        /* Validate against exam dates */
+        $ex = $conn->prepare("
+            SELECT e.start_date, e.end_date
+            FROM subject_assignments sa
+            JOIN exams e ON e.exam_id = sa.exam_id
+            WHERE sa.assignment_id = ?
+        ");
+        $ex->bind_param("i", $assignment_id);
+        $ex->execute();
+        $exrow = $ex->get_result()->fetch_assoc();
+        $ex->close();
+
+        $ok = true;
+        if ($exrow) {
+            $ok = (strtotime($new_from)  >= strtotime($exrow['start_date']))
+               && (strtotime($new_until) <= strtotime($exrow['end_date']));
+        }
+
+        if ($ok) {
+            $upd = $conn->prepare("UPDATE subject_assignments SET access_from=?, access_until=? WHERE assignment_id=?");
+            $upd->bind_param("ssi", $new_from, $new_until, $assignment_id);
+            $upd->execute();
+            $upd->close();
+            header("Location: manage_assignments.php?window_updated=1");
+            exit();
+        } else {
+            header("Location: manage_assignments.php?window_err=range");
+            exit();
+        }
+    } else {
+        header("Location: manage_assignments.php?window_err=dates");
+        exit();
+    }
 }
 
 /* ══════════════════════════════════════════
@@ -136,15 +180,25 @@ $sql = "
         iw.teacher_id     AS iw_teacher_id,
         iw_u.name         AS iw_teacher_name,
         iw.assigned_at    AS iw_assigned_at,
+        iw.access_from    AS iw_access_from,
+        iw.access_until   AS iw_access_until,
         iw.email_sent     AS iw_email_sent,
         iw.status         AS iw_status,
+        iw_e.exam_name    AS iw_exam_name,
+        iw_e.start_date   AS iw_exam_start,
+        iw_e.end_date     AS iw_exam_end,
 
         mdr.assignment_id AS mdr_id,
         mdr.teacher_id    AS mdr_teacher_id,
         mdr_u.name        AS mdr_teacher_name,
         mdr.assigned_at   AS mdr_assigned_at,
+        mdr.access_from   AS mdr_access_from,
+        mdr.access_until  AS mdr_access_until,
         mdr.email_sent    AS mdr_email_sent,
-        mdr.status        AS mdr_status
+        mdr.status        AS mdr_status,
+        mdr_e.exam_name   AS mdr_exam_name,
+        mdr_e.start_date  AS mdr_exam_start,
+        mdr_e.end_date    AS mdr_exam_end
 
     FROM subjects s
 
@@ -158,6 +212,7 @@ $sql = "
                LIMIT  1
            )
     LEFT JOIN users iw_u ON iw_u.user_id = iw.teacher_id
+    LEFT JOIN exams iw_e ON iw_e.exam_id  = iw.exam_id
 
     LEFT JOIN subject_assignments mdr
            ON mdr.assignment_id = (
@@ -169,6 +224,7 @@ $sql = "
                LIMIT  1
            )
     LEFT JOIN users mdr_u ON mdr_u.user_id = mdr.teacher_id
+    LEFT JOIN exams mdr_e ON mdr_e.exam_id  = mdr.exam_id
 
     WHERE s.status = 'active'
 ";
@@ -204,15 +260,25 @@ while ($r = $result->fetch_assoc()) {
                 'assignment_id' => $r['iw_id'],
                 'teacher_name'  => $r['iw_teacher_name'],
                 'assigned_at'   => $r['iw_assigned_at'],
+                'access_from'   => $r['iw_access_from'],
+                'access_until'  => $r['iw_access_until'],
                 'email_sent'    => $r['iw_email_sent'],
                 'assign_status' => $r['iw_status'],
+                'exam_name'     => $r['iw_exam_name'],
+                'exam_start'    => $r['iw_exam_start'],
+                'exam_end'      => $r['iw_exam_end'],
             ] : null,
             'moderator'   => $r['mdr_id'] ? [
                 'assignment_id' => $r['mdr_id'],
                 'teacher_name'  => $r['mdr_teacher_name'],
                 'assigned_at'   => $r['mdr_assigned_at'],
+                'access_from'   => $r['mdr_access_from'],
+                'access_until'  => $r['mdr_access_until'],
                 'email_sent'    => $r['mdr_email_sent'],
                 'assign_status' => $r['mdr_status'],
+                'exam_name'     => $r['mdr_exam_name'],
+                'exam_start'    => $r['mdr_exam_start'],
+                'exam_end'      => $r['mdr_exam_end'],
             ] : null,
         ],
     ];
@@ -301,6 +367,26 @@ function status_badge(?string $status): string {
         'assigned'  => '<span class="badge badge-assigned">Assigned</span>',
         default     => '<span class="badge">—</span>',
     };
+}
+
+function window_badge(?string $from, ?string $until): string {
+    if (!$from || !$until) {
+        return '<span class="badge" style="background:#fef3c7;color:#92400e;font-size:.7rem">No window set</span>';
+    }
+    $now   = time();
+    $ts_f  = strtotime($from);
+    $ts_u  = strtotime($until);
+    $df    = date('d M', $ts_f);
+    $du    = date('d M Y', $ts_u);
+    if ($now < $ts_f) {
+        $days = ceil(($ts_f - $now) / 86400);
+        return "<span class=\"window-badge window-pending\">Opens in {$days}d &nbsp;·&nbsp; {$df}–{$du}</span>";
+    } elseif ($now <= $ts_u) {
+        $left = ceil(($ts_u - $now) / 86400);
+        return "<span class=\"window-badge window-active\">Active &nbsp;·&nbsp; {$left}d left &nbsp;·&nbsp; until {$du}</span>";
+    } else {
+        return "<span class=\"window-badge window-expired\">Expired &nbsp;·&nbsp; {$df}–{$du}</span>";
+    }
 }
 
 function role_label(string $role): string {
@@ -537,6 +623,29 @@ function page_url(int $p, string $search, string $category, string $coverage): s
         @media (max-width: 480px) {
             .kpi-bar { grid-template-columns: 1fr; }
         }
+        .window-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .window-active  { background: #dcfce7; color: #15803d; }
+        .window-pending { background: #fef9c3; color: #854d0e; }
+        .window-expired { background: #fee2e2; color: #dc2626; }
+
+        .exam-pill {
+            display: inline-block;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: 0.68rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 999px;
+            margin-bottom: 3px;
+        }
     </style>
 </head>
 <body>
@@ -558,7 +667,7 @@ function page_url(int $p, string $search, string $category, string $coverage): s
                 </p>
             </div>
             <div class="header-actions">
-                <a href="assign_teacher.php" class="btn btn-dark">+ New assignment</a>
+                <a href="assign.php" class="btn btn-dark">+ New assignment</a>
             </div>
         </div>
 
@@ -571,6 +680,19 @@ function page_url(int $p, string $search, string $category, string $coverage): s
         <?php endif; ?>
         <?php if (isset($_GET['reassigned'])): ?>
             <div class="alert alert-success">Teacher reassigned and notified by email.</div>
+        <?php endif; ?>
+        <?php if (isset($_GET['window_updated'])): ?>
+            <div class="alert alert-success">Access window updated successfully.</div>
+        <?php endif; ?>
+        <?php if (isset($_GET['window_err'])): ?>
+            <div class="alert alert-error">
+                <?= $_GET['window_err'] === 'range'
+                    ? 'Access window must fall within the exam period.'
+                    : 'Invalid dates — end must be after start.' ?>
+            </div>
+        <?php endif; ?>
+        <?php if (isset($_GET['assigned'])): ?>
+            <div class="alert alert-success">Assignment created successfully.</div>
         <?php endif; ?>
 
         <!-- ══════════ KPI BAR ══════════ -->
@@ -672,10 +794,11 @@ function page_url(int $p, string $search, string $category, string $coverage): s
                 <table class="role-table">
                     <thead>
                         <tr>
-                            <th style="width:15%">Role</th>
-                            <th style="width:24%">Assigned to</th>
-                            <th style="width:17%">Assigned on</th>
-                            <th style="width:16%">Status</th>
+                            <th style="width:13%">Role</th>
+                            <th style="width:18%">Assigned to</th>
+                            <th style="width:14%">Exam</th>
+                            <th style="width:22%">Access Window</th>
+                            <th style="width:13%">Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -694,9 +817,14 @@ function page_url(int $p, string $search, string $category, string $coverage): s
                                 </span>
                             </td>
                             <td><?= htmlspecialchars($a['teacher_name']) ?></td>
-                            <td class="muted-text">
-                                <?= date('d M Y', strtotime($a['assigned_at'])) ?>
+                            <td>
+                                <?php if ($a['exam_name']): ?>
+                                    <span class="exam-pill"><?= htmlspecialchars($a['exam_name']) ?></span>
+                                <?php else: ?>
+                                    <span class="muted-text" style="font-size:.8rem">—</span>
+                                <?php endif; ?>
                             </td>
+                            <td><?= window_badge($a['access_from'], $a['access_until']) ?></td>
                             <td><?= status_badge($a['assign_status']) ?></td>
                             <td>
                                 <button class="link-action"
@@ -710,7 +838,19 @@ function page_url(int $p, string $search, string $category, string $coverage): s
                                     Reassign
                                 </button>
                                 <span class="link-sep">·</span>
-                                  <a href="#"
+                                <button class="link-action" style="color:#7c3aed;"
+                                        onclick="openEditWindow(
+                                            <?= $a['assignment_id'] ?>,
+                                            '<?= htmlspecialchars(addslashes($a['exam_name'] ?? '')) ?>',
+                                            '<?= $a['exam_start'] ?? '' ?>',
+                                            '<?= $a['exam_end']   ?? '' ?>',
+                                            '<?= $a['access_from']  ? substr($a['access_from'],0,10)  : '' ?>',
+                                            '<?= $a['access_until'] ? substr($a['access_until'],0,10) : '' ?>'
+                                        )">
+                                    Edit Window
+                                </button>
+                                <span class="link-sep">·</span>
+                                <a href="#"
                                    class="link-action danger"
                                    onclick="openDeleteModal('manage_assignments.php?delete=<?= $a['assignment_id'] ?>')">
                                     Remove
@@ -728,6 +868,7 @@ function page_url(int $p, string $search, string $category, string $coverage): s
                                 </span>
                             </td>
                             <td>Not assigned</td>
+                            <td>—</td>
                             <td>—</td>
                             <td><span class="badge badge-warning">Pending</span></td>
                             <td>

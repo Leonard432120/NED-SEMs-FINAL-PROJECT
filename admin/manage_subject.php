@@ -335,33 +335,26 @@ $conn->close();
     </div>
 </div>
 
-<!-- ================= MODAL ================= -->
-<div id="confirmModal" class="modal">
-    <div class="modal-content">
-        <h3 id="modalTitle">Delete Subject</h3>
-        <p id="modalText">This subject will be deleted permanently. Are you sure?</p>
-        
-        <form method="POST" id="modalForm">
-            <input type="hidden" name="subject_id" id="modalSubjectId">
-            <input type="hidden" name="action" id="modalAction" value="delete">
-            
-            <div class="modal-actions">
-                <button type="button" onclick="closeModal()" class="btn btn-secondary">Cancel</button>
-                <button type="submit" class="btn btn-delete">Yes, Delete</button>
-            </div>
-        </form>
-    </div>
-</div>
+<!-- Hidden form submitted when global delete modal is confirmed -->
+<form method="POST" id="subjectDeleteForm" style="display:none;">
+    <input type="hidden" name="subject_id" id="modalSubjectId">
+    <input type="hidden" name="action" value="delete">
+</form>
 
 <script>
 function openModal(id, action) {
     document.getElementById('modalSubjectId').value = id;
-    document.getElementById('modalAction').value = action;
-    document.getElementById('confirmModal').classList.add('show');
-}
 
-function closeModal() {
-    document.getElementById('confirmModal').classList.remove('show');
+    var modal = document.getElementById('globalDeleteModal');
+    var confirmBtn = document.getElementById('globalDeleteConfirmBtn');
+    if (!modal || !confirmBtn) return;
+
+    confirmBtn.removeAttribute('href');
+    confirmBtn.onclick = function(e) {
+        e.preventDefault();
+        document.getElementById('subjectDeleteForm').submit();
+    };
+    modal.classList.add('show');
 }
 
 function toggleAll(source) {

@@ -78,6 +78,7 @@ $conn->close();
 </head>
 <body>
 <?php include '../common/header.php'; ?>
+<?php include __DIR__ . '/../common/watermark_helper.php'; ?>
 <div class="dashboard">
 <?php include '../common/sidebar.php'; ?>
 <div class="content">

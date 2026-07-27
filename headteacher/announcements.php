@@ -135,11 +135,14 @@ $conn->close();
                             <?= nl2br(htmlspecialchars($a['comment'])) ?>
                         </p>
                         <small class="muted-text">By <?= htmlspecialchars($a['author'] ?? 'Headteacher') ?></small>
-                        <form method="POST" style="margin-top:10px;" onsubmit="return confirm('Delete this announcement?');">
+                        <form id="htAnnDeleteForm<?= (int)$a['comment_id'] ?>" method="POST" style="display:none;">
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="note_id" value="<?= (int)$a['comment_id'] ?>">
-                            <button type="submit" class="btn btn-small btn-danger">Delete</button>
                         </form>
+                        <button type="button" class="btn btn-small btn-danger" style="margin-top:10px;"
+                                onclick="openHtAnnDelete('htAnnDeleteForm<?= (int)$a['comment_id'] ?>')">
+                            Delete
+                        </button>
                     </div>
                 <?php endwhile; ?>
             <?php else: ?>
@@ -152,3 +155,19 @@ $conn->close();
 </div>
 </div>
 <?php include '../common/footer.php'; ?>
+
+<script>
+function openHtAnnDelete(formId) {
+    var modal = document.getElementById('globalDeleteModal');
+    var confirmBtn = document.getElementById('globalDeleteConfirmBtn');
+    if (!modal || !confirmBtn) return;
+
+    confirmBtn.removeAttribute('href');
+    confirmBtn.onclick = function(e) {
+        e.preventDefault();
+        var f = document.getElementById(formId);
+        if (f) f.submit();
+    };
+    modal.classList.add('show');
+}
+</script>

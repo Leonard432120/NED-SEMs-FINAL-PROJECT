@@ -1,353 +1,380 @@
 <?php
+/* ════════════════════════════════════════════════════════════════
+   examination_officer/exams.php
+   Examination Officer: Exam Management & Status Control
+   ────────────────────────────────────────────────────────────────
+   Allows Examination Officers to inspect, filter, schedule, and review
+   examinations by status (under_moderation, draft, active, approved, etc.),
+   search by name/code, and navigate directly into control/results.
+   ════════════════════════════════════════════════════════════════ */
 session_start();
-include '../config/db.php';
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../common/report_stats.php';
+require_once __DIR__ . '/../common/pagination_helper.php';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'examination_officer') {
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'examination_officer') {
     header("Location: ../login.php");
     exit();
 }
 
 $conn = get_db_connection();
 
-$school_id = (int)($_SESSION['school_id'] ?? 0);
-$search = trim($_GET['search'] ?? '');
-$status = trim($_GET['status'] ?? '');
+$search       = trim($_GET['search'] ?? '');
+$status_filter= trim($_GET['status'] ?? '');
+$class_filter = trim($_GET['class'] ?? '');
+$current_page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$per_page     = 10;
 
-$sql = "SELECT e.*, 
-               (SELECT COUNT(subject_id) FROM exam_subjects es WHERE es.exam_id = e.exam_id) as subject_count,
-               u.name AS creator
-        FROM exams e
-        LEFT JOIN users u ON e.created_by = u.user_id
-        WHERE 1=1";
-
-/* Exams are global, no school filter needed for viewing the list. */
-
-/* ================= SEARCH ================= */
-if ($search !== '') {
-    $safe = $conn->real_escape_string($search);
-    $sql .= " AND e.exam_name LIKE '%$safe%'";
-}
-
-/* ================= STATUS FILTER ================= */
-if ($status !== '') {
-    $safe = $conn->real_escape_string($status);
-    $sql .= " AND e.status = '$safe'";
-}
-
-/* ================= ORDER ================= */
-$sql .= " ORDER BY e.exam_id DESC";
-$exams = $conn->query($sql);
-if (!$exams) { die("Query Error: " . $conn->error); }
-
-/* ================= KPIs ================= */
+// ── KPIs Query ────────────────────────────────────────────────────
 $kpi_query = $conn->query("
     SELECT 
         COUNT(*) as total,
-        SUM(e.status='draft') as drafted,
-        SUM(e.status='under_moderation') as moderating,
-        SUM(e.status='active' OR e.status='completed') as active_completed
-    FROM exams e
-    LEFT JOIN users u ON e.created_by = u.user_id
-    WHERE 1=1
+        SUM(CASE WHEN status='draft' THEN 1 ELSE 0 END) as drafted,
+        SUM(CASE WHEN status='under_moderation' THEN 1 ELSE 0 END) as moderating,
+        SUM(CASE WHEN status='active' THEN 1 ELSE 0 END) as active_count,
+        SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) as completed_count,
+        SUM(CASE WHEN status='approved' THEN 1 ELSE 0 END) as approved_count
+    FROM exams
 ");
 $kpi = $kpi_query->fetch_assoc();
+
+// Distinct classes for dropdown
+$classes_res = $conn->query("SELECT DISTINCT class FROM exams WHERE class IS NOT NULL AND class != '' ORDER BY class ASC");
+$classes_list = [];
+if ($classes_res) {
+    while ($cl = $classes_res->fetch_assoc()) {
+        $classes_list[] = $cl['class'];
+    }
+}
+
+// ── Build Filtered Query ──────────────────────────────────────────
+$where_parts = ["1=1"];
+$params      = [];
+$types       = "";
+
+if ($search !== '') {
+    $where_parts[] = "(e.exam_name LIKE ? OR e.exam_code LIKE ?)";
+    $s = "%{$search}%";
+    $params[] = $s;
+    $params[] = $s;
+    $types   .= "ss";
+}
+
+if ($status_filter !== '') {
+    $where_parts[] = "e.status = ?";
+    $params[] = $status_filter;
+    $types   .= "s";
+}
+
+if ($class_filter !== '') {
+    $where_parts[] = "e.class = ?";
+    $params[] = $class_filter;
+    $types   .= "s";
+}
+
+$where_sql = implode(" AND ", $where_parts);
+
+// Count Total for Pagination
+$count_sql = "
+    SELECT COUNT(*) as cnt
+    FROM exams e
+    WHERE {$where_sql}
+";
+$stmt = $conn->prepare($count_sql);
+if (!empty($types)) {
+    $stmt->bind_param($types, ...$params);
+}
+$stmt->execute();
+$total_records = (int)$stmt->get_result()->fetch_assoc()['cnt'];
+$stmt->close();
+
+$pagination = paginate($total_records, $current_page, $per_page);
+$offset     = ($pagination['page'] - 1) * $per_page;
+
+// Fetch Paginated List
+$data_sql = "
+    SELECT e.*, 
+           (SELECT COUNT(subject_id) FROM exam_subjects es WHERE es.exam_id = e.exam_id) as subject_count,
+           u.name AS creator_name
+    FROM exams e
+    LEFT JOIN users u ON e.created_by = u.user_id
+    WHERE {$where_sql}
+    ORDER BY e.start_date DESC, e.exam_id DESC
+    LIMIT ? OFFSET ?
+";
+
+$all_params = array_merge($params, [$per_page, $offset]);
+$all_types  = $types . "ii";
+
+$stmt = $conn->prepare($data_sql);
+$stmt->bind_param($all_types, ...$all_params);
+$stmt->execute();
+$exams_list = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
 
 $conn->close();
 
 function safe($v) {
     return htmlspecialchars($v ?? '');
 }
-?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Exam Management</title>
+function status_badge_style(string $st): array {
+    return match($st) {
+        'under_moderation' => ['bg' => '#fefce8', 'color' => '#ca8a04', 'border' => '#fef08a', 'label' => 'Under Moderation'],
+        'active'           => ['bg' => '#f0fdf4', 'color' => '#16a34a', 'border' => '#bbf7d0', 'label' => 'Active'],
+        'completed'        => ['bg' => '#f3e8ff', 'color' => '#7c3aed', 'border' => '#e9d5ff', 'label' => 'Completed'],
+        'approved'         => ['bg' => '#eff6ff', 'color' => '#2563eb', 'border' => '#bfdbfe', 'label' => 'Approved'],
+        'submitted'        => ['bg' => '#f0fdf4', 'color' => '#0d9488', 'border' => '#99f6e4', 'label' => 'Submitted'],
+        'assigned'         => ['bg' => '#e0f2fe', 'color' => '#0284c7', 'border' => '#bae6fd', 'label' => 'Assigned'],
+        'draft'            => ['bg' => '#f8fafc', 'color' => '#64748b', 'border' => '#e2e8f0', 'label' => 'Draft'],
+        default            => ['bg' => '#f8fafc', 'color' => '#64748b', 'border' => '#e2e8f0', 'label' => ucfirst(str_replace('_', ' ', $st))]
+    };
+}
 
-<?php
 $module_css = 'exam_officer';
 include __DIR__ . '/../common/head_assets.php';
 ?>
-<style>
-/* Modern Rich Aesthetics for Exams.php */
-:root {
-    --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
-    --hover-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-.kpi-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
-}
-.kpi-card {
-    background: linear-gradient(145deg, #ffffff, #f8fafc);
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    border-radius: 16px;
-    padding: 24px;
-    box-shadow: var(--card-shadow);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-.kpi-card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--hover-shadow);
-}
-.kpi-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
-}
-.kpi-card.kpi-draft::before { background: linear-gradient(90deg, #94a3b8, #64748b); }
-.kpi-card.kpi-mod::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
-.kpi-card.kpi-active::before { background: linear-gradient(90deg, #10b981, #059669); }
-
-.kpi-value {
-    font-size: 2.5rem;
-    font-weight: 800;
-    color: #0f172a;
-    line-height: 1.2;
-    font-family: 'Outfit', sans-serif;
-}
-.kpi-label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #64748b;
-    margin-top: 8px;
-}
-
-.search-panel {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow: var(--card-shadow);
-    margin-bottom: 24px;
-    border: 1px solid rgba(226, 232, 240, 0.8);
-}
-.search-form-modern {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-.search-form-modern input, .search-form-modern select {
-    flex: 1;
-    min-width: 200px;
-    padding: 12px 16px;
-    border-radius: 10px;
-    border: 1px solid #cbd5e1;
-    font-family: 'Inter', sans-serif;
-    transition: all 0.2s ease;
-    background: #f8fafc;
-}
-.search-form-modern input:focus, .search-form-modern select:focus {
-    background: #ffffff;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    outline: none;
-}
-.search-form-modern button {
-    padding: 12px 24px;
-    border-radius: 10px;
-    font-weight: 600;
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-    color: white;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
-}
-.search-form-modern button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3);
-}
-
-.table-modern {
-    background: #fff;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: var(--card-shadow);
-    border: 1px solid rgba(226, 232, 240, 0.8);
-}
-.table-modern table {
-    width: 100%;
-    border-collapse: collapse;
-}
-.table-modern th {
-    background: #f8fafc;
-    color: #475569;
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
-    padding: 16px 20px;
-    border-bottom: 2px solid #e2e8f0;
-}
-.table-modern td {
-    padding: 16px 20px;
-    border-bottom: 1px solid #f1f5f9;
-    color: #334155;
-    transition: background 0.2s ease;
-}
-.table-modern tr:hover td {
-    background: #f8fafc;
-}
-.table-modern tr:last-child td {
-    border-bottom: none;
-}
-</style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Management | NED-SEMS</title>
+    <meta name="description" content="Examination Officer exam list, moderation status tracking, scheduling and results management">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/reports.css">
+    <style>
+      .kpi-container {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 16px;
+          margin-bottom: 24px;
+      }
+      .kpi-card {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 18px 20px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+          text-decoration: none;
+          display: block;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      }
+      .kpi-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+          border-color: #94a3b8;
+      }
+      .kpi-card.active {
+          border-color: #2563eb;
+          box-shadow: inset 0 0 0 1px #2563eb, 0 4px 12px rgba(0,0,0,0.06);
+      }
+      .kpi-value {
+          font-size: 2.2rem;
+          font-weight: 800;
+          color: #0f172a;
+          line-height: 1.1;
+      }
+      .kpi-label {
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: #64748b;
+          margin-top: 6px;
+      }
+      .status-pill {
+          display: inline-block;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-weight: 700;
+          font-size: 0.78rem;
+      }
+    </style>
 </head>
-
 <body>
 
-<?php include '../common/header.php'; ?>
+<?php include __DIR__ . '/../common/header.php'; ?>
 
 <div class="dashboard">
-<?php include '../common/sidebar.php'; ?>
+    <?php include __DIR__ . '/../common/sidebar.php'; ?>
 
-<div class="content">
+    <div class="content">
 
-<!-- ================= HEADER ================= -->
-<div class="page-header">
-    <div>
-        <h1 class="page-title">Exam Management</h1>
-        <p class="stats-info">Search, filter, and monitor all examinations.</p>
-    </div>
-    <a href="schedule.php" class="btn btn-dark">+ Schedule Exam</a>
-</div>
+        <!-- ================= PAGE HEADER ================= -->
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Exam Management &amp; Moderation Control</h1>
+                <p class="page-subtitle">Search, filter, and monitor all examinations across moderation, active, draft, and completed states</p>
+            </div>
+            <div class="header-actions">
+                <a href="schedule.php" class="btn btn-dark">+ Schedule New Exam</a>
+            </div>
+        </div>
 
-<!-- ================= KPIs ================= -->
-<div class="kpi-container">
-    <div class="kpi-card">
-        <div class="kpi-value"><?= (int)$kpi['total'] ?></div>
-        <div class="kpi-label">Total Exams</div>
-    </div>
-    <div class="kpi-card kpi-draft">
-        <div class="kpi-value"><?= (int)$kpi['drafted'] ?></div>
-        <div class="kpi-label">Drafts</div>
-    </div>
-    <div class="kpi-card kpi-mod">
-        <div class="kpi-value"><?= (int)$kpi['moderating'] ?></div>
-        <div class="kpi-label">Under Moderation</div>
-    </div>
-    <div class="kpi-card kpi-active">
-        <div class="kpi-value"><?= (int)$kpi['active_completed'] ?></div>
-        <div class="kpi-label">Active / Completed</div>
-    </div>
-</div>
+        <!-- ================= KPI STAT CARDS / FILTER TABS ================= -->
+        <div class="kpi-container">
+            <a href="exams.php" class="kpi-card <?= $status_filter === '' ? 'active' : '' ?>">
+                <div class="kpi-value"><?= (int)$kpi['total'] ?></div>
+                <div class="kpi-label">Total Exams</div>
+            </a>
+            <a href="exams.php?status=under_moderation" class="kpi-card <?= $status_filter === 'under_moderation' ? 'active' : '' ?>">
+                <div class="kpi-value" style="color: #ca8a04;"><?= (int)$kpi['moderating'] ?></div>
+                <div class="kpi-label">Under Moderation</div>
+            </a>
+            <a href="exams.php?status=active" class="kpi-card <?= $status_filter === 'active' ? 'active' : '' ?>">
+                <div class="kpi-value" style="color: #16a34a;"><?= (int)$kpi['active_count'] ?></div>
+                <div class="kpi-label">Active Exams</div>
+            </a>
+            <a href="exams.php?status=draft" class="kpi-card <?= $status_filter === 'draft' ? 'active' : '' ?>">
+                <div class="kpi-value" style="color: #64748b;"><?= (int)$kpi['drafted'] ?></div>
+                <div class="kpi-label">Drafts</div>
+            </a>
+            <a href="exams.php?status=completed" class="kpi-card <?= $status_filter === 'completed' ? 'active' : '' ?>">
+                <div class="kpi-value" style="color: #7c3aed;"><?= (int)$kpi['completed_count'] ?></div>
+                <div class="kpi-label">Completed</div>
+            </a>
+        </div>
 
-<!-- ================= FILTER ================= -->
-<div class="search-panel">
-    <form method="GET" class="search-form-modern">
-        <input type="text" name="search" placeholder="Search exam name or code..." value="<?= safe($search) ?>">
+        <!-- ================= FILTER PANEL ================= -->
+        <div class="rpt-filter-panel no-print">
+            <form method="GET" class="rpt-filter-form">
+                <!-- Status Filter -->
+                <div class="rpt-filter-group">
+                    <label class="rpt-filter-label" for="ef-status">Examination Status</label>
+                    <select name="status" id="ef-status" class="rpt-filter-select" onchange="this.form.submit()">
+                        <option value="">All Statuses</option>
+                        <?php foreach (['draft','assigned','submitted','under_moderation','approved','active','completed'] as $st): ?>
+                            <option value="<?= $st ?>" <?= $status_filter === $st ? 'selected' : '' ?>>
+                                <?= ucwords(str_replace('_',' ',$st)) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
-        <select name="status">
-            <option value="">All Statuses</option>
-            <?php foreach (['draft','assigned','submitted','under_moderation','approved','active','completed'] as $st): ?>
-                <option value="<?= $st ?>" <?= $status === $st ? 'selected' : '' ?>>
-                    <?= ucwords(str_replace('_',' ',$st)) ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
+                <!-- Class Filter -->
+                <div class="rpt-filter-group">
+                    <label class="rpt-filter-label" for="ef-class">Target Class</label>
+                    <select name="class" id="ef-class" class="rpt-filter-select" onchange="this.form.submit()">
+                        <option value="">All Classes</option>
+                        <?php foreach ($classes_list as $cl): ?>
+                            <option value="<?= htmlspecialchars($cl) ?>" <?= $class_filter === $cl ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($cl) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
-        <button type="submit">🔍 Filter Results</button>
-        <?php if ($search || $status): ?>
-            <a href="exams.php" style="color: #64748b; text-decoration: none; font-size: 0.9rem; font-weight: 600; padding: 12px; transition: color 0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#64748b'">Reset</a>
-        <?php endif; ?>
-    </form>
-</div>
+                <!-- Search Input -->
+                <div class="rpt-filter-group">
+                    <label class="rpt-filter-label" for="ef-search">Search Exam</label>
+                    <input type="text" name="search" id="ef-search" class="rpt-filter-input" placeholder="Exam name or code..." value="<?= safe($search) ?>">
+                </div>
 
-<!-- ================= TABLE ================= -->
-<div class="section">
-    <div class="table-modern">
-        <table>
-            <thead>
-                <tr>
-                    <th>Exam Details</th>
-                    <th>Subject</th>
-                    <th>Class</th>
-                    <th>Schedule</th>
-                    <th>Status</th>
-                    <th style="text-align: right;">Actions</th>
-                </tr>
-            </thead>
+                <div class="rpt-filter-actions">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <a href="exams.php" class="btn btn-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
 
-            <tbody>
-                <?php if ($exams->num_rows > 0): ?>
-                    <?php while ($e = $exams->fetch_assoc()): ?>
-                        <tr>
-                            <td>
-                                <strong style="color: #0f172a; font-size: 1.05rem;"><?= safe($e['exam_name']) ?></strong>
-                                <div style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">ID: #<?= $e['exam_id'] ?> | Code: <?= safe($e['exam_code'] ?? '—') ?></div>
-                            </td>
-
-                            <td>
-                                <span style="font-weight: 600; color: var(--primary-dark);"><?= (int)$e['subject_count'] ?> Subjects</span>
-                            </td>
-
-                            <td><?= safe($e['class']) ?></td>
-
-                            <td>
-                                <div><span style="color:#64748b;font-size:0.8rem;">Date:</span> <?= $e['start_date'] ? date('d M Y', strtotime($e['start_date'])) : '—' ?></div>
-                                <div style="margin-top:4px;"><span style="color:#64748b;font-size:0.8rem;">Duration:</span> <?= $e['duration_minutes'] ?? '—' ?> min</div>
-                            </td>
-
-                            <td>
-                                <?php 
-                                    $badge_class = str_replace('_','-',$e['status']);
-                                    if ($e['status'] === 'under_moderation') $badge_class = 'warning';
-                                    if ($e['status'] === 'active') $badge_class = 'success';
-                                    if ($e['status'] === 'draft') $badge_class = 'secondary';
-                                ?>
-                                <span class="badge badge-<?= $badge_class ?>" style="padding: 6px 12px; font-size: 0.8rem;">
-                                    <?= ucwords(str_replace('_',' ', $e['status'])) ?>
-                                </span>
-                            </td>
-
-                            <td class="actions" style="text-align: right;">
-                                <?php if ($e['status'] === 'under_moderation'): ?>
-                                    <a href="control.php?exam_id=<?= $e['exam_id'] ?>" class="btn btn-small" style="background: #f59e0b; color: white; border: none; font-weight: 600;">
-                                        Review Moderation
-                                    </a>
-                                <?php else: ?>
-                                    <a href="schedule.php?exam_id=<?= $e['exam_id'] ?>" class="btn btn-small btn-edit" style="font-weight: 600;">
-                                        Schedule
-                                    </a>
-                                    <a href="results.php?exam_id=<?= $e['exam_id'] ?>" class="btn btn-small btn-dark" style="font-weight: 600;">
-                                        Results
-                                    </a>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="6" style="text-align: center; padding: 40px; color: #64748b;">
-                            <div style="font-size: 2rem; margin-bottom: 10px;">📭</div>
-                            <div style="font-size: 1.1rem; font-weight: 600; color: #334155;">No exams found</div>
-                            <p>Try adjusting your search or filters.</p>
-                        </td>
-                    </tr>
+        <!-- ================= EXAMS TABLE CARD ================= -->
+        <div class="card">
+            <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div>
+                    <h3 style="margin: 0;">Examinations Directory</h3>
+                    <p style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 0 0;">
+                        Displaying <strong><?= count($exams_list) ?></strong> of <strong><?= $total_records ?></strong> registered exams
+                        <?= $status_filter ? "filtered by <strong>" . htmlspecialchars(ucwords(str_replace('_', ' ', $status_filter))) . "</strong>" : "" ?>
+                    </p>
+                </div>
+                <?php if ($pagination && $pagination['total_pages'] > 1): ?>
+                    <span style="font-size: 0.82rem; color: var(--text-muted);">Page <?= $pagination['page'] ?> of <?= $pagination['total_pages'] ?></span>
                 <?php endif; ?>
-            </tbody>
+            </div>
 
-        </table>
+            <div class="rpt-table-wrap">
+                <table class="rpt-table">
+                    <thead>
+                        <tr>
+                            <th>Exam Name &amp; Code</th>
+                            <th>Target Class</th>
+                            <th class="val-col">Subjects</th>
+                            <th>Schedule &amp; Duration</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($exams_list)): ?>
+                            <tr>
+                                <td colspan="6" class="empty-state">No examination papers found matching your filter criteria.</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($exams_list as $e): ?>
+                                <?php $b = status_badge_style($e['status']); ?>
+                                <tr>
+                                    <td>
+                                        <div style="font-weight: 700; color: #0f172a; font-size: 0.95rem;"><?= safe($e['exam_name']) ?></div>
+                                        <div style="font-size: 0.78rem; color: #64748b; margin-top: 2px;">
+                                            ID: #<?= $e['exam_id'] ?> · Code: <?= safe($e['exam_code'] ?: 'N/A') ?> · Academic Year: <?= safe($e['year']) ?>
+                                        </div>
+                                    </td>
+
+                                    <td style="font-weight: 600; color: #334155;"><?= safe($e['class']) ?></td>
+
+                                    <td class="val-col" style="font-weight: 700; color: var(--info-color);">
+                                        <?= (int)$e['subject_count'] ?> Subjects
+                                    </td>
+
+                                    <td>
+                                        <div style="font-size: 0.84rem; font-weight: 600;">
+                                            <?= $e['start_date'] ? date('d M Y', strtotime($e['start_date'])) : 'Unscheduled' ?>
+                                        </div>
+                                        <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">
+                                            Duration: <?= ($e['duration_minutes'] ?? null) ? $e['duration_minutes'] . ' mins' : 'N/A' ?>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <span class="status-pill" style="background: <?= $b['bg'] ?>; color: <?= $b['color'] ?>; border: 1px solid <?= $b['border'] ?>;">
+                                            <?= htmlspecialchars($b['label']) ?>
+                                        </span>
+                                    </td>
+
+                                    <td style="text-align: right;">
+                                        <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                                            <?php if ($e['status'] === 'under_moderation'): ?>
+                                                <a href="control.php?exam_id=<?= $e['exam_id'] ?>" class="btn btn-primary" style="font-size: 0.78rem; padding: 5px 10px; background: #f59e0b; border: none; font-weight: 700;">
+                                                    Review Moderation
+                                                </a>
+                                            <?php endif; ?>
+                                            <a href="schedule.php?exam_id=<?= $e['exam_id'] ?>" class="btn btn-secondary" style="font-size: 0.78rem; padding: 5px 10px;">
+                                                Schedule
+                                            </a>
+                                            <a href="results.php?exam_id=<?= $e['exam_id'] ?>" class="btn btn-dark" style="font-size: 0.78rem; padding: 5px 10px;">
+                                                Results
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination controls -->
+            <?php if ($pagination && $pagination['total_pages'] > 1): ?>
+                <div style="margin-top: 16px;">
+                    <?= render_pagination($pagination, 'exams.php') ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
     </div>
 </div>
 
-</div>
-</div>
-
-<?php include '../common/footer.php'; ?>
+<?php include __DIR__ . '/../common/footer.php'; ?>
 
 </body>
 </html>

@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'examination_officer') 
 
 $conn = get_db_connection();
 
-$school_id = (int)$_SESSION['school_id'];
+$school_id = (int)($_SESSION['school_id'] ?? 0);
 $user_name = $_SESSION['name'] ?? 'Examination Officer';
 
 /* ================= BASIC STATS ================= */
@@ -26,7 +26,7 @@ $received_marks = $conn->query("
     FROM marks m
     JOIN students s ON m.student_id = s.student_id
     WHERE s.school_id = $school_id 
-    AND m.submission_status = 'received'
+    AND m.status IN ('submitted', 'approved')
 ")->fetch_assoc()['total'] ?? 0;
 
 $pending_marks = $conn->query("
@@ -34,7 +34,7 @@ $pending_marks = $conn->query("
     FROM marks m
     JOIN students s ON m.student_id = s.student_id
     WHERE s.school_id = $school_id 
-    AND m.submission_status = 'submitted'
+    AND m.status = 'draft'
 ")->fetch_assoc()['total'] ?? 0;
 
 $forwarded_marks = $conn->query("
@@ -42,7 +42,7 @@ $forwarded_marks = $conn->query("
     FROM marks m
     JOIN students s ON m.student_id = s.student_id
     WHERE s.school_id = $school_id 
-    AND m.submission_status = 'forwarded_to_edm'
+    AND m.status = 'approved'
 ")->fetch_assoc()['total'] ?? 0;
 
 $compiled_results = $conn->query("
@@ -52,15 +52,16 @@ $compiled_results = $conn->query("
     WHERE s.school_id = $school_id
 ")->fetch_assoc()['total'] ?? 0;
 
-/* ================= RECENT EXAMS (SAFE QUERY - NO subject_id) ================= */
+/* ================= RECENT EXAMS ================= */
 $recent_exams = $conn->query("
     SELECT 
+        exam_id,
         exam_name,
         start_date,
         status,
-        'General' AS subject_name   -- Remove this if you have subject info elsewhere
+        'General' AS subject_name
     FROM exams 
-    ORDER BY start_date DESC
+    ORDER BY start_date DESC, exam_id DESC
     LIMIT 8
 ");
 
@@ -70,8 +71,7 @@ $recent_marks = $conn->query("
         st.name,
         sub.subject_name,
         m.score,
-        m.grade,
-        m.submission_status
+        m.status AS submission_status
     FROM marks m
     JOIN students st ON m.student_id = st.student_id
     LEFT JOIN subjects sub ON m.subject_id = sub.subject_id
@@ -103,59 +103,60 @@ $conn->close();
     
     <style>
        .stats {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-                gap: 15px;
-                margin: 25px 0;
-            }
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 15px;
+            margin: 25px 0;
+        }
 
-            .stat-box {
-                background: white;
-                border-radius: 12px;
-                padding: 20px 14px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.07);
-                text-align: center;
-                transition: all 0.3s ease;
-                border: 1px solid var(--border-color);
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                height: 100%;
-                min-height: 172px;
-            }
+        .stat-box {
+            background: white;
+            border-radius: 12px;
+            padding: 20px 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            min-height: 172px;
+        }
 
-            .stat-box:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 12px 25px rgba(0,0,0,0.1);
-            }
+        .stat-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.1);
+        }
 
-            .stat-badge img {
-                width:40px;
-                height:40px;
-                object-fit:contain;
-                margin-bottom:10px;
-            }
+        .stat-badge img {
+            width:40px;
+            height:40px;
+            object-fit:contain;
+            margin-bottom:10px;
+        }
 
-            .stat-number {
-                font-size:1.50rem;
-                font-weight:700;
-                margin:6px 0 4px;
-                color:#1e2937;
-            }
+        .stat-number {
+            font-size:1.50rem;
+            font-weight:700;
+            margin:6px 0 4px;
+            color:#1e2937;
+        }
 
-            .stat-box h4 {
-                margin:0 0 6px;
-                font-size:0.85rem;
-                color:#334155;
-                font-weight:600;
-            }
+        .stat-box h4 {
+            margin:0 0 6px;
+            font-size:0.85rem;
+            color:#334155;
+            font-weight:600;
+        }
 
-            .stat-box small {
-                color:#64748b;
-                font-size:0.82rem;
-                line-height:1.4;
-            }
+        .stat-box small {
+            color:#64748b;
+            font-size:0.82rem;
+            line-height:1.4;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -174,34 +175,43 @@ $conn->close();
             </div>
         </div>
 
-        <!-- ================= WELL ALIGNED STAT CARDS ================= -->
-                <div class="stats">
-                    <div class="stat-box">                        
-                        <h4>Registered Students</h4>
-                        <p class="stat-number"><?= number_format($total_students) ?></p>
-                        <small>Students registered in this school</small>
-                        <a href="candidate_register.php" class="btn btn-small btn-view">View Students</a>
-                    </div>
-                    <div class="stat-box">                        
-                        <h4>Marks Received</h4>
-                        <p class="stat-number"><?= number_format($received_marks) ?></p>
-                        <small>Marks successfully received from teachers</small>
-                        <a href="receive_marks.php" class="btn btn-small btn-view">View Marks</a>
-                    </div>
-                    <div class="stat-box">                        
-                        <h4>Pending Submissions</h4>
-                        <p class="stat-number"><?= number_format($pending_marks) ?></p>
-                        <small>Marks awaiting submission verification</small>
-                        <a href="marks_verification.php" class="btn btn-small btn-view">Verify</a>
-                    </div>               
-                    <div class="stat-box">                        
-                        <h4>Compiled Results</h4>
-                        <p class="stat-number"><?= number_format($compiled_results) ?></p>
-                        <small>Results prepared and available</small>
-                        <a href="reports.php" class="btn btn-small btn-view">Reports</a>
-                    </div>
+        <!-- ================= STAT CARDS WITH WORKING LINKS ================= -->
+        <div class="stats">
+            <div class="stat-box">                        
+                <h4>Registered Students</h4>
+                <p class="stat-number"><?= number_format($total_students) ?></p>
+                <small>Students registered in this school</small>
+                <a href="manage_students.php" class="btn btn-small btn-view">View Students</a>
+            </div>
+            <div class="stat-box">                        
+                <h4>Marks Received</h4>
+                <p class="stat-number"><?= number_format($received_marks) ?></p>
+                <small>Marks successfully received from teachers</small>
+                <a href="marks_management.php?tab=approvals" class="btn btn-small btn-view">View Marks</a>
+            </div>
+            <div class="stat-box">                        
+                <h4>Pending Submissions</h4>
+                <p class="stat-number"><?= number_format($pending_marks) ?></p>
+                <small>Marks awaiting submission verification</small>
+                <a href="marks_management.php?tab=entry" class="btn btn-small btn-view">Verify</a>
+            </div>               
+            <div class="stat-box">                        
+                <h4>Compiled Results</h4>
+                <p class="stat-number"><?= number_format($compiled_results) ?></p>
+                <small>Results prepared and available</small>
+                <a href="reports.php" class="btn btn-small btn-view">Reports</a>
+            </div>
+        </div>
 
-                </div>
+        <!-- QUICK ACTIONS -->
+        <div class="card">
+            <h3>Quick Actions</h3>
+            <div class="quick-links">
+                <a href="marks_management.php?tab=entry">Receive Marks</a>                
+                <a href="results.php">Review Results</a>
+                <a href="manage_students.php">Candidate Register</a>                
+            </div>
+        </div>
 
         <!-- ANNOUNCEMENTS -->
         <div class="card" style="margin-bottom: 25px;">
@@ -227,17 +237,7 @@ $conn->close();
                     <p class="empty-state">No announcements published yet.</p>
                 <?php endif; ?>
             </div>
-        </div>
-
-        <!-- QUICK ACTIONS -->
-        <div class="card">
-            <h3>Quick Actions</h3>
-            <div class="quick-links">
-                <a href="receive_marks.php">Receive Marks</a>                
-                <a href="results_review.php">Review Results</a>
-                <a href="candidate_register.php">Candidate Register</a>                
-            </div>
-        </div>
+        </div>      
 
         <!-- TWO PANELS -->
         <div class="panel-grid">
@@ -258,13 +258,21 @@ $conn->close();
                             </tr>
                         </thead>
                         <tbody>
-                            <?php if($recent_exams->num_rows > 0): ?>
+                            <?php if($recent_exams && $recent_exams->num_rows > 0): ?>
                                 <?php while($exam = $recent_exams->fetch_assoc()): ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($exam['exam_name']) ?></td>
+                                    <td>
+                                        <a href="exams.php" style="color: inherit; font-weight: 600; text-decoration: none;">
+                                            <?= htmlspecialchars($exam['exam_name']) ?>
+                                        </a>
+                                    </td>
                                     <td><?= htmlspecialchars($exam['subject_name']) ?></td>
-                                    <td><?= date('d M Y', strtotime($exam['start_date'])) ?></td>
-                                    <td><span class="badge badge-approved"><?= ucfirst($exam['status']) ?></span></td>
+                                    <td><?= $exam['start_date'] ? date('d M Y', strtotime($exam['start_date'])) : 'N/A' ?></td>
+                                    <td>
+                                        <span class="badge badge-approved">
+                                            <?= ucfirst($exam['status']) ?>
+                                        </span>
+                                    </td>
                                 </tr>
                                 <?php endwhile; ?>
                             <?php else: ?>
@@ -313,27 +321,25 @@ $conn->close();
                             <th>Student</th>
                             <th>Subject</th>
                             <th>Score</th>
-                            <th>Grade</th>
                             <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if($recent_marks->num_rows > 0): ?>
+                        <?php if($recent_marks && $recent_marks->num_rows > 0): ?>
                             <?php while($row = $recent_marks->fetch_assoc()): ?>
                             <tr>
                                 <td><?= htmlspecialchars($row['name']) ?></td>
                                 <td><?= htmlspecialchars($row['subject_name'] ?? 'N/A') ?></td>
-                                <td><?= $row['score'] ?? 'N/A' ?></td>
-                                <td><?= $row['grade'] ?? 'N/A' ?></td>
+                                <td><?= $row['score'] !== null ? $row['score'] . '%' : 'N/A' ?></td>
                                 <td>
                                     <span class="badge badge-submitted">
-                                        <?= ucwords(str_replace('_',' ', $row['submission_status'])) ?>
+                                        <?= ucwords(str_replace('_',' ', $row['submission_status'] ?? 'submitted')) ?>
                                     </span>
                                 </td>
                             </tr>
                             <?php endwhile; ?>
                         <?php else: ?>
-                            <tr><td colspan="5">No marks available yet.</td></tr>
+                            <tr><td colspan="4">No marks available yet.</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>

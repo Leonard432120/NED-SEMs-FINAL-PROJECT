@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/teacher_init.php';
 require_once __DIR__ . '/../services/ai/compose_bridge.php';
+require_once __DIR__ . '/../common/assignment_access_guard.php';
 
 @set_time_limit(600);
 
@@ -14,6 +15,9 @@ if ($exam_id <= 0) {
 }
 
 $conn = get_db_connection();
+
+/* ── ACCESS WINDOW ENFORCEMENT ── */
+enforce_assignment_access($conn, $exam_id, $subject_id, 'item_writer');
 
 // ── POST handler ─────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -752,6 +756,7 @@ include __DIR__ . '/../common/head_assets.php';
 <body>
 
 <?php include __DIR__ . '/../common/header.php'; ?>
+<?php include __DIR__ . '/../common/watermark_helper.php'; ?>
 <div class="dashboard">
 <?php include __DIR__ . '/../common/sidebar.php'; ?>
 
